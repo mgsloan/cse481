@@ -89,11 +89,11 @@ namespace WpfApplication2
                 SetEllipsePosition(ellipse2, elbowRight);
                 SetEllipsePosition(ellipse3, handRight);
 
-                Vector3D s_e = between(shoulderRight, elbowRight),
-                         e_h = between(elbowRight, handRight); 
+                Vector3D se = between(shoulderRight, elbowRight),
+                         eh = between(elbowRight, handRight); 
 
-                double angle = Vector3D.AngleBetween(s_e, e_h);
-                elbow.UpdateRoll(angle);
+                double angle = Vector3D.AngleBetween(se, eh);
+                elbow.UpdateYaw(angle);
                 
                 //Matrix3D bodyRef = makeReferenceFrame(getLoc(shoulderCenter), getLoc(shoulderLeft), getLoc(spine));
                 Vector3D dx = between(shoulderLeft, shoulderRight);
@@ -101,18 +101,32 @@ namespace WpfApplication2
                 dx.Normalize(); dy.Normalize();
                 Vector3D dz = Vector3D.CrossProduct(dx, dy);
 
-                Matrix3D bodyRef = makeMatrix(dx, dy, dz, getLoc(spine));
+                Matrix3D bodyRef = makeMatrix(dx, dy, dz, new Vector3D(0, 0, 0));
+                Matrix3D bodyRef2 = makeMatrix(dx, dy, dz, new Vector3D(0, 0, 0));
                 bodyRef.Invert();
 
-                Vector3D s_e_local = bodyRef.Transform(s_e);
+                Vector3D sel = bodyRef.Transform(se);
                 
-                double a1 = Vector3D.AngleBetween(new Vector3D(0, s_e_local.Y, s_e_local.Z), new Vector3D(0,-1,0)),
-                       a2 = Vector3D.AngleBetween(new Vector3D(s_e_local.X, s_e_local.Y, 0), new Vector3D(0,-1,0));
-
-                Console.WriteLine(a1.ToString() + " " + a2.ToString());
+                double a1 = Vector3D.AngleBetween(new Vector3D(0, sel.Y, sel.Z), new Vector3D(0,-1,0)),
+                       a2 = Vector3D.AngleBetween(new Vector3D(sel.X, sel.Y, 0), new Vector3D(0,-1,0));
 
                 elbow.updateLeftShoulderPitch(a1);
                 elbow.updateLeftShoulderRoll(a2);
+
+
+                Vector3D other = new Vector3D(sel.X, 0, sel.Z);
+                Matrix3D upperRightRef = makeReferenceFrame(bodyRef.Transform(between(spine, shoulderRight)),
+                                                            other,
+                                                            sel);
+
+                Matrix3D upperRightInv = Matrix3D.Multiply(bodyRef2, upperRightRef);
+                upperRightInv.Invert();
+
+                Vector3D handLoc = upperRightInv.Transform(getLoc(handRight));
+                handLoc.Y = 0;
+                
+                double a3 = Vector3D.AngleBetween(handLoc, new Vector3D(1, 0, 0));
+                Console.WriteLine(a3.ToString());
 
                 /*
                 Vector3D bodyVec = getVec(spine, shoulderCenter),
