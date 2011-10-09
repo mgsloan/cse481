@@ -21,7 +21,7 @@ namespace WpfApplication2
     /// </summary>
     public partial class MainWindow : System.Windows.Window
     {
-        ElbowTest elbow = new ElbowTest();
+        NaoUpperBody nao = new NaoUpperBody();
 
         public MainWindow()
         {
@@ -61,7 +61,7 @@ namespace WpfApplication2
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
 
-            elbow.Connect("127.0.0.1");
+            nao.Connect("127.0.0.1");
         }
         
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
@@ -93,7 +93,7 @@ namespace WpfApplication2
                          e_h = between(elbowRight, handRight); 
 
                 double angle = Vector3D.AngleBetween(s_e, e_h);
-                elbow.UpdateRoll(angle);
+                nao.REUpdateRoll(angle);
                 
                 //Matrix3D bodyRef = makeReferenceFrame(getLoc(shoulderCenter), getLoc(shoulderLeft), getLoc(spine));
                 Vector3D dx = between(shoulderLeft, shoulderRight);
@@ -105,14 +105,16 @@ namespace WpfApplication2
                 bodyRef.Invert();
 
                 Vector3D s_e_local = bodyRef.Transform(s_e);
-                
-                double a1 = Vector3D.AngleBetween(new Vector3D(0, s_e_local.Y, s_e_local.Z), new Vector3D(0,-1,0)),
+                //Console.WriteLine(s_e.ToString());
+                //Console.WriteLine(s_e_local.ToString());
+                //Canvas.SetLeft(ellipse4, );
+                double a1 = Vector3D.AngleBetween(new Vector3D(0, s_e_local.Y, s_e_local.Z), new Vector3D(0,0,-1)),
                        a2 = Vector3D.AngleBetween(new Vector3D(s_e_local.X, s_e_local.Y, 0), new Vector3D(0,-1,0));
 
-                Console.WriteLine(a1.ToString() + " " + a2.ToString());
-
-                elbow.updateLeftShoulderPitch(a1);
-                elbow.updateLeftShoulderRoll(a2);
+                Console.WriteLine("LeftShoulderPitch angle: " + a1.ToString());
+                Console.WriteLine("LeftShoulderRoll angle: " + a2.ToString());
+                nao.LSUpdatePitch(a1);
+                nao.LSUpdateRoll(a2);
 
                 /*
                 Vector3D bodyVec = getVec(spine, shoulderCenter),
@@ -126,7 +128,7 @@ namespace WpfApplication2
                 Vector3D bicepProjection = Vector3D.CrossProduct(bodyPlane, Vector3D.CrossProduct(bodyPlane, Leftbicep)) / Vector3D.DotProduct(bodyPlane, bodyPlane);
                 double leftShoulderAngle = Vector3D.AngleBetween(bicepProjection, bodyVec);
 
-                //elbow.updateLeftShoulderRoll(leftShoulderAngle);
+                //nao.LSUpdateRoll(leftShoulderAngle);
 
 
                 //A || B = B × (A × B) / |B|²
@@ -134,7 +136,7 @@ namespace WpfApplication2
                 Vector3D bicepProjection2 = Vector3D.CrossProduct(shoulderVec, Vector3D.CrossProduct(shoulderVec, Leftbicep)) / Vector3D.DotProduct(shoulderVec, shoulderVec);
                 double leftShoulderAngle2 = Vector3D.AngleBetween(bicepProjection2, bodyVec);
 
-                elbow.updateLeftShoulderPitch(leftShoulderAngle2);
+                nao.LSUpdatePitch(leftShoulderAngle2);
                 */
             }
         }

@@ -9,6 +9,8 @@
             <Ellipse Canvas.Left="85" Canvas.Top="10" Height="24" Name="ellipse1" Stroke="Black" Width="24" />
             <Ellipse Canvas.Left="10" Canvas.Top="10" Height="24" Name="ellipse2" Stroke="Black" Width="24" />
             <Ellipse Canvas.Left="185" Canvas.Top="10" Height="24" Name="ellipse3" Stroke="Black" Width="24" />
+            <Ellipse Canvas.Left="185" Canvas.Top="10" Height="24" Name="ellipse4" Stroke="Black" Width="24" />
+            <Ellipse Canvas.Left="185" Canvas.Top="10" Height="24" Name="ellipse5" Stroke="Black" Width="24" />
         </Canvas>
     </Grid>
 </Window>
