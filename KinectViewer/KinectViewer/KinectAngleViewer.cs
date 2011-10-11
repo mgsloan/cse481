@@ -10,22 +10,33 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
-        void updateSkeleton(SkeletonData skeleton)
+        protected override void updateSkeleton(SkeletonData skeleton)
         {
-            Joint elbowRight = skeleton.Joints[JointID.ElbowRight],
-                    handRight = skeleton.Joints[JointID.HandRight],
-                    shoulderRight = skeleton.Joints[JointID.ShoulderRight],
-                    shoulderLeft = skeleton.Joints[JointID.ShoulderLeft],
-                    shoulderCenter = skeleton.Joints[JointID.ShoulderCenter],
-                    spine = skeleton.Joints[JointID.Spine],
-                    elbowLeft = skeleton.Joints[JointID.ElbowLeft];
+            Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
+                    handRight      = getLoc(skeleton.Joints[JointID.HandRight]),
+                    shoulderRight  = getLoc(skeleton.Joints[JointID.ShoulderRight]),
+                    shoulderLeft   = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
+                    shoulderCenter = getLoc(skeleton.Joints[JointID.ShoulderCenter]),
+                    spine          = getLoc(skeleton.Joints[JointID.Spine]),
+                    elbowLeft      = getLoc(skeleton.Joints[JointID.ElbowLeft]);
 
             lines.Clear();
             
-            Vector3 dx = Vector3.Subtract(getLoc(shoulderRight), getLoc(shoulderLeft));
-            Vector3 dy = Vector3.Subtract(getLoc(spine), getLoc(shoulderCenter));
+            Vector3 dx = Vector3.Subtract(shoulderLeft, shoulderRight);
+            Vector3 dy = Vector3.Subtract(shoulderCenter, spine);
             Vector3 dz = Vector3.Cross(dx, dy);
-           // Matrix.CreateWorld
+            Matrix srRef = Matrix.CreateWorld(shoulderRight, dz, dy);
+            debugReferenceFrame("sr", srRef, 3);
+
+            Matrix srRefInv = Matrix.Invert(srRef);
+            Vector3 elocal = Vector3.Transform(elbowRight, srRefInv);
+            Vector3 offset = Vector3.Add(spine, new Vector3(5, 0, 0));
+            Vector3 pitchv = new Vector3(0, elocal.Y, elocal.Z);
+            Vector3 rollv = new Vector3(elocal.X, elocal.Y, 0);
+            double pitch = Math.Atan2(pitchv.Y, pitchv.Z);
+            double roll = Math.Atan2(rollv.X, rollv.Y);
+            lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(pitchv, 5)), Color.Black, "pitch = " + pitch.ToString()));
+            lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(rollv, 5)), Color.Black, "roll = " + roll.ToString()));
 
            // Matrix bodyRef = makeReferenceFrame(getLoc(shoulderCenter), getLoc(shoulderLeft), getLoc(spine));
 
@@ -76,6 +87,13 @@ namespace KinectViewer
             Vector3 dz = Vector3.Cross(dx, dy);
             return Matrix.CreateWorld(c, dz, dy);
         }
+
+        private void debugReferenceFrame(String str, Matrix m, float sz)
+        {
+            lines.Add(new LabelledVector(m.Translation, m.Translation + m.Right * sz, Color.Red, str));
+            lines.Add(new LabelledVector(m.Translation, m.Translation + m.Up * sz, Color.Green, str));
+            lines.Add(new LabelledVector(m.Translation, m.Translation + m.Forward * sz, Color.Blue, str));
+        }
         
         /*
         // TODO: is this in homogenous coords?
@@ -84,11 +102,6 @@ namespace KinectViewer
         {
             return Vector3D.Subtract(getLoc(j2), getLoc(j1));
         }
-
-
-
-        
          */
-
     }
 }

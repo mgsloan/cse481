@@ -87,7 +87,7 @@ namespace KinectViewer
             nao.Connect("127.0.0.1");
         }
 
-        void updateSkeleton(SkeletonData skeleton)
+        protected virtual void updateSkeleton(SkeletonData skeleton)
         {
         }
 
@@ -225,10 +225,9 @@ namespace KinectViewer
 
         private void ProcessInput(float amount)
         {
-
+            MouseState currentMouseState = Mouse.GetState();
             if (trap_mouse)
             {
-                MouseState currentMouseState = Mouse.GetState();
                 float xDifference = currentMouseState.X - GraphicsDevice.Viewport.Width / 2;
                 float yDifference = currentMouseState.Y - GraphicsDevice.Viewport.Height / 2;
                 leftrightRot -= rotationSpeed * xDifference * amount;
@@ -252,9 +251,9 @@ namespace KinectViewer
                 }
             }
 
-            if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W))
+            if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
                 moveVector -= new Vector3(0, 0, -1);
-            if (keyState.IsKeyDown(Keys.Down) || keyState.IsKeyDown(Keys.S))
+            if (keyState.IsKeyDown(Keys.Down) || keyState.IsKeyDown(Keys.S) || currentMouseState.RightButton.HasFlag(ButtonState.Pressed))
                 moveVector -= new Vector3(0, 0, 1);
             if (keyState.IsKeyDown(Keys.Right) || keyState.IsKeyDown(Keys.D))
                 moveVector -= new Vector3(1, 0, 0);

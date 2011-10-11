@@ -10,7 +10,7 @@ namespace KinectViewer
         /// </summary>
         static void Main(string[] args)
         {
-            using (KinectViewer game = new KinectViewer())
+            using (KinectAngleViewer game = new KinectAngleViewer())
             {
                 game.Run();
             }
