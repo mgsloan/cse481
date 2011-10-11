@@ -1,10 +1,10 @@
-﻿using Microsoft.Xna.Framework;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Research.Kinect.Audio;
 using Microsoft.Research.Kinect.Nui;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Content;
@@ -17,23 +17,24 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
 
-        /*
-        bool key = false;
-        bool keydownseen = false;
-        */
-
+        bool trap_mouse = true;
+        bool seen_k = false;
+        
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
         SpriteFont spriteFont;
         SpherePrimitive sphere;
         SampleGrid grid;
         SampleGrid grid2;
-        List<LabelledVector> lines = new List<LabelledVector>();
+        protected List<LabelledVector> lines = new List<LabelledVector>();
 
         public KinectViewer()
         {
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
+            graphics.PreferredBackBufferWidth = 1280;
+            graphics.PreferredBackBufferHeight = 1024;
+            //graphics.IsFullScreen = true;
         }
 
         protected override void LoadContent()
@@ -86,6 +87,10 @@ namespace KinectViewer
             nao.Connect("127.0.0.1");
         }
 
+        void updateSkeleton(SkeletonData skeleton)
+        {
+        }
+
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
             SkeletonFrame allSkeletons = e.SkeletonFrame;
@@ -98,56 +103,7 @@ namespace KinectViewer
             if (skeleton != null)
             {
                 cur_skeleton = skeleton;
-                // Get joint data
-
-                Joint elbowRight = skeleton.Joints[JointID.ElbowRight],
-                      handRight = skeleton.Joints[JointID.HandRight],
-                      shoulderRight = skeleton.Joints[JointID.ShoulderRight],
-                      shoulderLeft = skeleton.Joints[JointID.ShoulderLeft],
-                      shoulderCenter = skeleton.Joints[JointID.ShoulderCenter],
-                      spine = skeleton.Joints[JointID.Spine],
-                      elbowLeft = skeleton.Joints[JointID.ElbowLeft];
-
-                lines.Clear();
-
-                //Vector3D s_e = between(shoulderRight, elbowRight),
-                //         e_h = between(elbowRight, handRight); 
-
-                //double angle = Vector3D.AngleBetween(s_e, e_h);
-                //nao.REUpdateRoll(angle);
-
-                //Matrix3D bodyRef = makeReferenceFrame(getLoc(shoulderCenter), getLoc(shoulderLeft), getLoc(spine));
-                /*
-                Vector3D dx = between(shoulderLeft, shoulderRight);
-                Vector3D dy = between(spine, shoulderCenter);
-                dx.Normalize(); dy.Normalize();
-                Vector3D dz = Vector3D.CrossProduct(dx, dy);
-                Console.WriteLine(dz.ToString());
-
-                Matrix3D shoulderFrame = makeMatrix(dx, dy, dz, getLoc(shoulderRight));
-                shoulderFrame.Invert();
-
-                Vector3D elbowRightLocal = shoulderFrame.Transform(getLoc(elbowRight));
-                Console.WriteLine(elbowRightLocal.ToString());
-
-                //Console.WriteLine(s_e.ToString());
-                //Console.WriteLine(s_e_local.ToString());
-                //Canvas.SetLeft(ellipse4, );
-                double a1 = Math.Atan2(elbowRightLocal.Y, elbowRightLocal.Z);
-                double a2 = Math.Atan2(elbowRightLocal.X, elbowRightLocal.Y);
-                (*/
-                /*
-                double a1 = Vector3D.AngleBetween(new Vector3D(0, elbowRightLocal.Y, elbowRightLocal.Z), new Vector3D(0, 0, -1)),
-                       a2 = Vector3D.AngleBetween(new Vector3D(elbowRightLocal.X, elbowRightLocal.Y, 0), new Vector3D(0, -1, 0));
-                 */
-                //setAngle(line_ang1, a1, 20);
-                //setAngle(line_ang2, a2, 20);
-                /*
-                Console.WriteLine("LeftShoulderPitch angle: " + a1.ToString());
-                Console.WriteLine("LeftShoulderRoll angle: " + a2.ToString());
-                nao.LSUpdatePitch(a1);
-                nao.LSUpdateRoll(a2);
-                */
+                updateSkeleton(skeleton);
             }
         }
 
@@ -269,16 +225,33 @@ namespace KinectViewer
 
         private void ProcessInput(float amount)
         {
-            MouseState currentMouseState = Mouse.GetState();
-            float xDifference = currentMouseState.X - GraphicsDevice.Viewport.Width / 2;
-            float yDifference = currentMouseState.Y - GraphicsDevice.Viewport.Height / 2;
-            leftrightRot -= rotationSpeed * xDifference * amount;
-            updownRot += rotationSpeed * yDifference * amount;
-            Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
-            UpdateViewMatrix();
+
+            if (trap_mouse)
+            {
+                MouseState currentMouseState = Mouse.GetState();
+                float xDifference = currentMouseState.X - GraphicsDevice.Viewport.Width / 2;
+                float yDifference = currentMouseState.Y - GraphicsDevice.Viewport.Height / 2;
+                leftrightRot -= rotationSpeed * xDifference * amount;
+                updownRot += rotationSpeed * yDifference * amount;
+                Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
+                UpdateViewMatrix();
+            }
 
             Vector3 moveVector = new Vector3(0, 0, 0);
             KeyboardState keyState = Keyboard.GetState();
+            if (keyState.IsKeyDown(Keys.K))
+            {
+                if (!seen_k) {
+                    seen_k = true;
+                    trap_mouse = !trap_mouse;
+                }
+            } else if (keyState.IsKeyUp(Keys.K)) {
+                if (seen_k)
+                {
+                    seen_k = false;
+                }
+            }
+
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W))
                 moveVector -= new Vector3(0, 0, -1);
             if (keyState.IsKeyDown(Keys.Down) || keyState.IsKeyDown(Keys.S))
@@ -317,35 +290,7 @@ namespace KinectViewer
             viewMatrix = Matrix.CreateLookAt(cameraPosition, cameraFinalTarget, cameraOriginalUpVector);
         }
 
-        private Vector3 getLoc(Joint j) { return getLoc(j.Position); }
-        private Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
-
-        /*
-        private Vector3 cvtVec(Vector3D v) { return new Vector3((float)v.X * 10, (float)v.Y * 10, (float)v.Z * 10); }
-
-
-        // TODO: is this in homogenous coords?
-
-        private Vector3D between(Joint j1, Joint j2)
-        {
-            return Vector3D.Subtract(getLoc(j2), getLoc(j1));
-        }
-
-        private Matrix3D makeReferenceFrame(Vector3D c, Vector3D x, Vector3D y)
-        {
-            Vector3D dx = Vector3D.Subtract(x, c), dy = Vector3D.Subtract(y, c);
-            dx.Normalize(); dy.Normalize();
-            Vector3D dz = Vector3D.CrossProduct(dx, dy);
-            return makeMatrix(dx, dy, dz, c);
-        }
-
-        private Matrix3D makeMatrix(Vector3D dx, Vector3D dy, Vector3D dz, Vector3D c)
-        {
-            return new Matrix3D(dx.X, dx.Y, dx.Z, 0,
-                                dy.X, dy.Y, dy.Z, 0,
-                                dz.X, dz.Y, dz.Z, 0,
-                                 c.X, c.Y, c.Z, 1);
-        }
-         */
+        public Vector3 getLoc(Joint j) { return getLoc(j.Position); }
+        public Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
     }
 }
