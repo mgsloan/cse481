@@ -19,6 +19,7 @@ namespace KinectViewer
 
         bool trap_mouse = true;
         bool seen_k = false;
+        bool seen_f = false;
         
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -33,9 +34,8 @@ namespace KinectViewer
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
             //graphics.
-            graphics.PreferredBackBufferWidth = 1280;
-            graphics.PreferredBackBufferHeight = 1024;
-            graphics.IsFullScreen = true;
+            //graphics.PreferredBackBufferWidth = 1280;
+            //graphics.PreferredBackBufferHeight = 1024;
             //graphics.IsFullScreen = true;
         }
 
@@ -251,6 +251,14 @@ namespace KinectViewer
                 {
                     seen_k = false;
                 }
+            }
+
+            if (keyState.IsKeyDown(Keys.F) && !seen_f)
+            {
+                graphics.PreferredBackBufferWidth = 2048;
+                graphics.PreferredBackBufferHeight = 1152;
+                graphics.ToggleFullScreen();
+                seen_f = true;
             }
 
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
