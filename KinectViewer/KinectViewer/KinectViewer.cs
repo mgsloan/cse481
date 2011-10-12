@@ -13,7 +13,7 @@ namespace KinectViewer
 {
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
-        NaoUpperBody nao = new NaoUpperBody();
+        protected NaoUpperBody nao = new NaoUpperBody();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
 
@@ -32,8 +32,10 @@ namespace KinectViewer
         {
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
+            //graphics.
             graphics.PreferredBackBufferWidth = 1280;
             graphics.PreferredBackBufferHeight = 1024;
+            graphics.IsFullScreen = true;
             //graphics.IsFullScreen = true;
         }
 

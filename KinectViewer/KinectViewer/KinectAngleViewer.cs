@@ -10,6 +10,7 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
+
         protected override void updateSkeleton(SkeletonData skeleton)
         {
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
@@ -24,19 +25,51 @@ namespace KinectViewer
             
             Vector3 dx = Vector3.Subtract(shoulderLeft, shoulderRight);
             Vector3 dy = Vector3.Subtract(shoulderCenter, spine);
+            dx.Normalize(); dy.Normalize();
             Vector3 dz = Vector3.Cross(dx, dy);
-            Matrix srRef = Matrix.CreateWorld(shoulderRight, dz, dy);
-            debugReferenceFrame("sr", srRef, 3);
+            Matrix srRef = Matrix.CreateWorld(Vector3.Zero, dz, dy);
+            //debugReferenceFrame("sr", srRef, 3, shoulderRight);
+
+            Vector3 s_e = Vector3.Subtract(elbowRight, shoulderRight);
 
             Matrix srRefInv = Matrix.Invert(srRef);
-            Vector3 elocal = Vector3.Transform(elbowRight, srRefInv);
+            Vector3 elocal = Vector3.Transform(s_e, srRefInv);
+            float pitch = (float)(Math.Abs(elocal.Z) < 0.1 ? 0 : (Math.Atan2(elocal.Z, elocal.Y) + Math.PI));
+
+            Matrix srRef2 = Matrix.Multiply(Matrix.CreateRotationX(pitch), srRef);
+            //debugReferenceFrame("sr2", srRef2, 3);
+            Matrix srRef2Inv = Matrix.Invert(srRef);
+            Vector3 elocal2 = Vector3.Transform(s_e, srRef2Inv);
+            float roll = (float)(Math.Atan2(elocal2.X, elocal2.Y));
+            
             Vector3 offset = Vector3.Add(spine, new Vector3(5, 0, 0));
+            //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(0, elocal.Y, elocal.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
+            //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, 0), 5)), Color.Black, "roll = " + roll.ToString()));
+
+            Matrix eRef = Matrix.Multiply(Matrix.CreateRotationZ((float)Math.PI - roll), srRef2);
+            debugReferenceFrame("er", eRef, 3, elbowRight);
+
+            Vector3 e_h = Vector3.Subtract(handRight, elbowRight);
+            Vector3 hlocal = Vector3.Transform(e_h, eRef);
+            float epitch = (float)(Math.Atan2(hlocal.X, hlocal.Z));
+            Matrix eRef2 = Matrix.Multiply(Matrix.CreateRotationY((float)Math.PI + epitch), eRef);
+            //debugReferenceFrame(epitch.ToString(), eRef2, 3, elbowRight);
+
+            // Debug pitch / roll calculation
+            /*
             Vector3 pitchv = new Vector3(0, elocal.Y, elocal.Z);
             Vector3 rollv = new Vector3(elocal.X, elocal.Y, 0);
-            double pitch = Math.Atan2(pitchv.Y, pitchv.Z);
-            double roll = Math.Atan2(rollv.X, rollv.Y);
+            Vector3 offset = Vector3.Add(spine, new Vector3(5, 0, 0));
             lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(pitchv, 5)), Color.Black, "pitch = " + pitch.ToString()));
-            lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(rollv, 5)), Color.Black, "roll = " + roll.ToString()));
+             */
+           // lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(rollv, 5)), Color.Black, "roll = " + roll.ToString()));
+
+            nao.RSUpdatePitch(pitch);
+           // nao.RSUpdateRoll(roll);
+
+            Vector3 dz2 = Vector3.Subtract(elbowRight, shoulderRight);
+            dz2.Normalize();
+            //Matrix erRef = Matrix.CreateWorld(elbowRight, dz2, );
 
            // Matrix bodyRef = makeReferenceFrame(getLoc(shoulderCenter), getLoc(shoulderLeft), getLoc(spine));
 
@@ -90,9 +123,14 @@ namespace KinectViewer
 
         private void debugReferenceFrame(String str, Matrix m, float sz)
         {
-            lines.Add(new LabelledVector(m.Translation, m.Translation + m.Right * sz, Color.Red, str));
-            lines.Add(new LabelledVector(m.Translation, m.Translation + m.Up * sz, Color.Green, str));
-            lines.Add(new LabelledVector(m.Translation, m.Translation + m.Forward * sz, Color.Blue, str));
+            debugReferenceFrame(str, m, sz, m.Translation);
+        }
+
+        private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        {
+            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Red, str));
+            lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
+            lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
         
         /*
