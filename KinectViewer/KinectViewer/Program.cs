@@ -10,10 +10,15 @@ namespace KinectViewer
         /// </summary>
         static void Main(string[] args)
         {
-            using (KinectAngleViewer game = new KinectAngleViewer())
-            {
-                game.Run();
-            }
+            //comment out the version you do not want to use. 
+            //KinectAngleViewer game = new KinectAngleViewer();
+            //game.Run();
+
+
+            KinectAngleViewer2 game2 = new KinectAngleViewer2();
+            game2.Run();
+
+            
         }
     }
 #endif

@@ -113,9 +113,12 @@
   <ItemGroup>
     <Compile Include="GeometricPrimitive.cs" />
     <Compile Include="KinectAngleViewer.cs" />
+    <Compile Include="KinectAngleViewer2.cs" />
     <Compile Include="KinectViewer.cs" />
+    <Compile Include="KinectViewer2.cs" />
     <Compile Include="LabelledVector.cs" />
     <Compile Include="NaoUpperBody.cs" />
+    <Compile Include="NaoUpperBody2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />
