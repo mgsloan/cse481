@@ -98,7 +98,7 @@ namespace KinectViewer
                 }
                 catch (Exception e)
                 {
-                    //Console.Out.WriteLine(joint + " exception: " + e);
+                    Console.Out.WriteLine(joint + " exception: " + e);
                 }
             }
         }
