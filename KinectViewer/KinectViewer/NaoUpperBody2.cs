@@ -83,167 +83,22 @@ namespace KinectViewer
             }
         }
 
-        public void RSUpdateRoll(double val)
+        public void UpdateLimb(double val, string joint)
         {
             if (_motion != null)
             {
                 try
                 {
-
-                    Console.WriteLine("updateRightShoulderRoll angle: " + val * 180.0 / Math.PI);
-
-
-                    _motion.setAngles("RShoulderRoll", (float)val, 0.2f);
+                    Console.WriteLine(joint + " angle: " + val * 180.0 / Math.PI);
+                    _motion.setAngles(joint, (float)val, 0.2f);
                 }
                 catch (Exception e)
                 {
-                    Console.Out.WriteLine("RSUpdateRoll exception: " + e);
+                    Console.Out.WriteLine(joint + " exception: " + e);
                 }
             }
         }
 
-        public void RSUpdatePitch(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-
-                    Console.WriteLine("updateRightShoulderPitch angle: " + val * 180.0 / Math.PI);
-                    _motion.setAngles("RShoulderPitch", (float)val, .2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("RSUpdatePitch exception: " + e);
-                }
-            }
-        }
-
-        public void REUpdateYaw(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-
-                    _motion.setAngles("RElbowYaw", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("REUpdateYaw exception: " + e);
-                }
-            }
-        }
-
-        public void REUpdateRoll(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-
-                    _motion.setAngles("RElbowRoll", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("REUpdateRoll exception: " + e);
-                }
-            }
-        }
-
-        public void LSUpdateRoll(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    int num = Convert.ToInt32(val);
-                    _motion.setAngles("LShoulderRoll", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LShoulder.UpdateRoll exception: " + e);
-                }
-            }
-        }
-
-        public void LSUpdatePitch(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    int num = Convert.ToInt32(180 - val);
-                    //Console.WriteLine("updateLeftShoulderPitch angle: " + num);
-                    _motion.setAngles("LShoulderPitch", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LShoulder.UpdatePitch exception: " + e);
-                }
-            }
-        }
-
-        public void LEUpdateYaw(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("LElbowYaw", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LEUpdateYaw exception: " + e);
-                }
-            }
-        }
-
-        public void LEUpdateRoll(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("LElbowRoll", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LEUpdateRoll exception: " + e);
-                }
-            }
-        }
-
-
-        public void HeadUpdateYaw(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("HeadYaw", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("HeadYaw exception: " + e);
-                }
-            }
-        }
-
-        public void HeadUpdatePitch(double val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("HeadPitch", (float)val, 0.2f);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("HeadPitch exception: " + e);
-                }
-            }
-        }
 
         private static float ScaleToRange(double val, float min, float max)
         {
