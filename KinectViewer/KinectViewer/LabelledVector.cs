@@ -64,7 +64,7 @@ namespace KinectViewer
 
             Vector3 txtPos = device.Viewport.Project(Vector3.Lerp(from, to, 0.5f), projection, view, Matrix.Identity);
             Console.WriteLine(txtPos.ToString());
-            batch.DrawString(font, text, new Vector2(txtPos.X, txtPos.Y - 10), color);
+            batch.DrawString(font, text, new Vector2(txtPos.X + 20, txtPos.Y - 10), color);
               
         }
     }

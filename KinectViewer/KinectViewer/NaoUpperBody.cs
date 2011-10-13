@@ -29,6 +29,8 @@ namespace KinectViewer
         private float _LEminRoll = 0.0f;
         private float _LEmaxRoll = 0.0f;
 
+        private float speed = 0.5f;
+
         public void Connect(string ip)
         {
             try
@@ -75,6 +77,8 @@ namespace KinectViewer
                 // give the joints some stiffness
                 _motion.stiffnessInterpolation("RArm", 1.0f, 1.0f);
                 _motion.stiffnessInterpolation("LArm", 1.0f, 1.0f);
+                _motion.stiffnessInterpolation("LLeg", 1.0f, 1.0f);
+                _motion.stiffnessInterpolation("RLeg", 1.0f, 1.0f);
 
             }
             catch (Exception e)
@@ -83,15 +87,13 @@ namespace KinectViewer
             }
         }
 
-        public void RSUpdateRoll(double val)
+        public void RSUpdateRoll(float val)
         {
             if (_motion != null)
             {
                 try
                 {
-                    int num = Convert.ToInt32(180 - val);
-                    //Console.WriteLine("updateRightShoulderRoll angle: " + num);
-                    _motion.setAngles("RShoulderRoll", ScaleToRange(num, _RSminRoll, _RSmaxRoll), 0.1f);
+                    _motion.setAngles("RShoulderRoll", ClampToRange(val, _RSminRoll, _RSmaxRoll), speed);
                 }
                 catch (Exception e)
                 {
@@ -100,15 +102,13 @@ namespace KinectViewer
             }
         }
 
-        public void RSUpdatePitch(double val)
+        public void RSUpdatePitch(float val)
         {
             if (_motion != null)
             {
                 try
                 {
-                    int num = Convert.ToInt32(180 - val);
-                    //Console.WriteLine("updateRightShoulderPitch angle: " + num);
-                    _motion.setAngles("RShoulderPitch", ScaleToRange(num, _RSminPitch, _RSmaxPitch), 0.1f);
+                    _motion.setAngles("RShoulderPitch", ClampToRange(val, _RSminPitch, _RSmaxPitch), speed);
                 }
                 catch (Exception e)
                 {
@@ -117,13 +117,13 @@ namespace KinectViewer
             }
         }
 
-        public void REUpdateYaw(double val)
+        public void REUpdateYaw(float val)
         {
             if (_motion != null)
             {
                 try
                 {
-                    _motion.setAngles("RElbowYaw", ScaleToRange(val, _REminYaw, _REmaxYaw), 0.1f);
+                    _motion.setAngles("RElbowYaw", ClampToRange(val, _REminYaw, _REmaxYaw), speed);
                 }
                 catch (Exception e)
                 {
@@ -132,13 +132,13 @@ namespace KinectViewer
             }
         }
 
-        public void REUpdateRoll(double val)
+        public void REUpdateRoll(float val)
         {
             if (_motion != null)
             {
                 try
                 {
-                    _motion.setAngles("RElbowRoll", ScaleToRange(val, _REminRoll, _REmaxRoll), 0.1f);
+                    _motion.setAngles("RElbowRoll", ClampToRange(val, _REminRoll, _REmaxRoll), speed);
                 }
                 catch (Exception e)
                 {
@@ -147,7 +147,7 @@ namespace KinectViewer
             }
         }
 
-        public void LSUpdateRoll(double val)
+        public void LSUpdateRoll(float val)
         {
             if (_motion != null)
             {
@@ -155,7 +155,7 @@ namespace KinectViewer
                 {
                     int num = Convert.ToInt32(val);
 
-                    _motion.setAngles("LShoulderRoll", ScaleToRange(num, _LSminRoll, _LSmaxRoll), 0.1f);
+                    _motion.setAngles("LShoulderRoll", ClampToRange(num, _LSminRoll, _LSmaxRoll), speed);
                 }
                 catch (Exception e)
                 {
@@ -164,7 +164,7 @@ namespace KinectViewer
             }
         }
 
-        public void LSUpdatePitch(double val)
+        public void LSUpdatePitch(float val)
         {
             if (_motion != null)
             {
@@ -172,7 +172,7 @@ namespace KinectViewer
                 {
                     int num = Convert.ToInt32(180 - val);
                     //Console.WriteLine("updateLeftShoulderPitch angle: " + num);
-                    _motion.setAngles("LShoulderPitch", ScaleToRange(num, _LSminPitch, _LSmaxPitch), 0.1f);
+                    _motion.setAngles("LShoulderPitch", ClampToRange(num, _LSminPitch, _LSmaxPitch), speed);
                 }
                 catch (Exception e)
                 {
@@ -181,13 +181,13 @@ namespace KinectViewer
             }
         }
 
-        public void LEUpdateYaw(double val)
+        public void LEUpdateYaw(float val)
         {
             if (_motion != null)
             {
                 try
                 {
-                    _motion.setAngles("LElbowYaw", ScaleToRange(val, _LEminYaw, _LEmaxYaw), 0.1f);
+                    _motion.setAngles("LElbowYaw", ClampToRange(val, _LEminYaw, _LEmaxYaw), speed);
                 }
                 catch (Exception e)
                 {
@@ -196,13 +196,13 @@ namespace KinectViewer
             }
         }
 
-        public void LEUpdateRoll(double val)
+        public void LEUpdateRoll(float val)
         {
             if (_motion != null)
             {
                 try
                 {
-                    _motion.setAngles("LElbowRoll", ScaleToRange(val, _LEminRoll, _LEmaxRoll), 0.1f);
+                    _motion.setAngles("LElbowRoll", ClampToRange(val, _LEminRoll, _LEmaxRoll), speed);
                 }
                 catch (Exception e)
                 {
@@ -211,6 +211,12 @@ namespace KinectViewer
             }
         }
 
+        private static float ClampToRange(float val, float min, float max)
+        {
+            if (val < min) return min;
+            if (val > max) return max;
+            return val;
+        }
 
         private static float ScaleToRange(double val, float min, float max)
         {
