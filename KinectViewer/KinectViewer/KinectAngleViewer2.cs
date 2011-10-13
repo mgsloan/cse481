@@ -6,7 +6,6 @@ using Microsoft.Research.Kinect.Nui;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-
 namespace KinectViewer
 {
     class KinectAngleViewer2 : KinectViewer2
@@ -14,9 +13,6 @@ namespace KinectViewer
 
         protected override void updateSkeleton(SkeletonData skeleton)
         {
-
-
-
             double rspAngle = AngleBetween(skeleton, skeleton.Joints[JointID.HipRight], skeleton.Joints[JointID.ShoulderRight], skeleton.Joints[JointID.ShoulderRight], skeleton.Joints[JointID.ElbowRight]) * Math.PI / 180.0 - 1.6;
             UpdateLimb(rspAngle, "RShoulderPitch", -2.0, 2.0);
 
@@ -26,25 +22,69 @@ namespace KinectViewer
             double rerAngle = AngleBetween(skeleton, skeleton.Joints[JointID.ShoulderRight], skeleton.Joints[JointID.ElbowRight], skeleton.Joints[JointID.ElbowRight], skeleton.Joints[JointID.HandRight]) * Math.PI / 180.0;
             UpdateLimb(rerAngle, "RElbowRoll", 0.01, 1.55);
 
-
-            double reyAngle = AngleBetween(skeleton, skeleton.Joints[JointID.ShoulderRight], skeleton.Joints[JointID.HipRight], skeleton.Joints[JointID.ElbowRight], skeleton.Joints[JointID.HandRight]) * Math.PI / 180.0 - 1.57;
-            UpdateLimb(reyAngle, "RElbowAngle", -2.0, 2.0);
+            RightElbowYaw(skeleton);
 
             double lerAngle = AngleBetween(skeleton, skeleton.Joints[JointID.ShoulderLeft], skeleton.Joints[JointID.ElbowLeft], skeleton.Joints[JointID.ElbowLeft],  skeleton.Joints[JointID.HandLeft]) * -1 * Math.PI / 180.0;
             UpdateLimb(lerAngle, "LElbowRoll", -1.55, -0.01);
 
-            double leyAngle = 1.57 -  AngleBetween(skeleton, skeleton.Joints[JointID.ShoulderLeft], skeleton.Joints[JointID.HipLeft], skeleton.Joints[JointID.ElbowLeft], skeleton.Joints[JointID.HandLeft]) * Math.PI / 180.0;
-            UpdateLimb(leyAngle, "LElbowYaw", -2.0, 2.0);
+            LeftElbowYaw(skeleton);
             
-
             double lsrAngle = AngleBetween(skeleton, skeleton.Joints[JointID.HipLeft], skeleton.Joints[JointID.HipRight], skeleton.Joints[JointID.ShoulderLeft], skeleton.Joints[JointID.ElbowLeft]) * Math.PI / 180.0 - 1.57;
             UpdateLimb(lsrAngle, "LShoulderRoll", 0.01, 1.63);
             
-
             double lspAngle = AngleBetween(skeleton, skeleton.Joints[JointID.HipLeft], skeleton.Joints[JointID.ShoulderLeft], skeleton.Joints[JointID.ShoulderLeft], skeleton.Joints[JointID.ElbowLeft]) * Math.PI / 180.0 - 1.6;
             UpdateLimb(lspAngle, "LShoulderPitch", -2.0, 2.0);
 
+        }
 
+        private void RightElbowYaw(SkeletonData skeleton)
+        {
+            Vector3 cshoulder_chip = makeVector(skeleton.Joints[JointID.HipCenter], skeleton.Joints[JointID.ShoulderCenter]);
+            Vector3 rshoulder_relbow = makeVector(skeleton.Joints[JointID.ElbowRight], skeleton.Joints[JointID.ShoulderRight]);
+            rshoulder_relbow.Normalize();
+            Vector3 relbow_rhand = makeVector(skeleton.Joints[JointID.HandRight], skeleton.Joints[JointID.ElbowRight]);
+            Vector3 elbowRef = Vector3.Cross(cshoulder_chip, rshoulder_relbow);
+            elbowRef.Normalize();
+
+            Vector3 relbow_rshoulder = makeVector(skeleton.Joints[JointID.ShoulderRight], skeleton.Joints[JointID.ElbowRight]);
+            relbow_rshoulder.Normalize();
+            Vector3 eSide = Vector3.Cross(relbow_rhand, relbow_rshoulder);
+            eSide.Normalize();
+            Vector3 ePerp = Vector3.Cross(eSide, rshoulder_relbow);
+            ePerp.Normalize();
+
+            Vector3 origin = new Vector3(0, 0, 0);
+            //lines.Clear();
+            //lines.Add(new LabelledVector(origin, ePerp * 2, Color.Red, "E_Perp"));
+            //lines.Add(new LabelledVector(origin, eSide * 2, Color.Black, "E_SIDE"));
+            //lines.Add(new LabelledVector(origin, rshoulder_relbow * 2, Color.Green, "U_ARM"));
+            //lines.Add(new LabelledVector(origin, elbowRef * 2, Color.Gold, "E_REF"));
+
+            float reYawAngle = getAngleBetween(elbowRef, eSide);
+            float reYawAngleScaled = (float) Math.PI / 2 - reYawAngle;
+            Console.WriteLine("reYawAngle: " + reYawAngle * 180 / Math.PI);
+            Console.WriteLine("reYawScaled: " + reYawAngleScaled * 180 / Math.PI);
+            UpdateLimb(reYawAngleScaled, "RElbowYaw", -2.0, 2.0);
+        }
+
+        private void LeftElbowYaw(SkeletonData skeleton)
+        {
+            Vector3 cshoulder_chip = makeVector(skeleton.Joints[JointID.HipCenter], skeleton.Joints[JointID.ShoulderCenter]);
+            Vector3 lshoulder_lelbow = makeVector(skeleton.Joints[JointID.ElbowLeft], skeleton.Joints[JointID.ShoulderLeft]);
+            lshoulder_lelbow.Normalize();
+            Vector3 lelbow_lhand = makeVector(skeleton.Joints[JointID.HandLeft], skeleton.Joints[JointID.ElbowLeft]);
+            Vector3 elbowRef = Vector3.Cross(cshoulder_chip, lshoulder_lelbow);
+            elbowRef.Normalize();
+
+            Vector3 lelbow_lshoulder = makeVector(skeleton.Joints[JointID.ShoulderLeft], skeleton.Joints[JointID.ElbowLeft]);
+            Vector3 eSide = Vector3.Cross(lelbow_lhand, lelbow_lshoulder);
+            Vector3 ePerp = Vector3.Cross(eSide, lshoulder_lelbow);
+
+            float leYawAngle = getAngleBetween(elbowRef, eSide);
+            float leYawAngleScaled = leYawAngle - (float) Math.PI/2;
+            //Console.WriteLine("leYawAngle: " + leYawAngle * 180 / Math.PI);
+            //Console.WriteLine("leYawScaled: " + leYawAngleScaled * 180 / Math.PI);
+            UpdateLimb(leYawAngleScaled, "LElbowYaw", -2.0, 2.0);
         }
 
         private void UpdateLimb(double angle, string jointName, double min, double max) {
@@ -93,7 +133,22 @@ namespace KinectViewer
             }
         }
 
+        // j1 is endpoint
+        private Vector3 makeVector(Joint j1, Joint j2)
+        {
+            return Vector3.Subtract(getLoc(j1), getLoc(j2));
+        }
 
+        private float getAngleBetween(Vector3 v1, Vector3 v2)
+        {
+            return (float) Math.Acos(Vector3.Dot(v1, v2) / (Magnitude(v1) * Magnitude(v2)));
+        }
+
+        private double Magnitude(Vector3 v)
+        {
+            return Math.Sqrt(Vector3.Dot(v, v));
+        }
+        
         private void debugReferenceFrame(String str, Matrix m, float sz)
         {
             debugReferenceFrame(str, m, sz, m.Translation);

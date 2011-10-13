@@ -73,6 +73,10 @@ namespace KinectViewer
                 _LEmaxRoll = (float)LERollLimits[1];
 
                 // give the joints some stiffness
+                _motion.stiffnessInterpolation("RLeg", 1.0f, 1.0f);
+                _motion.stiffnessInterpolation("LLeg", 1.0f, 1.0f);
+
+                // give the joints some stiffness
                 _motion.stiffnessInterpolation("RArm", 1.0f, 1.0f);
                 _motion.stiffnessInterpolation("LArm", 1.0f, 1.0f);
 
@@ -89,12 +93,12 @@ namespace KinectViewer
             {
                 try
                 {
-                    Console.WriteLine(joint + " angle: " + val * 180.0 / Math.PI);
+                    //Console.WriteLine(joint + " angle: " + val * 180.0 / Math.PI);
                     _motion.setAngles(joint, (float)val, 0.2f);
                 }
                 catch (Exception e)
                 {
-                    Console.Out.WriteLine(joint + " exception: " + e);
+                    //Console.Out.WriteLine(joint + " exception: " + e);
                 }
             }
         }
