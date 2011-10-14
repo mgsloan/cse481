@@ -15,7 +15,8 @@ namespace KinectViewer
             //game.Run();
 
 
-            KinectAngleViewer2 game2 = new KinectAngleViewer2();
+            KinectAngleViewer game2 = new KinectAngleViewer();
+            Console.WriteLine("using KV1");
             game2.Run();
 
             
