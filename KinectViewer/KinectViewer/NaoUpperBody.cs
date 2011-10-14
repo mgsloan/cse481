@@ -56,6 +56,8 @@ namespace KinectViewer
                 _REminRoll = (float)RERollLimits[0];
                 _REmaxRoll = (float)RERollLimits[1];
 
+                Console.WriteLine(rightArmLimits.Count.ToString());
+
 
                 ArrayList leftArmLimits = (ArrayList)_motion.getLimits("LArm");
                 ArrayList LSPitchLimits = (ArrayList)leftArmLimits[0];

@@ -16,58 +16,59 @@ namespace KinectViewer
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
                     handRight      = getLoc(skeleton.Joints[JointID.HandRight]),
                     shoulderRight  = getLoc(skeleton.Joints[JointID.ShoulderRight]),
+                    wristRight     = getLoc(skeleton.Joints[JointID.WristRight]),
+                    elbowLeft      = getLoc(skeleton.Joints[JointID.ElbowLeft]),
                     handLeft       = getLoc(skeleton.Joints[JointID.HandLeft]),
                     shoulderLeft   = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
+                    wristLeft      = getLoc(skeleton.Joints[JointID.WristLeft]),
                     shoulderCenter = getLoc(skeleton.Joints[JointID.ShoulderCenter]),
-                    spine          = getLoc(skeleton.Joints[JointID.Spine]),
-                    elbowLeft      = getLoc(skeleton.Joints[JointID.ElbowLeft]);
+                    spine          = getLoc(skeleton.Joints[JointID.Spine]);
 
             lines.Clear();
             
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
             Vector3 Y = Vector3.Subtract(shoulderCenter, spine);
-            Vector3 RUA = Vector3.Subtract(elbowRight, shoulderRight);
-            Vector3 RLA = Vector3.Subtract(handRight, elbowRight);
-            calculateAngles(true, X, Y, RUA, RLA);
 
-            Vector3 LUA = Vector3.Subtract(elbowLeft, shoulderLeft);
-            Vector3 LLA = Vector3.Subtract(handLeft, elbowLeft);
-            calculateAngles(false, X, Y, LUA, LLA);
-        }
-
-        private void calculateAngles(bool right, Vector3 X, Vector3 Y, Vector3 UA, Vector3 LA)
-        {
-            // Compute angular reference frame used for pitch
-
-            X.Normalize(); Y.Normalize(); UA.Normalize(); LA.Normalize(); 
+            X.Normalize(); Y.Normalize(); 
             Vector3 dz = Vector3.Cross(X, Y);
             Vector3 dy2 = Vector3.Cross(dz, X);
             Matrix srRef = Matrix.CreateWorld(Vector3.Zero, dz, dy2);
+            Matrix srRefInv = Matrix.Invert(srRef);
+
+            Vector3 RUA = Vector3.Subtract(elbowRight, shoulderRight);
+            Vector3 RLA = Vector3.Subtract(wristRight, elbowRight);
+            Vector3 RH = Vector3.Subtract(handRight, wristRight);
+            RUA.Normalize(); RLA.Normalize(); RH.Normalize();
+            calculateAngles(skeleton, true, srRef, srRefInv, RUA, RLA, RH);
+
 
             // reflect across YZ plane 
-            if (!right)
-            {
-                Vector3 UA_t = Vector3.Transform(UA, Matrix.Invert(srRef));
-                Vector3 LA_t = Vector3.Transform(LA, Matrix.Invert(srRef));
-                LA_t.X = -LA_t.X;
-                UA_t.X = -UA_t.X;
+            Vector3 LUA = Vector3.Transform(Vector3.Subtract(elbowLeft, shoulderLeft), srRefInv);
+            Vector3 LLA = Vector3.Transform(Vector3.Subtract(wristLeft, elbowLeft), srRefInv);
+            Vector3 LH = Vector3.Transform(Vector3.Subtract(handLeft, wristLeft), srRefInv);
 
-                //lines.Add(new LabelledVector(Vector3.Zero, LA * 3, Color.Gold, "LA"));
-                //lines.Add(new LabelledVector(Vector3.Zero, Y * 3, Color.Red, "Y"));
-                //lines.Add(new LabelledVector(Vector3.Zero, dz * 3, Color.Green, "Z"));
+            LUA.X = -LUA.X;
+            LLA.X = -LLA.X;
+            LH.X = -LH.X;
+            
+            LUA = Vector3.Transform(LUA, srRef);
+            LLA = Vector3.Transform(LLA, srRef);
+            LH = Vector3.Transform(LH, srRef);
 
-                LA = Vector3.Transform(LA_t, srRef);
-                UA = Vector3.Transform(UA_t, srRef);
+            LLA.Normalize();
+            LUA.Normalize();
+            LH.Normalize();
 
-                LA.Normalize();
-                UA.Normalize();
-                //lines.Add(new LabelledVector(Vector3.Zero, LA * 3, Color.Blue, "LA_T"));
-            }
-            // end new
+            calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
+        }
+
+        private void calculateAngles(SkeletonData skeleton, bool right, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
+        {
+            // Compute angular reference frame used for pitch
 
             // Compute pitch by transforming into body frame, and projecting onto Y-Z plane.
             
-            Vector3 elocal = Vector3.Transform(UA, Matrix.Invert(srRef));
+            Vector3 elocal = Vector3.Transform(UA, srRefInv);
             // elocal.Z and elocal.Y both near 0 at once has wierd singularities - pick a default pitch
             float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? 0
                         : Math.Atan2(-elocal.Y, -elocal.Z));
@@ -81,23 +82,36 @@ namespace KinectViewer
             Vector3 elocal2 = Vector3.Transform(UA, Matrix.Invert(srRef2));
             float roll = (float)(Math.Atan2(elocal2.X, elocal2.Y));
 
-            elocal2.Normalize();
-            lines.Add(new LabelledVector(Vector3.Zero, elocal2 * 3, Color.Gold, "e_local"));
+            //elocal2.Normalize();
+            //lines.Add(new LabelledVector(Vector3.Zero, elocal2 * 3, Color.Gold, "e_local"));
 
             // Compute angular reference frame used for elbow pitch by rolling the previous frame.
             Matrix eRef = Matrix.Multiply(Matrix.CreateRotationZ((float)Math.PI - roll), srRef2);
 
-            // Compute elbow pitch by transforming into this frame, and projecting onto X-Z plane.
-            Vector3 hlocal = Vector3.Transform(LA, Matrix.Invert(eRef));
-            float eyaw = (float)(Math.Atan2(hlocal.X, -hlocal.Z));
+            // Compute elbow yaw by transforming into this frame, and projecting onto X-Z plane.
+            Vector3 wlocal = Vector3.Transform(LA, Matrix.Invert(eRef));
+            float eyaw = (float)(Math.Atan2(wlocal.X, -wlocal.Z));
 
             // Compute angular reference frame used for elbow roll by rotating the previous frame.
             Matrix eRef2 = Matrix.Multiply(Matrix.CreateRotationY(-eyaw), eRef);
-            Vector3 hlocal2 = Vector3.Transform(LA, Matrix.Invert(eRef2));
-            float eroll = (float)(Math.Atan2(hlocal2.Z, hlocal2.Y));
+            Vector3 wlocal2 = Vector3.Transform(LA, Matrix.Invert(eRef2));
+            float eroll = (float)(Math.Atan2(wlocal2.Z, wlocal2.Y));
 
-            hlocal2.Normalize();
-            lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
+            Matrix wRef = Matrix.Multiply(Matrix.CreateRotationX(eroll), eRef2);
+            Vector3 hlocal = Vector3.Transform(H, Matrix.Invert(wRef));
+            float wroll = (float)(Math.Atan2(hlocal.Z, hlocal.X));
+
+            Matrix wRef2 = Matrix.Multiply(Matrix.CreateRotationY(wroll), wRef);
+            Vector3 hlocal2 = Vector3.Transform(H, Matrix.Invert(wRef2));
+            float hand = (float)(Math.Atan2(hlocal2.Y, hlocal2.Z));
+
+            if (right)
+                debugReferenceFrame("wr = " + wroll.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
+            //Vector3
+            //Matrix
+
+            //hlocal2.Normalize();
+            //lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
 
             if (right)
             {
