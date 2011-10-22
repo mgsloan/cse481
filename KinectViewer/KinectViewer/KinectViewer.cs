@@ -20,6 +20,8 @@ namespace KinectViewer
         bool trap_mouse = true;
         bool seen_k = false;
         bool seen_f = false;
+        bool seen_r = false;
+        System.IO.StreamWriter recording = null;
         
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -107,6 +109,20 @@ namespace KinectViewer
             if (skeleton != null)
             {
                 cur_skeleton = skeleton;
+                if (recording != null)
+                {
+                    recording.WriteLine("%f, %f, %f", skeleton.Joints[JointID.Spine].Position.X
+                                                    , skeleton.Joints[JointID.Spine].Position.Y
+                                                    , skeleton.Joints[JointID.Spine].Position.Z);
+                    StringBuilder builder = new StringBuilder();
+                    
+                    for (int i = 0; i < skeleton.Joints.Count; i++)
+                    { 
+                        builder.AppendFormat("%f, %f, %f", skeleton.Joints[(JointID)i].Position.X
+                                                         , skeleton.Joints[(JointID)i].Position.Y
+                                                         , skeleton.Joints[(JointID)i].Position.Z);
+                    }
+                }
                 updateSkeleton(skeleton);
             }
         }
@@ -261,6 +277,25 @@ namespace KinectViewer
                 graphics.PreferredBackBufferHeight = 1152;
                 graphics.ToggleFullScreen();
                 seen_f = true;
+            }
+
+            if (keyState.IsKeyDown(Keys.R) && !seen_r)
+            {
+                if (recording == null)
+                {
+                    System.IO.Directory.CreateDirectory("saved");
+                    //recording = System.IO.File.Create("saved/" + DateTime.Now.ToString() + ".rec");
+                    recording = new System.IO.StreamWriter("saved/" + DateTime.Now.ToString() + ".rec");
+                }
+                else
+                {
+                    recording = null;
+                }
+                seen_r = true;
+            }
+            else if (keyState.IsKeyUp(Keys.R))
+            {
+                seen_r = false;
             }
 
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))

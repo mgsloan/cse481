@@ -42,7 +42,7 @@ namespace KinectViewer
             calculateAngles(skeleton, true, srRef, srRefInv, RUA, RLA, RH);
 
 
-            // reflect across YZ plane 
+            // reflect across YZ plane
             Vector3 LUA = Vector3.Transform(Vector3.Subtract(elbowLeft, shoulderLeft), srRefInv);
             Vector3 LLA = Vector3.Transform(Vector3.Subtract(wristLeft, elbowLeft), srRefInv);
             Vector3 LH = Vector3.Transform(Vector3.Subtract(handLeft, wristLeft), srRefInv);
@@ -60,7 +60,10 @@ namespace KinectViewer
             LH.Normalize();
 
             calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
+            nao.RSSend();
         }
+
+        bool rhand, lhand;
 
         private void calculateAngles(SkeletonData skeleton, bool right, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
         {
@@ -96,7 +99,7 @@ namespace KinectViewer
             Matrix eRef2 = Matrix.Multiply(Matrix.CreateRotationY(-eyaw), eRef);
             Vector3 wlocal2 = Vector3.Transform(LA, Matrix.Invert(eRef2));
             float eroll = (float)(Math.Atan2(wlocal2.Z, wlocal2.Y));
-
+            
             Matrix wRef = Matrix.Multiply(Matrix.CreateRotationX(eroll), eRef2);
             Vector3 hlocal = Vector3.Transform(H, Matrix.Invert(wRef));
             float wroll = (float)(Math.Atan2(hlocal.Z, hlocal.X));
@@ -104,24 +107,27 @@ namespace KinectViewer
             Matrix wRef2 = Matrix.Multiply(Matrix.CreateRotationY(wroll), wRef);
             Vector3 hlocal2 = Vector3.Transform(H, Matrix.Invert(wRef2));
             float hand = (float)(Math.Atan2(hlocal2.Y, hlocal2.Z));
-
-            if (right)
-                debugReferenceFrame("wr = " + wroll.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
-            //Vector3
-            //Matrix
-
+            
             //hlocal2.Normalize();
             //lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
 
             if (right)
             {
+                if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
+                if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
+              //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
                 nao.RSUpdatePitch(pitch);
                 nao.RSUpdateRoll(roll - (float)Math.PI);
                 nao.REUpdateYaw(eyaw + (float)(Math.PI / 2));
                 nao.REUpdateRoll(eroll + (float)Math.PI);
+                //debugReferenceFrame("", srRef2, 3, getLoc(skeleton.Joints[JointID.ShoulderRight]));
+                //debugReferenceFrame("", eRef2, 3, getLoc(skeleton.Joints[JointID.ElbowRight]));
+                //debugReferenceFrame("", wRef2, 3, getLoc(skeleton.Joints[JointID.WristRight]));
             }
             else
             {
+                if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
+                if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
                 nao.LSUpdatePitch(pitch);
                 nao.LSUpdateRoll(-(roll - (float)Math.PI));
                 nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
@@ -133,7 +139,8 @@ namespace KinectViewer
             //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, elocal2.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
             //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(0, elocal.Y, elocal.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
             //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, 0), 5)), Color.Black, "roll = " + roll.ToString()));
-            //debugReferenceFrame(roll.ToString(), srRef, 3, shoulderRight);
+            //debugReferenceFrame("", srRef, 3, getLoc(shoulderRight));
+            //debugReferenceFrame(, srRef, 3, shoulderRight);
             //debugReferenceFrame("sr2", srRef2, 3);
             //debugReferenceFrame(eyaw.ToString(), eRef, 3, elbowRight);
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
