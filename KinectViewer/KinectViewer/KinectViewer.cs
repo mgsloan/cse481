@@ -109,21 +109,8 @@ namespace KinectViewer
             if (skeleton != null)
             {
                 cur_skeleton = skeleton;
-                if (recording != null)
-                {
-                    recording.WriteLine("%f, %f, %f", skeleton.Joints[JointID.Spine].Position.X
-                                                    , skeleton.Joints[JointID.Spine].Position.Y
-                                                    , skeleton.Joints[JointID.Spine].Position.Z);
-                    StringBuilder builder = new StringBuilder();
-                    
-                    for (int i = 0; i < skeleton.Joints.Count; i++)
-                    { 
-                        builder.AppendFormat("%f, %f, %f", skeleton.Joints[(JointID)i].Position.X
-                                                         , skeleton.Joints[(JointID)i].Position.Y
-                                                         , skeleton.Joints[(JointID)i].Position.Z);
-                    }
-                }
                 updateSkeleton(skeleton);
+                if (recording != null) nao.RecordAngles(recording);
             }
         }
 
@@ -285,7 +272,8 @@ namespace KinectViewer
                 {
                     System.IO.Directory.CreateDirectory("saved");
                     //recording = System.IO.File.Create("saved/" + DateTime.Now.ToString() + ".rec");
-                    recording = new System.IO.StreamWriter("saved/" + DateTime.Now.ToString() + ".rec");
+                    String path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "saved/" + DateTime.Now.ToFileTime().ToString() + ".rec");
+                    recording = new System.IO.StreamWriter(path);
                 }
                 else
                 {

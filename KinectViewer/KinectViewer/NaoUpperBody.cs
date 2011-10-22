@@ -37,26 +37,30 @@ namespace KinectViewer
 
         public void Connect(string ip)
         {
+            names = new ArrayList();
+            values = new ArrayList();
+            limits = new ArrayList();
+
+            names.Add("RShoulderPitch");
+            names.Add("RShoulderRoll");
+            names.Add("RElbowRoll");
+            names.Add("RElbowYaw");
+            names.Add("LShoulderPitch");
+            names.Add("LShoulderRoll");
+            names.Add("LElbowRoll");
+            names.Add("LElbowYaw");
+
+
+            for (int i = 0; i < names.Count; i++) {
+                values.Add(0);
+            }
+
             try
             {
-                names = new ArrayList();
-                values = new ArrayList();
-                limits = new ArrayList();
-
-                names.Add("RShoulderPitch");
-                names.Add("RShoulderRoll");
-                names.Add("RElbowRoll");
-                names.Add("RElbowYaw");
-                names.Add("LShoulderPitch");
-                names.Add("LShoulderRoll");
-                names.Add("LElbowRoll");
-                names.Add("LElbowYaw");
-
                 _motion = new MotionProxy(ip, 9559);
 
-                for (int i = 0; i < names.Count; i++) {
-                    values.Add(0);
-                    Console.WriteLine(_motion.getLimits((string)names[i]).ToString());
+                for (int i = 0; i < names.Count; i++)
+                {
                     limits.Add(((ArrayList)_motion.getLimits((string)names[i]))[0]);
                 }
 
@@ -80,7 +84,20 @@ namespace KinectViewer
 
         public void SetJoint(int ix, float val)
         {
+            if (_motion == null || limits.Count <= ix) return;
             values[ix] = ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
+        }
+
+        public void RecordAngles(System.IO.StreamWriter writer)
+        {
+            StringBuilder builder = new StringBuilder();
+                    
+            for (int i = 0; i < values.Count; i++)
+            { 
+                builder.AppendFormat("{0}", values[i]);
+                if (i != values.Count) builder.Append(", ");
+            }
+            writer.WriteLine(builder.ToString());
         }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val); }
