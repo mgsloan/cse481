@@ -79,6 +79,7 @@ namespace KinectViewer
 
         public void RSSend()
         {
+            if (_motion == null) return;
             _motion.setAngles(names, values, speed);
         }
 
@@ -91,7 +92,7 @@ namespace KinectViewer
         public void RecordAngles(System.IO.StreamWriter writer)
         {
             StringBuilder builder = new StringBuilder();
-                    
+            builder.AppendFormat("{0}, ", DateTime.Now.ToFileTime().ToString());
             for (int i = 0; i < values.Count; i++)
             { 
                 builder.AppendFormat("{0}", values[i]);
