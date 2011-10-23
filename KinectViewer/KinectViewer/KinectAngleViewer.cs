@@ -78,7 +78,7 @@ namespace KinectViewer
             
             Vector3 elocal = Vector3.Transform(UA, srRefInv);
             // elocal.Z and elocal.Y both near 0 at once has wierd singularities - pick a default pitch
-            float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? 0
+            float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? Math.PI / 2
                         : Math.Atan2(-elocal.Y, -elocal.Z));
 
             //Console.WriteLine("UA_PITCH: " + pitch);
@@ -106,6 +106,7 @@ namespace KinectViewer
             Vector3 wlocal2 = Vector3.Transform(LA, eRef2Inv);
             float eroll = (float)(Math.Atan2(wlocal2.Z, wlocal2.Y));
             
+            /*
             Matrix wRef = Matrix.Multiply(Matrix.CreateRotationX(eroll), eRef2);
             Vector3 hlocal = Vector3.Transform(H, Matrix.Invert(wRef));
             float wroll = (float)(Math.Atan2(hlocal.Z, hlocal.X));
@@ -113,7 +114,8 @@ namespace KinectViewer
             Matrix wRef2 = Matrix.Multiply(Matrix.CreateRotationY(wroll), wRef);
             Vector3 hlocal2 = Vector3.Transform(H, Matrix.Invert(wRef2));
             float hand = (float)(Math.Atan2(hlocal2.Y, hlocal2.Z));
-            
+            */
+
             //hlocal2.Normalize();
             //lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
 
@@ -121,8 +123,8 @@ namespace KinectViewer
             {
                 R1 = srRefInv;
                 R2 = eRef2Inv;
-                if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
-                if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
+                //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
+                //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
               //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
                 nao.RSUpdatePitch(pitch);
                 nao.RSUpdateRoll(roll - (float)Math.PI);
@@ -134,8 +136,8 @@ namespace KinectViewer
             }
             else
             {
-                if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
-                if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
+                //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
+                //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
                 nao.LSUpdatePitch(pitch);
                 nao.LSUpdateRoll(-(roll - (float)Math.PI));
                 nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
