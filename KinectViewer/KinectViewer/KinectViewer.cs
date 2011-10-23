@@ -274,9 +274,11 @@ namespace KinectViewer
                     //recording = System.IO.File.Create("saved/" + DateTime.Now.ToString() + ".rec");
                     String path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "saved/" + DateTime.Now.ToFileTime().ToString() + ".rec");
                     recording = new System.IO.StreamWriter(path);
+                    
                 }
                 else
                 {
+                    recording.Close();
                     recording = null;
                 }
                 seen_r = true;
