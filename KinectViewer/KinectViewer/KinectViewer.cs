@@ -121,7 +121,7 @@ namespace KinectViewer
                     }
                     else
                     {
-                        Vector3 pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
+                        Vector pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
                         recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + pos.X + ", " + pos.Y + ", " + pos.Z);
                     }
                 }
@@ -246,7 +246,7 @@ namespace KinectViewer
 
         private bool KeyFreshPress(KeyboardState ks, Keys k)
         {
-            return ks.IsKeyDown(k) && prior_keys.IsKeyUp(k);
+            return ks.IsKeyDown(k) && (prior_keys == null || prior_keys.IsKeyUp(k));
         }
 
         private void ProcessInput(float amount)
@@ -301,6 +301,8 @@ namespace KinectViewer
                     recording = null;
                 }
             }
+
+            prior_keys = keyState;
 
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
                 moveVector -= new Vector3(0, 0, -1);
