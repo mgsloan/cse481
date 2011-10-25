@@ -8,6 +8,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Content;
+using System.IO;
 
 namespace KinectViewer
 {
@@ -16,6 +17,8 @@ namespace KinectViewer
         protected NaoUpperBody nao = new NaoUpperBody();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
+        HMMClassifier[] classifiers;
+        String recordFile;
 
         bool trap_mouse = true;
         bool seen_k = false;
@@ -35,7 +38,7 @@ namespace KinectViewer
         {
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
-            //graphics.
+            InitializeClassifiers();
             //graphics.PreferredBackBufferWidth = 1280;
             //graphics.PreferredBackBufferHeight = 1024;
             //graphics.IsFullScreen = true;
@@ -63,15 +66,6 @@ namespace KinectViewer
 
             nui.Initialize(RuntimeOptions.UseColor | RuntimeOptions.UseDepthAndPlayerIndex
                 | RuntimeOptions.UseSkeletalTracking);
-
-            /*nui.VideoFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_VideoFrameReady);
-            nui.VideoStream.Open(ImageStreamType.Video, 2,
-                ImageResolution.Resolution640x480, ImageType.Color);
-
-            nui.DepthFrameReady += new EventHandler<ImageFrameReadyEventArgs>(nui_DepthFrameReady);
-            nui.DepthStream.Open(ImageStreamType.Depth, 2,
-                ImageResolution.Resolution320x240, ImageType.DepthAndPlayerIndex);
-            */
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             //Must set to true and set after call to Initialize
@@ -161,7 +155,7 @@ namespace KinectViewer
             }
             catch
             {
-
+                // lol
             }
 
             // Reset the fill mode renderstate.
@@ -188,27 +182,6 @@ namespace KinectViewer
             returnVector.Z = position.Z * 10;
             return returnVector;
         }
-
-        /*
-        void nui_VideoFrameReady(object sender, ImageFrameReadyEventArgs e)
-        {
-            PlanarImage image = e.ImageFrame.Image;
-            image1.Source = BitmapSource.Create(image.Width, image.Height,
-                96, 96, PixelFormats.Bgr32, null, image.Bits, image.Width * image.BytesPerPixel);
-        }
-
-        void nui_DepthFrameReady(object sender, ImageFrameReadyEventArgs e)
-        {
-            //Convert depth information for a pixel into color information
-            byte[] ColoredBytes = GenerateColoredBytes(e.ImageFrame);
-
-            //create an image based on returned colors
-
-            PlanarImage image = e.ImageFrame.Image;
-            image2.Source = BitmapSource.Create(image.Width, image.Height, 96, 96, PixelFormats.Bgr32, null,
-                ColoredBytes, image.Width * PixelFormats.Bgr32.BitsPerPixel / 8);
-        }
-        */
 
         Matrix viewMatrix;
 
@@ -272,13 +245,15 @@ namespace KinectViewer
                 {
                     System.IO.Directory.CreateDirectory("saved");
                     //recording = System.IO.File.Create("saved/" + DateTime.Now.ToString() + ".rec");
-                    String path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "saved/" + DateTime.Now.ToFileTime().ToString() + ".rec");
-                    recording = new System.IO.StreamWriter(path);
+                    recordFile = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "saved/" + DateTime.Now.ToFileTime().ToString() + ".rec");
+                    recording = new System.IO.StreamWriter(recordFile);
                     
                 }
                 else
                 {
                     recording.Close();
+                    double[][] motion = HMMClassifier.getMotion(recordFile);
+                    ClassifyMotion(motion);
                     recording = null;
                 }
                 seen_r = true;
@@ -328,5 +303,30 @@ namespace KinectViewer
 
         public Vector3 getLoc(Joint j) { return getLoc(j.Position); }
         public Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
+
+        private void InitializeClassifiers()
+        {
+            String directory = Directory.GetCurrentDirectory();
+            String motion_dir = directory + "\\motion_data";
+            String[] directories = Directory.GetDirectories(motion_dir);
+            this.classifiers = new HMMClassifier[directories.Length];
+            for (int i = 0; i < directories.Length; i++)
+            {
+                classifiers[i] = new HMMClassifier();
+                classifiers[i].Initialize(directories[i]);
+            }
+            Console.WriteLine("Initialized " + classifiers.Length + " classifiers.");
+        }
+
+        private void ClassifyMotion(double[][] motion)
+        {
+            Console.WriteLine("Classifying...");
+            for (int i = 0; i < classifiers.Length; i++)
+            {
+                if (classifiers[i].isMember(motion)) 
+                    Console.WriteLine("Recognized: " + classifiers[i].getName());
+            }
+            Console.WriteLine("Done");
+        }
     }
 }
