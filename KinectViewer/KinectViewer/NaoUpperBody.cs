@@ -173,8 +173,8 @@ namespace KinectViewer
             {
                 try
                 {
-                    var postion = _motion.getRobotPosition(true);
-                    var listofPositions = postion.ToList();
+                    //var postion = _motion.getRobotPosition(true);
+                    //var listofPositions = postion.ToList();
                     switch (direction)
                     {
                         case "left":

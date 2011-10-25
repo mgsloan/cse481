@@ -22,7 +22,9 @@ namespace KinectViewer
         bool seen_k = false;
         bool seen_f = false;
         bool seen_r = false;
+        bool seen_t = false;
         System.IO.StreamWriter recording = null;
+        System.IO.StreamWriter recordingBody = null;
         
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -115,6 +117,11 @@ namespace KinectViewer
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
                 if (recording != null) nao.RecordAngles(recording);
+                if (recordingBody != null)
+                {
+                    Vector pos = cur_skeleton.Position;
+                    recordingBody.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + pos.X + ", " + pos.Y + ", " + pos.Z);
+                }
             }
         }
 
@@ -290,6 +297,26 @@ namespace KinectViewer
             else if (keyState.IsKeyUp(Keys.R))
             {
                 seen_r = false;
+            }
+
+            if (keyState.IsKeyDown(Keys.T) && !seen_t)
+            {
+                if (recordingBody == null)
+                {
+                    System.IO.Directory.CreateDirectory("BodyPosition");
+                    string path = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "BodyPosition/" + DateTime.Now.ToFileTime().ToString() + ".rec");
+                    recordingBody = new System.IO.StreamWriter(path);
+                }
+                else
+                {
+                    recordingBody.Close();
+                    recordingBody = null;
+                }
+                seen_t = true;
+            }
+            else if (keyState.IsKeyUp(Keys.T))
+            {
+                seen_t = false;
             }
 
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
