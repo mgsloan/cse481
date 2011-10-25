@@ -14,9 +14,10 @@ namespace KinectViewer
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
         protected NaoUpperBody nao = new NaoUpperBody();
+        protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
-
+        protected SpeechRecognition sr = new SpeechRecognition();
         bool trap_mouse = true;
         bool seen_k = false;
         bool seen_f = false;
@@ -85,10 +86,13 @@ namespace KinectViewer
                 MaxDeviationRadius = 0.04f
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
-
+            
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.10");
             nao.Connect("127.0.0.1");
+            naoSpeech.Connect("127.0.0.1");
+            //speech = new SpeechRecog(this, naoSpeech);
+            sr.InitalizeKinect(nao, naoSpeech);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)

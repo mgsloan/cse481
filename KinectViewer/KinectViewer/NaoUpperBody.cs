@@ -221,5 +221,36 @@ namespace KinectViewer
             float returnVal = (float)((val / 180.0) * (max - min)) + min;
             return returnVal;
         }
+
+        public void walk(string direction)
+        {
+            if (_motion != null)
+            {
+                try
+                {
+                    var postion = _motion.getRobotPosition(true);
+                    var listofPositions = postion.ToList();
+                    switch (direction)
+                    {
+                        case "left":
+                            _motion.walkTo(0.0f, 1.0f, 0f);
+                            break;
+                        case "right":
+                            _motion.walkTo(0.0f, -1.0f, 0f);
+                            break;
+                        case "forward":
+                            _motion.walkTo(1f, 0.0f, 0f);
+                            break;
+                        case "back":
+                            _motion.walkTo(-1f, 0.0f, 0f);
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Console.Out.WriteLine("Walking exception: " + e);
+                }
+            }
+        }
     }
 }
