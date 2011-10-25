@@ -15,15 +15,16 @@ namespace KinectViewer
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
         protected NaoUpperBody nao = new NaoUpperBody();
+        protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
         HMMClassifier[] classifiers;
         String recordFile;
+        protected SpeechRecognition sr = new SpeechRecognition();
 
         bool trap_mouse = true;
-        bool seen_k = false;
-        bool seen_f = false;
-        bool seen_r = false;
+        bool record_ang = true;
+        KeyboardState prior_keys;
         System.IO.StreamWriter recording = null;
         
         GraphicsDeviceManager graphics;
@@ -81,10 +82,13 @@ namespace KinectViewer
                 MaxDeviationRadius = 0.04f
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
-
+            
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.10");
             nao.Connect("127.0.0.1");
+            naoSpeech.Connect("127.0.0.1");
+            //speech = new SpeechRecog(this, naoSpeech);
+            sr.InitalizeKinect(nao, naoSpeech);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -104,7 +108,18 @@ namespace KinectViewer
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
-                if (recording != null) nao.RecordAngles(recording);
+                if (recording != null)
+                {
+                    if (record_ang)
+                    {
+                        nao.RecordAngles(recording);
+                    }
+                    else
+                    {
+                        Vector3 pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
+                        recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + pos.X + ", " + pos.Y + ", " + pos.Z);
+                    }
+                }
             }
         }
 
@@ -203,6 +218,11 @@ namespace KinectViewer
             base.Update(gameTime);
         }
 
+        private bool KeyFreshPress(KeyboardState ks, Keys k)
+        {
+            return ks.IsKeyDown(k) && (prior_keys == null || prior_keys.IsKeyUp(k));
+        }
+
         private void ProcessInput(float amount)
         {
             MouseState currentMouseState = Mouse.GetState();
@@ -218,36 +238,35 @@ namespace KinectViewer
 
             Vector3 moveVector = new Vector3(0, 0, 0);
             KeyboardState keyState = Keyboard.GetState();
-            if (keyState.IsKeyDown(Keys.K))
+
+            if (KeyFreshPress(keyState, Keys.K)) trap_mouse = !trap_mouse;
+
+            if (KeyFreshPress(keyState, Keys.F))
             {
-                if (!seen_k) {
-                    seen_k = true;
-                    trap_mouse = !trap_mouse;
-                }
-            } else if (keyState.IsKeyUp(Keys.K)) {
-                if (seen_k)
+                if (graphics.IsFullScreen)
                 {
-                    seen_k = false;
+                    graphics.PreferredBackBufferWidth = 800;
+                    graphics.PreferredBackBufferHeight = 600;
+                    graphics.IsFullScreen = false;
+                }
+                else
+                {
+                    graphics.PreferredBackBufferWidth = 1280;
+                    graphics.PreferredBackBufferHeight = 1024;
+                    graphics.IsFullScreen = true;
                 }
             }
 
-            if (keyState.IsKeyDown(Keys.F) && !seen_f)
+            bool rPressed = KeyFreshPress(keyState, Keys.R);
+            if (KeyFreshPress(keyState, Keys.T) || rPressed)
             {
-                graphics.PreferredBackBufferWidth = 2048;
-                graphics.PreferredBackBufferHeight = 1152;
-                graphics.ToggleFullScreen();
-                seen_f = true;
-            }
-
-            if (keyState.IsKeyDown(Keys.R) && !seen_r)
-            {
+                record_ang = rPressed;
                 if (recording == null)
                 {
                     System.IO.Directory.CreateDirectory("saved");
                     //recording = System.IO.File.Create("saved/" + DateTime.Now.ToString() + ".rec");
                     recordFile = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "saved/" + DateTime.Now.ToFileTime().ToString() + ".rec");
-                    recording = new System.IO.StreamWriter(recordFile);
-                    
+                    recording = new System.IO.StreamWriter(recordFile);            
                 }
                 else
                 {
@@ -256,12 +275,9 @@ namespace KinectViewer
                     ClassifyMotion(motion);
                     recording = null;
                 }
-                seen_r = true;
             }
-            else if (keyState.IsKeyUp(Keys.R))
-            {
-                seen_r = false;
-            }
+
+            prior_keys = keyState;
 
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
                 moveVector -= new Vector3(0, 0, -1);
