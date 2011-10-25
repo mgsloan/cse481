@@ -41,8 +41,11 @@ namespace KinectViewer
             RUA.Normalize(); RLA.Normalize(); RH.Normalize();
             calculateAngles(skeleton, true, srRef, srRefInv, RUA, RLA, RH);
 
+            R1b = shoulderRight;
+            R2b = elbowRight;
+            R3b = handRight;
 
-            // reflect across YZ plane 
+            // reflect across YZ plane
             Vector3 LUA = Vector3.Transform(Vector3.Subtract(elbowLeft, shoulderLeft), srRefInv);
             Vector3 LLA = Vector3.Transform(Vector3.Subtract(wristLeft, elbowLeft), srRefInv);
             Vector3 LH = Vector3.Transform(Vector3.Subtract(handLeft, wristLeft), srRefInv);
@@ -60,7 +63,12 @@ namespace KinectViewer
             LH.Normalize();
 
             calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
+            nao.RSSend();
         }
+
+        bool rhand, lhand;
+        Vector3 R1b, R2b, R3b;
+        Matrix R1, R2;
 
         private void calculateAngles(SkeletonData skeleton, bool right, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
         {
@@ -70,16 +78,21 @@ namespace KinectViewer
             
             Vector3 elocal = Vector3.Transform(UA, srRefInv);
             // elocal.Z and elocal.Y both near 0 at once has wierd singularities - pick a default pitch
-            float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? 0
-                        : Math.Atan2(-elocal.Y, -elocal.Z));
+            //float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? (Math.PI / 2)
+            //            : Math.Atan2(-elocal.Y, -elocal.Z));
+            float pitch;
+            if (Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2)) < .5) 
+                pitch = 0;
+            else 
+                pitch = (float) Math.Atan2(-elocal.Y, -elocal.Z);
 
             //Console.WriteLine("UA_PITCH: " + pitch);
 
             // Compute angular reference frame used for roll, by pitching our original frame forward.
             Matrix srRef2 = Matrix.Multiply(Matrix.CreateRotationX((float)Math.PI / 2 - pitch), srRef);
-
+            Matrix srRef2Inv = Matrix.Invert(srRef2);
             // Compute roll by transforming into this frame, and projecting onto X-Y plane.
-            Vector3 elocal2 = Vector3.Transform(UA, Matrix.Invert(srRef2));
+            Vector3 elocal2 = Vector3.Transform(UA, srRef2Inv);
             float roll = (float)(Math.Atan2(elocal2.X, elocal2.Y));
 
             //elocal2.Normalize();
@@ -94,9 +107,11 @@ namespace KinectViewer
 
             // Compute angular reference frame used for elbow roll by rotating the previous frame.
             Matrix eRef2 = Matrix.Multiply(Matrix.CreateRotationY(-eyaw), eRef);
-            Vector3 wlocal2 = Vector3.Transform(LA, Matrix.Invert(eRef2));
+            Matrix eRef2Inv = Matrix.Invert(eRef2);
+            Vector3 wlocal2 = Vector3.Transform(LA, eRef2Inv);
             float eroll = (float)(Math.Atan2(wlocal2.Z, wlocal2.Y));
-
+            
+            /*
             Matrix wRef = Matrix.Multiply(Matrix.CreateRotationX(eroll), eRef2);
             Vector3 hlocal = Vector3.Transform(H, Matrix.Invert(wRef));
             float wroll = (float)(Math.Atan2(hlocal.Z, hlocal.X));
@@ -104,24 +119,30 @@ namespace KinectViewer
             Matrix wRef2 = Matrix.Multiply(Matrix.CreateRotationY(wroll), wRef);
             Vector3 hlocal2 = Vector3.Transform(H, Matrix.Invert(wRef2));
             float hand = (float)(Math.Atan2(hlocal2.Y, hlocal2.Z));
-
-            if (right)
-                debugReferenceFrame("wr = " + wroll.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
-            //Vector3
-            //Matrix
+            */
 
             //hlocal2.Normalize();
             //lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
 
             if (right)
             {
+                R1 = srRefInv;
+                R2 = eRef2Inv;
+                //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
+                //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
+              //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
                 nao.RSUpdatePitch(pitch);
                 nao.RSUpdateRoll(roll - (float)Math.PI);
                 nao.REUpdateYaw(eyaw + (float)(Math.PI / 2));
                 nao.REUpdateRoll(eroll + (float)Math.PI);
+                //debugReferenceFrame("", srRef2, 3, getLoc(skeleton.Joints[JointID.ShoulderRight]));
+                //debugReferenceFrame("", eRef2, 3, getLoc(skeleton.Joints[JointID.ElbowRight]));
+                //debugReferenceFrame("", wRef2, 3, getLoc(skeleton.Joints[JointID.WristRight]));
             }
             else
             {
+                //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
+                //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
                 nao.LSUpdatePitch(pitch);
                 nao.LSUpdateRoll(-(roll - (float)Math.PI));
                 nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
@@ -133,7 +154,8 @@ namespace KinectViewer
             //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, elocal2.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
             //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(0, elocal.Y, elocal.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
             //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, 0), 5)), Color.Black, "roll = " + roll.ToString()));
-            //debugReferenceFrame(roll.ToString(), srRef, 3, shoulderRight);
+            //debugReferenceFrame("", srRef, 3, getLoc(shoulderRight));
+            //debugReferenceFrame(, srRef, 3, shoulderRight);
             //debugReferenceFrame("sr2", srRef2, 3);
             //debugReferenceFrame(eyaw.ToString(), eRef, 3, elbowRight);
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
@@ -150,5 +172,21 @@ namespace KinectViewer
             lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
             lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
+
+        public Vector toNuiVec(Vector3 vec)
+        {
+            Vector result = new Vector();
+            result.X = vec.X;
+            result.Y = vec.Y;
+            result.Z = vec.Z;
+            return result;
+        }
+        /*
+        public void localCloud(PlanarImage image)
+        {
+            float x, y;
+            short val;
+            nui.SkeletonEngine.SkeletonToDepthImage(R3b, out x, out y, out val);
+        }*/
     }
 }

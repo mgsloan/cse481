@@ -31,50 +31,38 @@ namespace KinectViewer
 
         private float speed = 0.5f;
 
+        private ArrayList names;
+        private ArrayList values;
+        private ArrayList limits;
+
         public void Connect(string ip)
         {
+            names = new ArrayList();
+            values = new ArrayList();
+            limits = new ArrayList();
+
+            names.Add("RShoulderPitch");
+            names.Add("RShoulderRoll");
+            names.Add("RElbowRoll");
+            names.Add("RElbowYaw");
+            names.Add("LShoulderPitch");
+            names.Add("LShoulderRoll");
+            names.Add("LElbowRoll");
+            names.Add("LElbowYaw");
+
+
+            for (int i = 0; i < names.Count; i++) {
+                values.Add(0);
+            }
+
             try
             {
                 _motion = new MotionProxy(ip, 9559);
-                // --------------- prepare limits --------------------------
-                // three floats as an ArrayList for each joint in the chain
-                // min,max,maxNoLoadSpeedPerCycle
-                ArrayList rightArmLimits = (ArrayList)_motion.getLimits("RArm");
-                ArrayList RSPitchLimits = (ArrayList)rightArmLimits[0];
-                _RSminPitch = (float)RSPitchLimits[0];
-                _RSmaxPitch = (float)RSPitchLimits[1];
 
-                ArrayList RSRollLimits = (ArrayList)rightArmLimits[1];
-                _RSminRoll = (float)RSRollLimits[0];
-                _RSmaxRoll = (float)RSRollLimits[1];
-
-                ArrayList REYawLimits = (ArrayList)rightArmLimits[2];
-                _REminYaw = (float)REYawLimits[0];
-                _REmaxYaw = (float)REYawLimits[1];
-
-                ArrayList RERollLimits = (ArrayList)rightArmLimits[3];
-                _REminRoll = (float)RERollLimits[0];
-                _REmaxRoll = (float)RERollLimits[1];
-
-                Console.WriteLine(rightArmLimits.Count.ToString());
-
-
-                ArrayList leftArmLimits = (ArrayList)_motion.getLimits("LArm");
-                ArrayList LSPitchLimits = (ArrayList)leftArmLimits[0];
-                _LSminPitch = (float)LSPitchLimits[0];
-                _LSmaxPitch = (float)LSPitchLimits[1];
-
-                ArrayList LSRollLimits = (ArrayList)leftArmLimits[1];
-                _LSminRoll = (float)LSRollLimits[0];
-                _LSmaxRoll = (float)LSRollLimits[1];
-
-                ArrayList LEYawLimits = (ArrayList)leftArmLimits[2];
-                _LEminYaw = (float)LEYawLimits[0];
-                _LEmaxYaw = (float)LEYawLimits[1];
-
-                ArrayList LERollLimits = (ArrayList)leftArmLimits[3];
-                _LEminRoll = (float)LERollLimits[0];
-                _LEmaxRoll = (float)LERollLimits[1];
+                for (int i = 0; i < names.Count; i++)
+                {
+                    limits.Add(((ArrayList)_motion.getLimits((string)names[i]))[0]);
+                }
 
                 // give the joints some stiffness
                 _motion.stiffnessInterpolation("RArm", 1.0f, 1.0f);
@@ -89,122 +77,79 @@ namespace KinectViewer
             }
         }
 
-        public void RSUpdateRoll(float val)
+        public void RSSend()
+        {
+            if (_motion == null) return;
+            _motion.setAngles(names, values, speed);
+        }
+
+        public void SetJoint(int ix, float val)
+        {
+            if (_motion == null || limits.Count <= ix) return;
+            values[ix] = ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
+        }
+
+        public void RecordAngles(System.IO.StreamWriter writer)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.AppendFormat("{0}", DateTime.Now.ToFileTime().ToString());
+            for (int i = 0; i < values.Count; i++)
+            {
+                if (i != values.Count) builder.Append(", ");
+                builder.AppendFormat("{0}", values[i]);
+            }
+            writer.WriteLine(builder.ToString());
+        }
+
+        public void RSUpdatePitch(float val) { SetJoint(0, val); }
+        public void RSUpdateRoll(float val)  { SetJoint(1, val); }
+        public void REUpdateYaw(float val)   { SetJoint(3, val); }
+        public void REUpdateRoll(float val)  { SetJoint(2, val); }
+        public void LSUpdatePitch(float val) { SetJoint(4, val); }
+        public void LSUpdateRoll(float val)  { SetJoint(5, val); }
+        public void LEUpdateYaw(float val)   { SetJoint(7, val); }
+        public void LEUpdateRoll(float val)  { SetJoint(6, val); }
+
+        public void SetLHand(bool close)
         {
             if (_motion != null)
             {
                 try
                 {
-                    _motion.setAngles("RShoulderRoll", ClampToRange(val, _RSminRoll, _RSmaxRoll), speed);
+                    if (close)
+                    {
+                        _motion.closeHand("LHand");
+                    }
+                    else
+                    {
+                        _motion.openHand("LHand");
+                    }
                 }
                 catch (Exception e)
                 {
-                    Console.Out.WriteLine("RSUpdateRoll exception: " + e);
+                    Console.Out.WriteLine("SetLHand exception: " + e);
                 }
             }
         }
-
-        public void RSUpdatePitch(float val)
+        
+        public void SetRHand(bool close)
         {
             if (_motion != null)
             {
                 try
                 {
-                    _motion.setAngles("RShoulderPitch", ClampToRange(val, _RSminPitch, _RSmaxPitch), speed);
+                    if (close)
+                    {
+                        _motion.closeHand("RHand");
+                    }
+                    else
+                    {
+                        _motion.openHand("RHand");
+                    }
                 }
                 catch (Exception e)
                 {
-                    Console.Out.WriteLine("RSUpdatePitch exception: " + e);
-                }
-            }
-        }
-
-        public void REUpdateYaw(float val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("RElbowYaw", ClampToRange(val, _REminYaw, _REmaxYaw), speed);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("REUpdateYaw exception: " + e);
-                }
-            }
-        }
-
-        public void REUpdateRoll(float val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("RElbowRoll", ClampToRange(val, _REminRoll, _REmaxRoll), speed);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("REUpdateRoll exception: " + e);
-                }
-            }
-        }
-
-        public void LSUpdateRoll(float val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("LShoulderRoll", ClampToRange(val, _LSminRoll, _LSmaxRoll), speed);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LShoulder.UpdateRoll exception: " + e);
-                }
-            }
-        }
-
-        public void LSUpdatePitch(float val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("LShoulderPitch", ClampToRange(val, _LSminPitch, _LSmaxPitch), speed);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LShoulder.UpdatePitch exception: " + e);
-                }
-            }
-        }
-
-        public void LEUpdateYaw(float val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("LElbowYaw", ClampToRange(val, _LEminYaw, _LEmaxYaw), speed);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LEUpdateYaw exception: " + e);
-                }
-            }
-        }
-
-        public void LEUpdateRoll(float val)
-        {
-            if (_motion != null)
-            {
-                try
-                {
-                    _motion.setAngles("LElbowRoll", ClampToRange(val, _LEminRoll, _LEmaxRoll), speed);
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("LEUpdateRoll exception: " + e);
+                    Console.Out.WriteLine("SetRHand exception: " + e);
                 }
             }
         }
