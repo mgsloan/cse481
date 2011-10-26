@@ -18,6 +18,7 @@ namespace HMMTest
 {
     class HMMClassifier
     {
+        private static BinaryFormatter bin = new BinaryFormatter();
         private static readonly double TRAIN_PROPORTION = .9; // fraction of samples to use for training
         private double threshold;
         private HiddenMarkovModel<MultivariateNormalDistribution> hMM;
@@ -290,6 +291,23 @@ namespace HMMTest
                 numLeft--;
             }
             return indexes;
+        }
+
+        // TODO: include PCA matrix
+
+        void serializeModel(Stream stream)
+        {
+            bin.Serialize(stream, hMM.Transitions);
+            bin.Serialize(stream, hMM.Emissions);
+            bin.Serialize(stream, hMM.Probabilities);
+        }
+
+        void parseModel(Stream stream)
+        {
+            var transitions   = (double[,])                        bin.Deserialize(stream);
+            var emissions     = (MultivariateNormalDistribution[]) bin.Deserialize(stream);
+            var probabilities = (double[])                         bin.Deserialize(stream);
+            hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(transitions, emissions, probabilities);
         }
     }
 }
