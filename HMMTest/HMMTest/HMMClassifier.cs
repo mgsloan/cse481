@@ -19,7 +19,20 @@ namespace HMMTest
     class HMMClassifier
     {
         private static BinaryFormatter bin = new BinaryFormatter();
-        private static readonly double TRAIN_PROPORTION = .9; // fraction of samples to use for training
+
+        // fraction of samples to use for training a given HMM
+        private static readonly double TRAIN_PROPORTION = .9; 
+
+        // the series of positions for a gesture is condensed into NUM_BLOCKS values
+        // (after applying PCA), using averaging (see 'shrink')
+        private static readonly int NUM_BLOCKS = 8;
+
+        // minimum MLE probability for accepting a gesture for the HMM
+        // in PCA, the relative weights of the eigenvals correspond to how much of
+        // the variance each dimension accounts for, the classifier retains enough
+        // dimensions to account for INFO_PROPORTION of the variance
+        private static readonly double INFO_PROPORTION = .999;
+
         private double threshold;
         private HiddenMarkovModel<MultivariateNormalDistribution> hMM;
         private PrincipalComponentAnalysis pca;
@@ -33,7 +46,7 @@ namespace HMMTest
 
             // should all be true
             var classifier1 = new HMMClassifier();
-            double[][][] motions1 = getMotions(motion_dir + "\\raise");
+            double[][][] motions1 = getMotions(motion_dir + "\\raise2");
             classifier1.Initialize(motions1);
             int pos = 0;
             for (int i = 0; i < motions1.Length; i++)
@@ -43,35 +56,35 @@ namespace HMMTest
             }
             Console.WriteLine("" + pos + " of " + motions1.Length);
 
-            /*
             // should all be true
             var classifier2 = new HMMClassifier();
-            double[][][] motions2 = getMotions(motion_dir + "\\raise2");
+            double[][][] motions2 = getMotions(motion_dir + "\\wave");
             classifier2.Initialize(motions2);
+            pos = 0;
             for (int i = 0; i < motions2.Length; i++)
             {
                 bool class1 = classifier2.isMember(motions2[i]);
-                Console.Write("[" + class1 + "]");
+                if (class1) pos++;
             }
-            Console.WriteLine();
+            Console.WriteLine("" + pos + " of " + motions2.Length);
 
             // should all be false
+            pos = 0;
             for (int i = 0; i < motions2.Length; i++)
             {
                 bool class1 = classifier1.isMember(motions2[i]);
-                Console.Write("[" + class1 + "]");
+                if (class1) pos++;
             }
-            Console.WriteLine();
+            Console.WriteLine("" + pos + " of " + motions2.Length);
 
             // should all be false
+            pos = 0;
             for (int i = 0; i < motions1.Length; i++)
             {
                 bool class1 = classifier2.isMember(motions1[i]);
-                Console.Write("[" + class1 + "]");
+                if (class1) pos++;
             }
-            Console.WriteLine();
-            */
-            Console.WriteLine("got");
+            Console.WriteLine("" + pos + " of " + motions1.Length);
         }
 
         void Initialize(String dirName)
@@ -95,13 +108,13 @@ namespace HMMTest
             for (int i = 0; i < train; i++) Console.Write("[" + trainIndexes[i] + "]");
             Console.WriteLine();
 
-            for (int i = 0; i < train; i++) trainMotions[i] = reducedMotions[trainIndexes[i]];
+            for (int i = 0; i < train; i++) trainMotions[i] = shrink(reducedMotions[trainIndexes[i]], NUM_BLOCKS);
 
             this.hMM = HMMClassifier.createHMM(trainMotions);
             double sum = 0;
             for (int i = 0; i < reducedMotions.Length; i++)
             {
-                double prob = hMM.Evaluate(reducedMotions[i]);
+                double prob = hMM.Evaluate(shrink(reducedMotions[i], NUM_BLOCKS));
                 sum += prob;
             }
 
@@ -110,7 +123,7 @@ namespace HMMTest
 
         bool isMember(double[][] motion)
         {
-            double likelihood = hMM.Evaluate(reduce(motion));
+            double likelihood = hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
             return (likelihood > threshold);
         }
 
@@ -134,6 +147,9 @@ namespace HMMTest
             return hMM;
         }
 
+        // form a PCA transformation to account for INFO_PROPORTION of the variance
+        // (include more informative dimensions first), discarding the remainder of
+        // the dimensions
         private double[][][] pcaReduction(double[][][] motions)
         {
             double[,] mtrx = concatenate(motions);
@@ -146,7 +162,7 @@ namespace HMMTest
             for (int i = 0; i < E.Length; i++) sum += E[i];
             Array.Sort(E);
             double info = 0;
-            double infoThreshold = .999 * sum;
+            double infoThreshold = INFO_PROPORTION * sum;
             reducedDimension = 0;
             for (int i = E.Length - 1; i > 0 && info < infoThreshold; i--)
             {
@@ -159,6 +175,8 @@ namespace HMMTest
             return reducedMotions;
         }
 
+        // apply the derived PCA transformation to an input matrix (reducing
+        // the dimension from 'dimension' to 'reducedDimension')
         private double[][] reduce(double[][] mtrx)
         {
             double[,] mdArr = new double[mtrx.Length, dimension];
@@ -180,6 +198,43 @@ namespace HMMTest
                 }
             }
             return reducedMtrx;
+        }
+
+        // evenly split a double[][] into contiguous blocks of double[] and
+        // merge each contiguous block into 1 point
+        static private double[][] shrink(double[][] mtrx, int numBlocks)
+        {
+            double blockAvg = mtrx.Length / (double) numBlocks;
+            int ceil = (int) Math.Ceiling(blockAvg);
+            int floor = (int) Math.Floor(blockAvg);
+
+            int accountedFor = 0;
+            Random random = new Random();
+            double[][] shrink = new double[numBlocks][];
+            for (int i = 0; i < numBlocks - 1 && accountedFor <= mtrx.Length - ceil; i++)
+            {
+                int span;
+                if (accountedFor <= blockAvg * i) span = ceil;
+                else span = floor;
+                shrink[i] = average(mtrx, accountedFor, span);
+                accountedFor += span;
+            }
+            shrink[numBlocks - 1] = average(mtrx, accountedFor, mtrx.Length - accountedFor);
+
+            return shrink;
+        }
+
+        // average a set of multidimensional points into one point
+        static double[] average(double[][] points, int startIndex, int span)
+        {
+            int dimension = points[0].Length;
+            double[] sum = new double[dimension];
+            for (int i = 0; i < span; i++)
+            {
+                for (int j = 0; j < dimension; j++) sum[j] += points[startIndex + i][j];
+            }
+            for (int j = 0; j < dimension; j++) sum[j] /= span;
+            return sum;
         }
 
         // expects a file to contain data for 1 example of 1 motion, where
@@ -214,6 +269,8 @@ namespace HMMTest
             return motion;
         }
 
+        // return an array of double[][] where each double[][] represents 
+        // a gesture, or series of poses
         static double[][][] getMotions(String dirName)
         {
             String[] files = Directory.GetFiles(dirName, "*.rec");
@@ -225,6 +282,8 @@ namespace HMMTest
             return motions;
         }
 
+        // join together each member in an array of double[][] to form a
+        // single double[][]
         static double[,] concatenate(double[][][] mtrxList)
         {
             int numRows = 0;
@@ -245,6 +304,8 @@ namespace HMMTest
             return concat;
         }
 
+        // split a double[,] into an array of double[][] using blockSizes as
+        // the delineators (there should be blockSizes.Length double[][])
         static double[][][] split(double[,] mtrx, int[] blockSizes, int dimension)
         {
             double[][][] mtrxList = new double[blockSizes.Length][][];
@@ -265,6 +326,8 @@ namespace HMMTest
             return mtrxList;
         }
 
+        // used to convert a double[,] back to a double[][][] (assuming the
+        // double[,] was obtained by calling concatenate on 'blocks')
         static int[] getBlockSizes(double[][][] blocks)
         {
             int[] blockSizes = new int[blocks.Length];
@@ -275,6 +338,8 @@ namespace HMMTest
             return blockSizes;
         }
 
+        // given a zero indexed array example gestures of length 'total'
+        // randomly select 'train' of the indexes (train should be <= total)
         static int[] getRandomIndexes(int train, int total)
         {
             int[] indexes = new int[train];
