@@ -324,6 +324,7 @@ namespace KinectViewer
         {
             String directory = Directory.GetCurrentDirectory();
             String motion_dir = directory + "\\motion_data";
+            if (!Directory.Exists(motion_dir)) Directory.CreateDirectory(motion_dir);
             String[] directories = Directory.GetDirectories(motion_dir);
             this.classifiers = new HMMClassifier[directories.Length];
             for (int i = 0; i < directories.Length; i++)
