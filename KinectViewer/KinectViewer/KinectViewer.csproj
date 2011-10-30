@@ -66,7 +66,7 @@
     <Reference Include="Accord.Statistics, Version=2.3.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\Accord.Statistics.dll</HintPath>
-	</Reference>
+    </Reference>
     <Reference Include="Accessibility">
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
@@ -129,7 +129,6 @@
     <Compile Include="NaoSpeech.cs" />
     <Compile Include="GeneralMatrix.cs" />
     <Compile Include="GeometricPrimitive.cs" />
-    <Compile Include="HMMClassifier.cs" />
     <Compile Include="KalmanFilter.cs" />
     <Compile Include="KinectAngleViewer.cs" />
     <Compile Include="KinectAngleViewer2.cs" />
@@ -155,6 +154,10 @@
     <Content Include="GameThumbnail.png" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\HMMTest\HMMTest\HMMTest.csproj">
+      <Project>{254F5564-F570-4877-8998-4EDDB57C2F32}</Project>
+      <Name>HMMTest</Name>
+    </ProjectReference>
     <ProjectReference Include="..\KinectViewerContent\KinectViewerContent.contentproj">
       <Name>KinectViewerContent</Name>
       <XnaReferenceType>Content</XnaReferenceType>
