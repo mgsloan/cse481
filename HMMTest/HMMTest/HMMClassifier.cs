@@ -21,17 +21,21 @@ namespace HMMTest
         private static BinaryFormatter bin = new BinaryFormatter();
 
         // fraction of samples to use for training a given HMM
-        private static readonly double TRAIN_PROPORTION = .75; 
+        private static readonly double TRAIN_PROPORTION = .8; 
 
         // the series of positions for a gesture is condensed into NUM_BLOCKS values
         // (after applying PCA), using averaging (see 'shrink')
-        private static readonly int NUM_BLOCKS = 8;
+        private static readonly int NUM_BLOCKS = 6;
 
         // minimum MLE probability for accepting a gesture for the HMM
         // in PCA, the relative weights of the eigenvals correspond to how much of
         // the variance each dimension accounts for, the classifier retains enough
         // dimensions to account for INFO_PROPORTION of the variance
         private static readonly double INFO_PROPORTION = .999;
+
+        // the number of states for the underlying HMM (it may be best to keep this
+        // equal to the number of blocks, since this creates a state for each 'timestep')
+        private static readonly int NUM_STATES = 6;
 
         private double threshold;
         private HiddenMarkovModel<MultivariateNormalDistribution> hMM;
@@ -48,28 +52,14 @@ namespace HMMTest
             var classifier1 = new HMMClassifier();
             double[][][] motions1 = getMotions(motion_dir + "\\raise");
             classifier1.Initialize(motions1);
-            int pos = 0;
-            for (int i = 0; i < motions1.Length; i++)
-            {
-                bool class1 = classifier1.isMember(motions1[i]);
-                if (class1) pos++;
-            }
-            Console.WriteLine("" + pos + " of " + motions1.Length);
 
             // should all be true
             var classifier2 = new HMMClassifier();
             double[][][] motions2 = getMotions(motion_dir + "\\wave");
             classifier2.Initialize(motions2);
-            pos = 0;
-            for (int i = 0; i < motions2.Length; i++)
-            {
-                bool class1 = classifier2.isMember(motions2[i]);
-                if (class1) pos++;
-            }
-            Console.WriteLine("" + pos + " of " + motions2.Length);
 
             // should all be false
-            pos = 0;
+            int pos = 0;
             for (int i = 0; i < motions2.Length; i++)
             {
                 bool class1 = classifier1.isMember(motions2[i]);
@@ -112,13 +102,31 @@ namespace HMMTest
 
             this.hMM = HMMClassifier.createHMM(trainMotions);
             double sum = 0;
+            double[] probs = new double[reducedMotions.Length]; // for information purposes
             for (int i = 0; i < reducedMotions.Length; i++)
             {
                 double prob = hMM.Evaluate(shrink(reducedMotions[i], NUM_BLOCKS));
                 sum += prob;
+                probs[i] = prob; // for information purposes
             }
 
             this.threshold = .8 * (sum / reducedMotions.Length);
+
+            // the rest is printing stats
+            int yesTrain = 0, yesTest = 0;
+            int tI = 0;
+            for (int i = 0; i < reducedMotions.Length; i++)
+            {
+                if (probs[i] >= threshold)
+                {
+                    if (tI < trainIndexes.Length && i == trainIndexes[tI]) yesTrain++;
+                    else yesTest++;
+                }
+                if (tI < trainIndexes.Length && i == trainIndexes[tI]) tI++;
+            }
+            Console.WriteLine("" + yesTrain + " of " + train + " train.");
+            Console.WriteLine("" + yesTest + " of " + test + " test.");
+            Console.WriteLine("" + (yesTrain + yesTest) + " of " + (train + test) + " total.");
         }
 
         bool isMember(double[][] motion)
@@ -131,7 +139,7 @@ namespace HMMTest
         {
             int dimension = motions[0][0].Length; // use 1st observation (any would suffice)
             var density = new MultivariateNormalDistribution(dimension);
-            var hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(8, density);
+            var hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(NUM_STATES, density);
 
             // May have to specify a regularization constant here
             var bWL = new BaumWelchLearning<MultivariateNormalDistribution>(hMM)

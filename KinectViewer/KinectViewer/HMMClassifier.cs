@@ -21,17 +21,21 @@ namespace KinectViewer
         private static BinaryFormatter bin = new BinaryFormatter();
 
         // fraction of samples to use for training a given HMM
-        private static readonly double TRAIN_PROPORTION = .9;
+        private static readonly double TRAIN_PROPORTION = .75;
 
         // the series of positions for a gesture is condensed into NUM_BLOCKS values
         // (after applying PCA), using averaging (see 'shrink')
-        private static readonly int NUM_BLOCKS = 8;
+        private static readonly int NUM_BLOCKS = 6;
 
         // minimum MLE probability for accepting a gesture for the HMM
         // in PCA, the relative weights of the eigenvals correspond to how much of
         // the variance each dimension accounts for, the classifier retains enough
         // dimensions to account for INFO_PROPORTION of the variance
         private static readonly double INFO_PROPORTION = .999;
+
+        // the number of states for the underlying HMM (it may be best to keep this
+        // equal to the number of blocks, since this creates a state for each 'timestep')
+        private static readonly int NUM_STATES = 6;
 
         private double threshold;
         private HiddenMarkovModel<MultivariateNormalDistribution> hMM;
@@ -43,7 +47,8 @@ namespace KinectViewer
 
         public void Initialize(String dirName)
         {
-            this.name = dirName;
+            String[] path = dirName.Split('\\');
+            this.name = path[path.Length - 1];
             double[][][] motions = getMotions(dirName);
             Initialize(motions);
         }
@@ -79,6 +84,7 @@ namespace KinectViewer
         public bool isMember(double[][] motion)
         {
             double likelihood = hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
+            Console.WriteLine(this.name + " L: " + likelihood + ", T: " + threshold);
             return (likelihood > threshold);
         }
 
@@ -86,7 +92,7 @@ namespace KinectViewer
         {
             int dimension = motions[0][0].Length; // use 1st observation (any would suffice)
             var density = new MultivariateNormalDistribution(dimension);
-            var hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(8, density);
+            var hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(NUM_STATES, density);
 
             // May have to specify a regularization constant here
             var bWL = new BaumWelchLearning<MultivariateNormalDistribution>(hMM)
