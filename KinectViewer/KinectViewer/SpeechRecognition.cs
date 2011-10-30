@@ -1,11 +1,16 @@
-﻿using Microsoft.Speech.Recognition;
-using Microsoft.Speech.AudioFormat;
+﻿//using Microsoft.Speech.Recognition;
+//using Microsoft.Speech.AudioFormat;
+using System.Speech.Recognition;
+using System.Speech.AudioFormat;
+
+
 using Microsoft.Research.Kinect.Audio;
 using Microsoft.Research.Kinect.Nui;
 using System.IO;
 using System;
 using System.Linq;
 using System.Collections.Generic;
+
 
 namespace KinectViewer
 {
@@ -15,7 +20,9 @@ namespace KinectViewer
         NaoSpeech naoSpeech;
         KinectAudioSource kinectSource;
         SpeechRecognitionEngine naoListener;
+
         Stream stream;
+
         string RecognizerId = "SR_MS_en-US_Kinect_10.0";
 
 
@@ -31,35 +38,66 @@ namespace KinectViewer
             var rec = (from r in SpeechRecognitionEngine.InstalledRecognizers() where r.Id == RecognizerId select r).FirstOrDefault();
 
             naoListener = new SpeechRecognitionEngine(rec.Id);
-
-            /*
-            SemanticResultValue forward = new SemanticResultValue("Walk forward");
-            SemanticResultValue back = new SemanticResultValue("Walk back");
-            SemanticResultValue left = new SemanticResultValue("Walk left");
-            SemanticResultValue right = new SemanticResultValue("Walk right");
-            SemanticResultValue goodbye = new SemanticResultValue("Wave Goodbye");
-            SemanticResultValue dance = new SemanticResultValue("Do the Robot");
-            SemanticResultValue superman = new SemanticResultValue("Superman");
-
-            Choices actions = new Choices();
-            actions.Add(new Choices(new GrammarBuilder[] { forward, back, left, right, goodbye, superman, dance }));
-            */
-            Choices actions = new Choices(new string[] {",walk forward", ",walk back", ",walk left", ",walk right", ",wave goodbye", ",superman", ",do the robot"});
-            GrammarBuilder gb = new GrammarBuilder("Nao");
-            //gb.Append(new SemanticResultKey("actions", actions));
-            gb.Append(actions, 0, 5);
-
-            gb.Culture = rec.Culture;
-
+            GrammarBuilder dictaphoneGB = new GrammarBuilder();     
             GrammarBuilder dictation = new GrammarBuilder();
-            dictation.AppendDictation("new actions");
+            dictation.AppendDictation();
+
+            dictaphoneGB.Append(new SemanticResultKey("StartDictation", new SemanticResultValue("Start Dictation", true)));
+            dictaphoneGB.Append(new SemanticResultKey("DictationInput", dictation));
+            dictaphoneGB.Append(new SemanticResultKey("EndDictation", new SemanticResultValue("Stop Dictation", false)));
+
+            GrammarBuilder spelling = new GrammarBuilder();
+            spelling.AppendDictation("spelling");
+            GrammarBuilder spellingGB = new GrammarBuilder();
+            spellingGB.Append(new SemanticResultKey("StartSpelling", new SemanticResultValue("Start Spelling", true)));
+            spellingGB.Append(new SemanticResultKey("spellingInput", spelling));
+            spellingGB.Append(new SemanticResultKey("StopSpelling", new SemanticResultValue("Stop Spelling", true)));
+
+            GrammarBuilder both = GrammarBuilder.Add(dictaphoneGB, spellingGB);
+
+            Grammar grammar = new Grammar(both);
+            grammar.Enabled = true;
+            grammar.Name = "Dictaphone and Spelling ";
+            naoListener.LoadGrammar(grammar);
+            
+
+            
+
+
+            ///*
+            //SemanticResultValue forward = new SemanticResultValue("Walk forward");
+            //SemanticResultValue back = new SemanticResultValue("Walk back");
+            //SemanticResultValue left = new SemanticResultValue("Walk left");
+            //SemanticResultValue right = new SemanticResultValue("Walk right");
+            //SemanticResultValue goodbye = new SemanticResultValue("Wave Goodbye");
+            //SemanticResultValue dance = new SemanticResultValue("Do the Robot");
+            //SemanticResultValue superman = new SemanticResultValue("Superman");
+
+            //Choices actions = new Choices();
+            //actions.Add(new Choices(new GrammarBuilder[] { forward, back, left, right, goodbye, superman, dance }));
+            //*/
+            //Choices actions = new Choices(new string[] {",walk forward", ",walk back", ",walk left", ",walk right", ",wave goodbye", ",superman", ",do the robot"});
+            //GrammarBuilder gb = new GrammarBuilder("Nao");
+            ////gb.Append(new SemanticResultKey("actions", actions));
+            //gb.Append(actions, 0, 5);
+
+            //gb.Culture = rec.Culture;
 
 
 
+            //GrammarBuilder newTaskGB = new GrammarBuilder();
+            //GrammarBuilder dictation = new GrammarBuilder();
+            //dictation.AppendDictation();
+ 
+            //newTaskGB.Append(new Choices("The name of this task is"));
+            //newTaskGB.Append(new SemanticResultKey("DictationInput", dictation));
 
-            var g = new Grammar(gb);
-            naoListener.LoadGrammar(g);
+            //GrammarBuilder both = GrammarBuilder.Add(gb, newTaskGB);
+            //Grammar grammar = new Grammar(both);
+            //naoListener.LoadGrammar(grammar);
 
+            
+            
           
             naoListener.SpeechRecognized += new EventHandler<SpeechRecognizedEventArgs>(SreSpeechRecognized);
            
@@ -84,7 +122,9 @@ namespace KinectViewer
             }
             if (phrases.GetLength(0) > 2)
             {
-                // new sequence
+                Console.WriteLine("What is the name of this new action?");
+                naoSpeech.Say("What is the name of this new action?");
+                //save the sequence
             }
             Console.WriteLine("Action: " + e.Result.Text);
             Console.WriteLine("Confidence Level: " + e.Result.Confidence);
