@@ -21,7 +21,7 @@ namespace HMMTest
         private static BinaryFormatter bin = new BinaryFormatter();
 
         // fraction of samples to use for training a given HMM
-        private static readonly double TRAIN_PROPORTION = .9; 
+        private static readonly double TRAIN_PROPORTION = .75; 
 
         // the series of positions for a gesture is condensed into NUM_BLOCKS values
         // (after applying PCA), using averaging (see 'shrink')
@@ -46,7 +46,7 @@ namespace HMMTest
 
             // should all be true
             var classifier1 = new HMMClassifier();
-            double[][][] motions1 = getMotions(motion_dir + "\\raise2");
+            double[][][] motions1 = getMotions(motion_dir + "\\raise");
             classifier1.Initialize(motions1);
             int pos = 0;
             for (int i = 0; i < motions1.Length; i++)

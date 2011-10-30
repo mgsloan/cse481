@@ -86,9 +86,9 @@ namespace KinectViewer
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.10");
             nao.Connect("127.0.0.1");
-            naoSpeech.Connect("127.0.0.1");
+            //naoSpeech.Connect("127.0.0.1");
             //speech = new SpeechRecog(this, naoSpeech);
-            sr.InitalizeKinect(nao, naoSpeech);
+            //sr.InitalizeKinect(nao, naoSpeech);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
