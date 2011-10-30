@@ -23,6 +23,7 @@ namespace KinectViewer
         List<string> zigZag = new List<string>();
         List<string> goAway = new List<string>();
         List<string> temp = new List<string>();
+        bool storingSequence = false;
 
 
         public void InitalizeKinect(NaoUpperBody naoBody, NaoSpeech naoSpeaker)
@@ -100,23 +101,33 @@ namespace KinectViewer
                     Console.WriteLine(phrases[0]);
                     if (phrases[0].Equals("Nao"))
                     {
-                        if (phrases.Length > 2)
+                        if (storingSequence)
                         {
-                            // new sequence
-                            for (int i = 1; i < phrases.Length; i++)
-                            {
-                                temp.Add(phrases[i]);
-                                performAction(phrases[i]);
-                            }
-                            naoSpeech.Say("What is the name of this action?");
+                            naoSpeech.Say("What is the name of the previous action?");
                         }
                         else
                         {
-                            performAction(phrases.ToList()[1]);
+                            if (phrases.Length > 2)
+                            {
+                                // new sequence
+                                storingSequence = true;
+                                for (int i = 1; i < phrases.Length; i++)
+                                {
+                                    temp.Add(phrases[i]);
+                                    performAction(phrases[i]);
+                                }
+                                naoSpeech.Say("What is the name of this action?");
+                                Console.WriteLine("What is the name of this action?");
+                            }
+                            else
+                            {
+                                performAction(phrases.ToList()[1]);
+                            }
                         }
                     }
-                    else
+                    else if (storingSequence)
                     {
+                        storingSequence = false;
                         switch(phrases[1])
                         {
                             case "disco dance":
@@ -129,7 +140,9 @@ namespace KinectViewer
                                 goAway = temp;
                                 break;
                             default:
-                                naoSpeech.Say("I don't know how to do that");
+                                naoSpeech.Say("That is not a sequence action name");
+                                naoSpeech.Say("What is the name of this action?");
+                                storingSequence = true;     // still storing the action
                                 break;
                         }
                     }
@@ -174,6 +187,10 @@ namespace KinectViewer
                             performAction(discoDance[i]);
                         }
                     }
+                    else
+                    {
+                        Console.WriteLine("I don’t know how to do that");
+                    }
                     break;
                 case "zig zag":
                     if (zigZag != null)
@@ -183,6 +200,10 @@ namespace KinectViewer
                             performAction(zigZag[i]);
                         }
                     }
+                    else
+                    {
+                        Console.WriteLine("I don’t know how to do that");
+                    }
                     break;
                 case "go away":
                     if (goAway != null)
@@ -191,6 +212,10 @@ namespace KinectViewer
                         {
                             performAction(goAway[i]);
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine("I don’t know how to do that");
                     }
                     break;
                 default:
