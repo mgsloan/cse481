@@ -52,12 +52,12 @@ namespace HMMTest
 
             // should all be true
             var classifier1 = new HMMClassifier();
-            double[][][] motions1 = getMotions(motion_dir + "\\raise");
+            double[][][] motions1 = getMotions(motion_dir + "\\raise2");
             classifier1.Initialize(motions1);
 
             // should all be true
             var classifier2 = new HMMClassifier();
-            double[][][] motions2 = getMotions(motion_dir + "\\wave");
+            double[][][] motions2 = getMotions(motion_dir + "\\raise");
             classifier2.Initialize(motions2);
 
             // should all be false
@@ -107,18 +107,19 @@ namespace HMMTest
             for (int i = 0; i < train; i++) trainMotions[i] = shrink(reducedMotions[trainIndexes[i]], NUM_BLOCKS);
 
             this.hMM = HMMClassifier.createHMM(trainMotions);
-            double sum = 0;
+
+            // allow for some (!) slop, other gestures should score extremely low
+            // so this shouldn't be a problem
+            this.threshold = 1e-10; 
+
+            // the rest is printing stats
             double[] probs = new double[reducedMotions.Length]; // for information purposes
             for (int i = 0; i < reducedMotions.Length; i++)
             {
                 double prob = hMM.Evaluate(shrink(reducedMotions[i], NUM_BLOCKS));
-                sum += prob;
                 probs[i] = prob; // for information purposes
             }
 
-            this.threshold = .8 * (sum / reducedMotions.Length);
-
-            // the rest is printing stats
             int yesTrain = 0, yesTest = 0;
             int tI = 0;
             for (int i = 0; i < reducedMotions.Length; i++)
