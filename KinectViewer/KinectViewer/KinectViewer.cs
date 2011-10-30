@@ -19,6 +19,7 @@ namespace KinectViewer
         protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
+        Vector3 skeletonStartPos;
         HMMClassifier[] classifiers;
         String recordFile;
         protected SpeechRecognition sr = new SpeechRecognition();
@@ -88,8 +89,7 @@ namespace KinectViewer
             //nao.Connect("128.208.4.10");
             nao.Connect("127.0.0.1");
             //naoSpeech.Connect("127.0.0.1");
-            //speech = new SpeechRecog(this, naoSpeech);
-            //sr.InitalizeKinect(nao, naoSpeech);
+            sr.InitalizeKinect(nao, naoSpeech);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -118,7 +118,9 @@ namespace KinectViewer
                     else
                     {
                         Vector3 pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
-                        recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + pos.X + ", " + pos.Y + ", " + pos.Z);
+                        recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + (skeletonStartPos.X - pos.X) 
+                                                                                 + ", " + (skeletonStartPos.Y - pos.Y) 
+                                                                                 + ", " + (skeletonStartPos.Z - pos.Z));
                     }
                 }
             }
@@ -262,6 +264,7 @@ namespace KinectViewer
             if (KeyFreshPress(keyState, Keys.T) || rPressed)
             {
                 record_ang = rPressed;
+                skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
                 if (recording == null)
                 {
                     System.IO.Directory.CreateDirectory("saved");
