@@ -77,6 +77,8 @@ namespace HMMTest
                 if (class1) pos++;
             }
             Console.WriteLine("" + pos + " of " + motions1.Length);
+
+            Console.ReadLine();
         }
 
         public void Initialize(String dirName)
