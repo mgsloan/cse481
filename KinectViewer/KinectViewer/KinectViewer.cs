@@ -87,9 +87,9 @@ namespace KinectViewer
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.10");
             nao.Connect("127.0.0.1");
-            naoSpeech.Connect("127.0.0.1");
+            //naoSpeech.Connect("127.0.0.1");
             //speech = new SpeechRecog(this, naoSpeech);
-            sr.InitalizeKinect(nao, naoSpeech);
+            //sr.InitalizeKinect(nao, naoSpeech);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -328,6 +328,7 @@ namespace KinectViewer
         {
             String directory = Directory.GetCurrentDirectory();
             String motion_dir = directory + "\\motion_data";
+            if (!Directory.Exists(motion_dir)) Directory.CreateDirectory(motion_dir);
             String[] directories = Directory.GetDirectories(motion_dir);
             this.classifiers = new HMMClassifier[directories.Length];
             for (int i = 0; i < directories.Length; i++)
