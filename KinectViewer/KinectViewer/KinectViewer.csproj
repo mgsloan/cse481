@@ -60,6 +60,13 @@
     <XnaCompressContent>true</XnaCompressContent>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Accord">
+      <HintPath>..\..\Accord.dll</HintPath>
+    </Reference>
+    <Reference Include="Accord.Statistics, Version=2.3.0.0, Culture=neutral, PublicKeyToken=fa1a88e29555ccf7, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\Accord.Statistics.dll</HintPath>
+	</Reference>
     <Reference Include="Accessibility">
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
@@ -127,6 +134,7 @@
     <Compile Include="NaoSpeech.cs" />
     <Compile Include="GeneralMatrix.cs" />
     <Compile Include="GeometricPrimitive.cs" />
+    <Compile Include="HMMClassifier.cs" />
     <Compile Include="KalmanFilter.cs" />
     <Compile Include="KinectAngleViewer.cs" />
     <Compile Include="KinectAngleViewer2.cs" />

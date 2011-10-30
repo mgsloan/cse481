@@ -62,8 +62,8 @@ namespace KinectViewer
 
             float reYawAngle = getAngleBetween(elbowRef, eSide);
             float reYawAngleScaled = (float) Math.PI / 2 - reYawAngle;
-            Console.WriteLine("reYawAngle: " + reYawAngle * 180 / Math.PI);
-            Console.WriteLine("reYawScaled: " + reYawAngleScaled * 180 / Math.PI);
+            //Console.WriteLine("reYawAngle: " + reYawAngle * 180 / Math.PI);
+            //Console.WriteLine("reYawScaled: " + reYawAngleScaled * 180 / Math.PI);
             UpdateLimb(reYawAngleScaled, "RElbowYaw", -2.0, 2.0);
         }
 
