@@ -16,7 +16,7 @@ using Accord.Statistics.Analysis;
 
 namespace HMMTest
 {
-    class HMMClassifier
+    public class HMMClassifier
     {
         private static BinaryFormatter bin = new BinaryFormatter();
 
@@ -42,7 +42,9 @@ namespace HMMTest
         private PrincipalComponentAnalysis pca;
         private int dimension;
         private int reducedDimension;
-        
+
+        private String name; public String getName() { return name; }
+
         static void Main(string[] args)
         {
             String directory = Directory.GetCurrentDirectory();
@@ -77,8 +79,10 @@ namespace HMMTest
             Console.WriteLine("" + pos + " of " + motions1.Length);
         }
 
-        void Initialize(String dirName)
+        public void Initialize(String dirName)
         {
+            String[] path = dirName.Split('\\');
+            this.name = path[path.Length - 1];
             double[][][] motions = getMotions(dirName);
             Initialize(motions);
         }
@@ -129,7 +133,7 @@ namespace HMMTest
             Console.WriteLine("" + (yesTrain + yesTest) + " of " + (train + test) + " total.");
         }
 
-        bool isMember(double[][] motion)
+        public bool isMember(double[][] motion)
         {
             double likelihood = hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
             return (likelihood > threshold);
@@ -247,7 +251,7 @@ namespace HMMTest
 
         // expects a file to contain data for 1 example of 1 motion, where
         // each line contains all the angle values for 1 instant in time.
-        static double[][] getMotion(String fileName)
+        public static double[][] getMotion(String fileName)
         {
             StreamReader reader = new StreamReader(fileName);
             ArrayList observations = new ArrayList();
