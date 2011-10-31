@@ -136,10 +136,14 @@ namespace HMMTest
             Console.WriteLine("" + (yesTrain + yesTest) + " of " + (train + test) + " total.");
         }
 
+        public double evaluate(double[][] motion)
+        {
+            return hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
+        }
+
         public bool isMember(double[][] motion)
         {
-            double likelihood = hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
-            return (likelihood > threshold);
+            return evaluate(motion) > threshold;
         }
 
         static HiddenMarkovModel<MultivariateNormalDistribution> createHMM(double[][][] motions)

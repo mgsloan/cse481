@@ -13,6 +13,7 @@ namespace KinectViewer
 
         protected override void updateSkeleton(SkeletonData skeleton)
         {
+
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
                     handRight      = getLoc(skeleton.Joints[JointID.HandRight]),
                     shoulderRight  = getLoc(skeleton.Joints[JointID.ShoulderRight]),
@@ -63,6 +64,7 @@ namespace KinectViewer
             LH.Normalize();
 
             calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
+            base.updateSkeleton(skeleton);
             nao.RSSend();
         }
 
