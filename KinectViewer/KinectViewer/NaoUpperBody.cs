@@ -11,28 +11,10 @@ namespace KinectViewer
     {
         MotionProxy _motion = null;
 
-        private float _RSminRoll = 0.0f;
-        private float _RSmaxRoll = 0.0f;
-        private float _RSminPitch = 0.0f;
-        private float _RSmaxPitch = 0.0f;
-        private float _REminYaw = 0.0f;
-        private float _REmaxYaw = 0.0f;
-        private float _REminRoll = 0.0f;
-        private float _REmaxRoll = 0.0f;
-
-        private float _LSminRoll = 0.0f;
-        private float _LSmaxRoll = 0.0f;
-        private float _LSminPitch = 0.0f;
-        private float _LSmaxPitch = 0.0f;
-        private float _LEminYaw = 0.0f;
-        private float _LEmaxYaw = 0.0f;
-        private float _LEminRoll = 0.0f;
-        private float _LEmaxRoll = 0.0f;
-
         private float speed = 0.5f;
 
         private ArrayList names;
-        private ArrayList values;
+        public ArrayList values;
         private ArrayList limits;
 
         public void Connect(string ip)
@@ -50,9 +32,8 @@ namespace KinectViewer
             names.Add("LElbowRoll");
             names.Add("LElbowYaw");
 
-
             for (int i = 0; i < names.Count; i++) {
-                values.Add(0);
+                values.Add(0.0f);
             }
 
             try
@@ -92,10 +73,12 @@ namespace KinectViewer
 
         public void SetJoint(int ix, float val)
         {
-            if (_motion == null || limits.Count <= ix) return;
-            values[ix] = ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
+            if (_motion == null) return;
+            values[ix] = limits.Count <= ix
+                       ? val
+                       : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
         }
-
+        
         public void RecordAngles(System.IO.StreamWriter writer)
         {
             StringBuilder builder = new StringBuilder();

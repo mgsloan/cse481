@@ -19,8 +19,11 @@ namespace KinectViewer
         protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
+        const int WINDOW_SIZE = 200;
+        LinkedList<double[]> motion_window = new LinkedList<double[]>();
         Vector3 skeletonStartPos;
         HMMClassifier[] classifiers;
+        double[] classifier_probs;
         String recordFile;
         protected SpeechRecognition sr = new SpeechRecognition();
 
@@ -75,10 +78,10 @@ namespace KinectViewer
                 | RuntimeOptions.UseSkeletalTracking);
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
-            //Must set to true and set after call to Initialize
+            // Must set to true and set after call to Initialize
 
             nui.SkeletonEngine.TransformSmooth = true;
-            //Use to transform and reduce jitter
+            // Use to transform and reduce jitter
             var parameters = new TransformSmoothParameters
             {
                 Smoothing = 0.75f,
@@ -98,6 +101,44 @@ namespace KinectViewer
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
+            if (recording != null)
+            {
+                if (record_ang)
+                {
+                    nao.RecordAngles(recording);
+                }
+                else
+                {
+                    Vector3 pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
+                    recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + (skeletonStartPos.X - pos.X)
+                                                                             + ", " + (skeletonStartPos.Y - pos.Y)
+                                                                             + ", " + (skeletonStartPos.Z - pos.Z));
+                }
+            }
+            else
+            {
+                double[] sample = new double[nao.values.Count];
+                Type typ = nao.values[0].GetType();
+                if (typ == typeof(float))
+                {
+                    for (int i = 0; i < sample.Count(); i++)
+                    {
+                        sample[i] = (double)(float)nao.values[i];
+                    }
+                    motion_window.AddLast(sample);
+                    if (motion_window.Count > WINDOW_SIZE) motion_window.RemoveFirst();
+                    if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
+                    for (int i = 0; i < classifiers.Length; i++)
+                    {
+                        // TODO: this is sorta inefficient..
+                        classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("hrmph");
+                }
+            }
         }
 
         protected virtual void naoPerformAction()
@@ -108,7 +149,7 @@ namespace KinectViewer
         {
             SkeletonFrame allSkeletons = e.SkeletonFrame;
 
-            //get the first tracked skeleton
+            // Get the first tracked skeleton
             SkeletonData skeleton = (from s in allSkeletons.Skeletons
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
@@ -121,20 +162,6 @@ namespace KinectViewer
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
-                if (recording != null)
-                {
-                    if (record_ang)
-                    {
-                        nao.RecordAngles(recording);
-                    }
-                    else
-                    {
-                        Vector3 pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
-                        recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + (skeletonStartPos.X - pos.X) 
-                                                                                 + ", " + (skeletonStartPos.Y - pos.Y) 
-                                                                                 + ", " + (skeletonStartPos.Z - pos.Z));
-                    }
-                }
             }
         }
 
@@ -166,6 +193,15 @@ namespace KinectViewer
             spriteBatch.Begin();
             foreach(LabelledVector l in lines) {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
+            }
+            if (classifier_probs != null)
+            {
+                for (int i = 0; i < classifier_probs.Length; i++)
+                {
+                    double prob = classifier_probs[i];
+                    spriteBatch.DrawString(spriteFont, classifiers[i].getName() + " " + prob.ToString(),
+                        new Vector2((float)(prob * 640.0f), (float)(i * 20.0f + 20)), Color.Black);
+                }
             }
             spriteBatch.End();
 

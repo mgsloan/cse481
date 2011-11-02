@@ -13,14 +13,14 @@ namespace KinectViewer
 
         protected override void updateSkeleton(SkeletonData skeleton)
         {
-            Vector3 elbowRight = getLoc(skeleton.Joints[JointID.ElbowRight]),
-                    handRight = getLoc(skeleton.Joints[JointID.HandRight]),
-                    shoulderRight = getLoc(skeleton.Joints[JointID.ShoulderRight]),
-                    wristRight = getLoc(skeleton.Joints[JointID.WristRight]),
-                    elbowLeft = getLoc(skeleton.Joints[JointID.ElbowLeft]),
-                    handLeft = getLoc(skeleton.Joints[JointID.HandLeft]),
-                    shoulderLeft = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
-                    wristLeft = getLoc(skeleton.Joints[JointID.WristLeft]),
+            Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
+                    handRight      = getLoc(skeleton.Joints[JointID.HandRight]),
+                    shoulderRight  = getLoc(skeleton.Joints[JointID.ShoulderRight]),
+                    wristRight     = getLoc(skeleton.Joints[JointID.WristRight]),
+                    elbowLeft      = getLoc(skeleton.Joints[JointID.ElbowLeft]),
+                    handLeft       = getLoc(skeleton.Joints[JointID.HandLeft]),
+                    shoulderLeft   = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
+                    wristLeft      = getLoc(skeleton.Joints[JointID.WristLeft]),
                     shoulderCenter = getLoc(skeleton.Joints[JointID.ShoulderCenter]),
                     spine = getLoc(skeleton.Joints[JointID.Spine]);
 
@@ -63,6 +63,7 @@ namespace KinectViewer
             LH.Normalize();
 
             calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
+            base.updateSkeleton(skeleton);
             nao.RSSend();
         }
 
