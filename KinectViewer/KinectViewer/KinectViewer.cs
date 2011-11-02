@@ -74,10 +74,10 @@ namespace KinectViewer
                 | RuntimeOptions.UseSkeletalTracking);
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
-            //Must set to true and set after call to Initialize
+            // Must set to true and set after call to Initialize
 
             nui.SkeletonEngine.TransformSmooth = true;
-            //Use to transform and reduce jitter
+            // Use to transform and reduce jitter
             var parameters = new TransformSmoothParameters
             {
                 Smoothing = 0.75f,
@@ -141,7 +141,7 @@ namespace KinectViewer
         {
             SkeletonFrame allSkeletons = e.SkeletonFrame;
 
-            //get the first tracked skeleton
+            // Get the first tracked skeleton
             SkeletonData skeleton = (from s in allSkeletons.Skeletons
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
