@@ -13,6 +13,7 @@ namespace KinectViewer
     {
         NaoUpperBody nao;
         NaoSpeech naoSpeech;
+        KinectViewer kinectViewer;
         KinectAudioSource kinectSource;
         
         SpeechRecognitionEngine naoListener;
@@ -26,10 +27,11 @@ namespace KinectViewer
         bool storingSequence = false;
 
 
-        public void InitalizeKinect(NaoUpperBody naoBody, NaoSpeech naoSpeaker)
+        public void InitalizeKinect(NaoUpperBody naoBody, NaoSpeech naoSpeaker, KinectViewer kViewer)
         {
             nao = naoBody;
             naoSpeech = naoSpeaker;
+            kinectViewer = kViewer;
             kinectSource = new KinectAudioSource();
             kinectSource.FeatureMode = true;
             kinectSource.AutomaticGainControl = false;
@@ -57,14 +59,12 @@ namespace KinectViewer
             GrammarBuilder gb = new GrammarBuilder(startPhrase);
             //gb.Append(new SemanticResultKey("actions", actions));
             gb.Append(actions, 0, 5);
-            gb.Append(sequenceActions, 0, 5);
+            gb.Append(sequenceActions, 0, 1);
 
             gb.Culture = rec.Culture;
 
             GrammarBuilder dictation = new GrammarBuilder();
             dictation.AppendDictation("new actions");
-
-
 
 
             var g = new Grammar(gb);
@@ -103,6 +103,7 @@ namespace KinectViewer
                     {
                         if (storingSequence)
                         {
+                            Console.WriteLine("What is the name of the previous action?");
                             naoSpeech.Say("What is the name of the previous action?");
                         }
                         else
@@ -116,8 +117,8 @@ namespace KinectViewer
                                     temp.Add(phrases[i]);
                                     performAction(phrases[i]);
                                 }
-                                naoSpeech.Say("What is the name of this action?");
                                 Console.WriteLine("What is the name of this action?");
+                                naoSpeech.Say("What is the name of this action?");
                             }
                             else
                             {
@@ -156,28 +157,40 @@ namespace KinectViewer
             {
                 case "walk forward":
                     Console.WriteLine("Yes, I can move forward");
+                    naoSpeech.Say("Yes, I can move forward");
                     nao.walk("forward");
                     break;
                 case "walk left":
-                    nao.walk("left");
                     Console.WriteLine("Yes, I can move left");
+                    naoSpeech.Say("Yes, I can move left");
+                    nao.walk("left");
                     break;
                 case "walk right":
-                    nao.walk("right");
                     Console.WriteLine("Yes, I can move right");
+                    naoSpeech.Say("Yes, I can move right");
+                    nao.walk("right");
                     break;
                 case "walk back":
-                    nao.walk("back");
                     Console.WriteLine("Yes, I can move back");
+                    naoSpeech.Say("Yes, I can move back");
+                    nao.walk("back");
                     break;
                 case "superman":
                     Console.WriteLine("Yes, I can fly");
+                    naoSpeech.Say("Yes, I can fly");
+                    kinectViewer.performAction(action);
                     break;
                 case "do the robot":
                     Console.WriteLine("Yes, I can dance!");
+                    naoSpeech.Say("Yes, I can dance!");
+                    //kinectViewer.performAction(action);
+                    kinectViewer.performAction("raise");
                     break;
                 case "wave goodbye":
                     Console.WriteLine("Goodbye");
+                    naoSpeech.Say("Goodbye");
+                    //kinectViewer.performAction(action);
+                    kinectViewer.performAction("wave");
                     break;
                 case "disco dance":
                     if (discoDance != null)
@@ -190,6 +203,7 @@ namespace KinectViewer
                     else
                     {
                         Console.WriteLine("I don’t know how to do that");
+                        naoSpeech.Say("I don't know how to do that");
                     }
                     break;
                 case "zig zag":
@@ -203,6 +217,7 @@ namespace KinectViewer
                     else
                     {
                         Console.WriteLine("I don’t know how to do that");
+                        naoSpeech.Say("I don't know how to do that");
                     }
                     break;
                 case "go away":
@@ -216,10 +231,12 @@ namespace KinectViewer
                     else
                     {
                         Console.WriteLine("I don’t know how to do that");
+                        naoSpeech.Say("I don't know how to do that");
                     }
                     break;
                 default:
                     Console.WriteLine("I don’t know how to do that");
+                    naoSpeech.Say("I don't know how to do that");
                     break;
             }
         }

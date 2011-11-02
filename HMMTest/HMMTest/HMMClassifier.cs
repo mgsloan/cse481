@@ -386,5 +386,15 @@ namespace HMMTest
             var probabilities = (double[])                         bin.Deserialize(stream);
             hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(transitions, emissions, probabilities);
         }
+
+        public double[][] getPerformMotion()
+        {
+            String directory = Directory.GetCurrentDirectory() + "\\motion_data\\" + this.name;
+            String[] files = Directory.GetFiles(directory, "*.rec");
+            
+            double[][] motions = getMotion(files[0]);
+            
+            return motions;
+        }
     }
 }

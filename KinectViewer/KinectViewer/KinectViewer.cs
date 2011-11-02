@@ -24,6 +24,10 @@ namespace KinectViewer
         String recordFile;
         protected SpeechRecognition sr = new SpeechRecognition();
 
+        protected double[][] naoPerformMotionData = null;
+        protected bool naoPerformMotion = false;
+        protected int naoPerformLineNum = 0;
+
         bool trap_mouse = true;
         bool record_ang = true;
         KeyboardState prior_keys;
@@ -89,10 +93,14 @@ namespace KinectViewer
             //nao.Connect("128.208.4.10");
             nao.Connect("127.0.0.1");
             //naoSpeech.Connect("127.0.0.1");
-            sr.InitalizeKinect(nao, naoSpeech);
+            sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
+        {
+        }
+
+        protected virtual void naoPerformAction()
         {
         }
 
@@ -105,7 +113,11 @@ namespace KinectViewer
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
 
-            if (skeleton != null)
+            if (naoPerformMotion)
+            {
+                naoPerformAction();
+            }
+            else if (skeleton != null)
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
@@ -348,6 +360,21 @@ namespace KinectViewer
                     Console.WriteLine("Recognized: " + classifiers[i].getName());
             }
             Console.WriteLine("Done");
+        }
+
+        public void performAction(string action)
+        {
+            double[][] performMotion = null;
+            for (int i = 0; i < classifiers.Length; i++)
+            {
+                if (classifiers[i].getName() == action)
+                    performMotion = classifiers[i].getPerformMotion();
+            }
+            if (performMotion != null)
+            {
+                naoPerformMotionData = performMotion;
+                naoPerformMotion = true;
+            }
         }
     }
 }
