@@ -13,7 +13,6 @@ namespace KinectViewer
 
         protected override void updateSkeleton(SkeletonData skeleton)
         {
-
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
                     handRight      = getLoc(skeleton.Joints[JointID.HandRight]),
                     shoulderRight  = getLoc(skeleton.Joints[JointID.ShoulderRight]),
@@ -23,14 +22,14 @@ namespace KinectViewer
                     shoulderLeft   = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
                     wristLeft      = getLoc(skeleton.Joints[JointID.WristLeft]),
                     shoulderCenter = getLoc(skeleton.Joints[JointID.ShoulderCenter]),
-                    spine          = getLoc(skeleton.Joints[JointID.Spine]);
+                    spine = getLoc(skeleton.Joints[JointID.Spine]);
 
             lines.Clear();
-            
+
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
             Vector3 Y = Vector3.Subtract(shoulderCenter, spine);
 
-            X.Normalize(); Y.Normalize(); 
+            X.Normalize(); Y.Normalize();
             Vector3 dz = Vector3.Cross(X, Y);
             Vector3 dy2 = Vector3.Cross(dz, X);
             Matrix srRef = Matrix.CreateWorld(Vector3.Zero, dz, dy2);
@@ -54,7 +53,7 @@ namespace KinectViewer
             LUA.X = -LUA.X;
             LLA.X = -LLA.X;
             LH.X = -LH.X;
-            
+
             LUA = Vector3.Transform(LUA, srRef);
             LLA = Vector3.Transform(LLA, srRef);
             LH = Vector3.Transform(LH, srRef);
@@ -66,6 +65,39 @@ namespace KinectViewer
             calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
             base.updateSkeleton(skeleton);
             nao.RSSend();
+        }
+
+        protected override void naoPerformAction()
+        {
+            if (naoPerformLineNum < naoPerformMotionData.GetLength(0))
+            {
+                nao.RSUpdatePitch((float)naoPerformMotionData[naoPerformLineNum][0]);
+                nao.RSUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][1] - (float)Math.PI);
+                nao.REUpdateYaw((float)naoPerformMotionData[naoPerformLineNum][2] + (float)(Math.PI / 2));
+                nao.REUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][3] + (float)Math.PI);
+
+                nao.LSUpdatePitch((float)naoPerformMotionData[naoPerformLineNum][4]);
+                nao.LSUpdateRoll(-((float)naoPerformMotionData[naoPerformLineNum][5] - (float)Math.PI));
+                nao.LEUpdateYaw(-((float)naoPerformMotionData[naoPerformLineNum][6] + (float)(Math.PI / 2)));
+                nao.LEUpdateRoll(-((float)naoPerformMotionData[naoPerformLineNum][7] + (float)Math.PI));
+
+
+                if (naoPerformLineNum == 0)
+                {
+                    nao.RSSendBlocking();
+                }
+                else
+                {
+                    nao.RSSend();
+                }
+                naoPerformLineNum++;
+            }
+            else
+            {
+                naoPerformMotion = false;
+                naoPerformMotionData = null;
+                naoPerformLineNum = 0;
+            }
         }
 
         bool rhand, lhand;

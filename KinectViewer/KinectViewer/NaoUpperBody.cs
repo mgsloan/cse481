@@ -64,6 +64,13 @@ namespace KinectViewer
             _motion.setAngles(names, values, speed);
         }
 
+        public void RSSendBlocking()
+        {
+            if (_motion == null) return;
+            int id = _motion.post.setAngles(names, values, speed / 5);
+            _motion.wait(id, 5000);
+        }
+
         public void SetJoint(int ix, float val)
         {
             if (_motion == null) return;
