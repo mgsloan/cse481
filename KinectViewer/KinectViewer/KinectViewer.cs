@@ -30,9 +30,7 @@ namespace KinectViewer
         bool recording = false;
         protected MotionRecord record;
 
-        protected double[][] naoPerformMotionData = null;
-        protected bool naoPerformMotion = false;
-        protected int naoPerformLineNum = 0;
+        bool performingAction = false;
 
         bool trap_mouse = true;
         KeyboardState prior_keys;
@@ -95,9 +93,9 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
             
             //nao.Connect("128.208.7.48");
-            //nao.Connect("128.208.4.10");
-            nao.Connect("127.0.0.1");
-            //naoSpeech.Connect("127.0.0.1");
+            nao.Connect("128.208.4.225");
+            //nao.Connect("127.0.0.1");
+            naoSpeech.Connect("128.208.4.225");
             sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
@@ -128,14 +126,28 @@ namespace KinectViewer
                     {
                         // TODO: this is sorta inefficient..
                         classifier_probs[i] = classifiers[i].evaluate(record.GetArray());
+/*
+                    motion_window.AddLast(sample);
+                    if (motion_window.Count > WINDOW_SIZE) motion_window.RemoveFirst();
+                    if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
+                    if (motion_window.Count >= WINDOW_SIZE)
+                    {
+                        for (int i = 0; i < classifiers.Length; i++)
+                        {
+                            // TODO: this is sorta inefficient..
+                            classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
+                            if (classifier_probs[i] > 0.0000000001)
+                            {
+                                naoSpeech.Say("you are perfroming " + classifiers[i].getName());
+                                motion_window.Clear();
+                                break;
+                            }
+                        }
+*/
                     }
                 }
                 record.data.Clear();
             }
-        }
-
-        protected virtual void naoPerformAction()
-        {
         }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
@@ -147,11 +159,7 @@ namespace KinectViewer
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
 
-            if (naoPerformMotion)
-            {
-                naoPerformAction();
-            }
-            else if (skeleton != null)
+            if (skeleton != null  && !performingAction)
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
@@ -362,7 +370,8 @@ namespace KinectViewer
             Console.WriteLine("Classifying...");
             for (int i = 0; i < classifiers.Length; i++)
             {
-                if (classifiers[i].isMember(motion)) 
+                if (classifiers[i].isMember(motion))
+                    naoSpeech.Say("You are performing " + classifiers[i].getName()); 
                     Console.WriteLine("Recognized: " + classifiers[i].getName());
             }
             Console.WriteLine("Done");
@@ -378,8 +387,31 @@ namespace KinectViewer
             }
             if (performMotion != null)
             {
-                naoPerformMotionData = performMotion;
-                naoPerformMotion = true;
+                performingAction = true;
+                for (int i = 0; i < performMotion.Length; i++)
+                {
+                    nao.RSUpdatePitch((float)performMotion[i][0]);
+                    nao.RSUpdateRoll((float)performMotion[i][1]);
+                    nao.REUpdateYaw((float)performMotion[i][3]);
+                    nao.REUpdateRoll((float)performMotion[i][2]);
+
+                    nao.LSUpdatePitch((float)performMotion[i][4]);
+                    nao.LSUpdateRoll((float)performMotion[i][5]);
+                    nao.LEUpdateYaw((float)performMotion[i][7]);
+                    nao.LEUpdateRoll((float)performMotion[i][6]);
+
+                    if (i == 0)
+                    {
+                        nao.RSSendBlocking();
+                    }
+                    else
+                    {
+                        nao.RSSend();
+                    }
+
+                    System.Threading.Thread.Sleep(33);
+                }
+                performingAction = false;
             }
         }
     }

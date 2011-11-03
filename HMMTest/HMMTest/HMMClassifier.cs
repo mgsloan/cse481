@@ -399,7 +399,7 @@ namespace HMMTest
             String directory = Directory.GetCurrentDirectory() + "\\motion_data\\" + this.name;
             String[] files = Directory.GetFiles(directory, "*.rec");
             
-            double[][] motions = getMotion(files[0]);
+            double[][] motions = getMotion(files[7]);
             
             return motions;
         }
