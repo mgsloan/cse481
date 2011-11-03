@@ -72,14 +72,14 @@ namespace KinectViewer
             if (naoPerformLineNum < naoPerformMotionData.GetLength(0))
             {
                 nao.RSUpdatePitch((float)naoPerformMotionData[naoPerformLineNum][0]);
-                nao.RSUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][1] - (float)Math.PI);
-                nao.REUpdateYaw((float)naoPerformMotionData[naoPerformLineNum][2] + (float)(Math.PI / 2));
-                nao.REUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][3] + (float)Math.PI);
+                nao.RSUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][1]);
+                nao.REUpdateYaw((float)naoPerformMotionData[naoPerformLineNum][2]);
+                nao.REUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][3]);
 
                 nao.LSUpdatePitch((float)naoPerformMotionData[naoPerformLineNum][4]);
-                nao.LSUpdateRoll(-((float)naoPerformMotionData[naoPerformLineNum][5] - (float)Math.PI));
-                nao.LEUpdateYaw(-((float)naoPerformMotionData[naoPerformLineNum][6] + (float)(Math.PI / 2)));
-                nao.LEUpdateRoll(-((float)naoPerformMotionData[naoPerformLineNum][7] + (float)Math.PI));
+                nao.LSUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][5]);
+                nao.LEUpdateYaw((float)naoPerformMotionData[naoPerformLineNum][6]);
+                nao.LEUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][7]);
 
 
                 if (naoPerformLineNum == 0)
@@ -90,6 +90,7 @@ namespace KinectViewer
                 {
                     nao.RSSend();
                 }
+                
                 naoPerformLineNum++;
             }
             else

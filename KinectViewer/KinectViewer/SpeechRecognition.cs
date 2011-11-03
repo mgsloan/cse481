@@ -178,7 +178,8 @@ namespace KinectViewer
                 case "superman":
                     Console.WriteLine("Yes, I can fly");
                     naoSpeech.Say("Yes, I can fly");
-                    kinectViewer.performAction(action);
+                    //kinectViewer.performAction(action);
+                    kinectViewer.performAction("raise2");
                     break;
                 case "do the robot":
                     Console.WriteLine("Yes, I can dance!");

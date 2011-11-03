@@ -128,10 +128,13 @@ namespace KinectViewer
                     motion_window.AddLast(sample);
                     if (motion_window.Count > WINDOW_SIZE) motion_window.RemoveFirst();
                     if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
-                    for (int i = 0; i < classifiers.Length; i++)
+                    if (motion_window.Count >= WINDOW_SIZE)
                     {
-                        // TODO: this is sorta inefficient..
-                        classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
+                        for (int i = 0; i < classifiers.Length; i++)
+                        {
+                            // TODO: this is sorta inefficient..
+                            classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
+                        }
                     }
                 }
                 else
