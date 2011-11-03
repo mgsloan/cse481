@@ -67,40 +67,6 @@ namespace KinectViewer
             nao.RSSend();
         }
 
-        protected override void naoPerformAction()
-        {
-            if (naoPerformLineNum < naoPerformMotionData.GetLength(0))
-            {
-                nao.RSUpdatePitch((float)naoPerformMotionData[naoPerformLineNum][0]);
-                nao.RSUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][1]);
-                nao.REUpdateYaw((float)naoPerformMotionData[naoPerformLineNum][2]);
-                nao.REUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][3]);
-
-                nao.LSUpdatePitch((float)naoPerformMotionData[naoPerformLineNum][4]);
-                nao.LSUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][5]);
-                nao.LEUpdateYaw((float)naoPerformMotionData[naoPerformLineNum][6]);
-                nao.LEUpdateRoll((float)naoPerformMotionData[naoPerformLineNum][7]);
-
-
-                if (naoPerformLineNum == 0)
-                {
-                    nao.RSSendBlocking();
-                }
-                else
-                {
-                    nao.RSSend();
-                }
-                
-                naoPerformLineNum++;
-            }
-            else
-            {
-                naoPerformMotion = false;
-                naoPerformMotionData = null;
-                naoPerformLineNum = 0;
-            }
-        }
-
         bool rhand, lhand;
         Vector3 R1b, R2b, R3b;
         Matrix R1, R2;

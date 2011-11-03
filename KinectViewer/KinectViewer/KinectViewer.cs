@@ -27,10 +27,6 @@ namespace KinectViewer
         String recordFile;
         protected SpeechRecognition sr = new SpeechRecognition();
 
-        protected double[][] naoPerformMotionData = null;
-        protected bool naoPerformMotion = false;
-        protected int naoPerformLineNum = 0;
-
         bool trap_mouse = true;
         bool record_ang = true;
         KeyboardState prior_keys;
@@ -144,10 +140,6 @@ namespace KinectViewer
             }
         }
 
-        protected virtual void naoPerformAction()
-        {
-        }
-
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
             SkeletonFrame allSkeletons = e.SkeletonFrame;
@@ -157,11 +149,7 @@ namespace KinectViewer
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
 
-            if (naoPerformMotion)
-            {
-                naoPerformAction();
-            }
-            else if (skeleton != null)
+            if (skeleton != null)
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
@@ -411,8 +399,29 @@ namespace KinectViewer
             }
             if (performMotion != null)
             {
-                naoPerformMotionData = performMotion;
-                naoPerformMotion = true;
+                for (int i = 0; i < performMotion.Length; i++)
+                {
+                    nao.RSUpdatePitch((float)performMotion[i][0]);
+                    nao.RSUpdateRoll((float)performMotion[i][1]);
+                    nao.REUpdateYaw((float)performMotion[i][3]);
+                    nao.REUpdateRoll((float)performMotion[i][2]);
+
+                    nao.LSUpdatePitch((float)performMotion[i][4]);
+                    nao.LSUpdateRoll((float)performMotion[i][5]);
+                    nao.LEUpdateYaw((float)performMotion[i][7]);
+                    nao.LEUpdateRoll((float)performMotion[i][6]);
+
+                    if (i == 0)
+                    {
+                        nao.RSSendBlocking();
+                    }
+                    else
+                    {
+                        nao.RSSend();
+                    }
+
+                    System.Threading.Thread.Sleep(33);
+                }
             }
         }
     }

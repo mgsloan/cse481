@@ -67,8 +67,9 @@ namespace KinectViewer
         public void RSSendBlocking()
         {
             if (_motion == null) return;
-            int id = _motion.post.setAngles(names, values, speed / 5);
-            _motion.wait(id, 5000);
+            _motion.setAngles(names, values, 0.2f);
+            //_motion.wait(id, 10000);
+            System.Threading.Thread.Sleep(3000);
         }
 
         public void SetJoint(int ix, float val)
