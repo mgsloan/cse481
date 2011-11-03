@@ -81,7 +81,7 @@ class MotionRecord
     {
         double[] prior = null;
         int remCount = 0;
-        for (int i = fromBack ? data.Count : 0;
+        for (int i = fromBack ? data.Count-1 : 0;
             fromBack ? i >= 0 : i < data.Count;
             i += fromBack ? -1 : 1)
         {
