@@ -27,6 +27,8 @@ namespace KinectViewer
         String recordFile;
         protected SpeechRecognition sr = new SpeechRecognition();
 
+        bool performingAction = false;
+
         bool trap_mouse = true;
         bool record_ang = true;
         KeyboardState prior_keys;
@@ -89,9 +91,9 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
             
             //nao.Connect("128.208.7.48");
-            //nao.Connect("128.208.4.10");
-            nao.Connect("127.0.0.1");
-            //naoSpeech.Connect("127.0.0.1");
+            nao.Connect("128.208.4.225");
+            //nao.Connect("127.0.0.1");
+            naoSpeech.Connect("128.208.4.225");
             sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
@@ -130,6 +132,12 @@ namespace KinectViewer
                         {
                             // TODO: this is sorta inefficient..
                             classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
+                            if (classifier_probs[i] > 0.0000000001)
+                            {
+                                naoSpeech.Say("you are perfroming " + classifiers[i].getName());
+                                motion_window.Clear();
+                                break;
+                            }
                         }
                     }
                 }
@@ -149,7 +157,7 @@ namespace KinectViewer
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
 
-            if (skeleton != null)
+            if (skeleton != null  && !performingAction)
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
@@ -383,7 +391,8 @@ namespace KinectViewer
             Console.WriteLine("Classifying...");
             for (int i = 0; i < classifiers.Length; i++)
             {
-                if (classifiers[i].isMember(motion)) 
+                if (classifiers[i].isMember(motion))
+                    naoSpeech.Say("You are performing " + classifiers[i].getName()); 
                     Console.WriteLine("Recognized: " + classifiers[i].getName());
             }
             Console.WriteLine("Done");
@@ -399,6 +408,7 @@ namespace KinectViewer
             }
             if (performMotion != null)
             {
+                performingAction = true;
                 for (int i = 0; i < performMotion.Length; i++)
                 {
                     nao.RSUpdatePitch((float)performMotion[i][0]);
@@ -422,6 +432,7 @@ namespace KinectViewer
 
                     System.Threading.Thread.Sleep(33);
                 }
+                performingAction = false;
             }
         }
     }
