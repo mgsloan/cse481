@@ -91,8 +91,8 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
             
             //nao.Connect("128.208.7.48");
-            nao.Connect("128.208.4.225");
-            //nao.Connect("127.0.0.1");
+            //nao.Connect("128.208.4.225");
+            nao.Connect("127.0.0.1");
             naoSpeech.Connect("128.208.4.225");
             sr.InitalizeKinect(nao, naoSpeech, this);
         }
