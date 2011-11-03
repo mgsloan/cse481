@@ -82,14 +82,7 @@ namespace KinectViewer
         
         public void RecordAngles(System.IO.StreamWriter writer)
         {
-            StringBuilder builder = new StringBuilder();
-            builder.AppendFormat("{0}", DateTime.Now.ToFileTime().ToString());
-            for (int i = 0; i < values.Count; i++)
-            {
-                if (i != values.Count) builder.Append(", ");
-                builder.AppendFormat("{0}", values[i]);
-            }
-            writer.WriteLine(builder.ToString());
+
         }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val); }
