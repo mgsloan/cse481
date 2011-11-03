@@ -19,22 +19,23 @@ namespace KinectViewer
         protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
-        const int WINDOW_SIZE = 200;
-        LinkedList<double[]> motion_window = new LinkedList<double[]>();
-        Vector3 skeletonStartPos;
+        protected SpeechRecognition sr = new SpeechRecognition();
+
         HMMClassifier[] classifiers;
         double[] classifier_probs;
-        String recordFile;
-        protected SpeechRecognition sr = new SpeechRecognition();
+        protected SoundController sc = new SoundController();
+
+        Vector3 skeletonStartPos;
+        bool record_ang = true;
+        bool recording = false;
+        protected MotionRecord record;
 
         protected double[][] naoPerformMotionData = null;
         protected bool naoPerformMotion = false;
         protected int naoPerformLineNum = 0;
 
         bool trap_mouse = true;
-        bool record_ang = true;
         KeyboardState prior_keys;
-        System.IO.StreamWriter recording = null;
         
         GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -48,6 +49,7 @@ namespace KinectViewer
         {
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
+            record = new MotionRecord();
             InitializeClassifiers();
             //graphics.PreferredBackBufferWidth = 1280;
             //graphics.PreferredBackBufferHeight = 1024;
@@ -69,13 +71,13 @@ namespace KinectViewer
             grid2 = new SampleGrid();
             grid2.GridSize = 16;
             grid2.GridScale = 1.0f;
-            grid2.GridColor = Color.BlueViolet;
+            grid2.GridColor = Color.Black;
             grid2.LoadGraphicsContent(GraphicsDevice);
 
             LabelledVector.Load(GraphicsDevice);
 
-            nui.Initialize(RuntimeOptions.UseColor | RuntimeOptions.UseDepthAndPlayerIndex
-                | RuntimeOptions.UseSkeletalTracking);
+            nui.Initialize(//RuntimeOptions.UseColor | RuntimeOptions.UseDepthAndPlayerIndex |
+                RuntimeOptions.UseSkeletalTracking);
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             // Must set to true and set after call to Initialize
@@ -101,43 +103,34 @@ namespace KinectViewer
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
-            if (recording != null)
+            if (record_ang)
             {
-                if (record_ang)
-                {
-                    nao.RecordAngles(recording);
-                }
-                else
-                {
-                    Vector3 pos = getLoc(cur_skeleton.Joints[JointID.Spine]);
-                    recording.WriteLine(DateTime.Now.ToFileTime().ToString() + ", " + (skeletonStartPos.X - pos.X)
-                                                                             + ", " + (skeletonStartPos.Y - pos.Y)
-                                                                             + ", " + (skeletonStartPos.Z - pos.Z));
-                }
+                record.TakeAngleSample(nao);
             }
             else
             {
-                double[] sample = new double[nao.values.Count];
-                Type typ = nao.values[0].GetType();
-                if (typ == typeof(float))
+                record.TakePosSample(Vector3.Subtract(getLoc(skeleton.Joints[JointID.Spine]), skeletonStartPos));
+            }
+            record.TrimMotionless(false, 5, 0.1);
+            if (record.TrimMotionless(true, 5, 0.1) != 0)
+            {
+                if (recording)
                 {
-                    for (int i = 0; i < sample.Count(); i++)
+                    if (record.data.Count > 30)
                     {
-                        sample[i] = (double)(float)nao.values[i];
-                    }
-                    motion_window.AddLast(sample);
-                    if (motion_window.Count > WINDOW_SIZE) motion_window.RemoveFirst();
-                    if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
-                    for (int i = 0; i < classifiers.Length; i++)
-                    {
-                        // TODO: this is sorta inefficient..
-                        classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
+                        record.SaveRecording();
+                        sc.triggerDing();
                     }
                 }
                 else
                 {
-                    Console.WriteLine("hrmph");
+                    for (int i = 0; i < classifiers.Length; i++)
+                    {
+                        // TODO: this is sorta inefficient..
+                        classifier_probs[i] = classifiers[i].evaluate(record.GetArray());
+                    }
                 }
+                record.data.Clear();
             }
         }
 
@@ -163,6 +156,7 @@ namespace KinectViewer
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
             }
+            Console.WriteLine("exit");
         }
 
         protected override void Draw(GameTime gameTime)
@@ -221,22 +215,11 @@ namespace KinectViewer
             }
             catch
             {
-                // lol
             }
 
             // Reset the fill mode renderstate.
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
-            /*
-            // Draw overlay text.
-            string text = "A or tap top of screen = Change primitive\n" +
-                          "B or tap bottom left of screen = Change color\n" +
-                          "Y or tap bottom right of screen = Toggle wireframe";
-
-            spriteBatch.Begin();
-            spriteBatch.DrawString(spriteFont, text, new Vector2(48, 48), Color.White);
-            spriteBatch.End();
-            */
             base.Draw(gameTime);
         }
 
@@ -312,21 +295,8 @@ namespace KinectViewer
             if (KeyFreshPress(keyState, Keys.T) || rPressed)
             {
                 record_ang = rPressed;
+                recording = true;
                 skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
-                if (recording == null)
-                {
-                    System.IO.Directory.CreateDirectory("saved");
-                    //recording = System.IO.File.Create("saved/" + DateTime.Now.ToString() + ".rec");
-                    recordFile = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "saved/" + DateTime.Now.ToFileTime().ToString() + ".rec");
-                    recording = new System.IO.StreamWriter(recordFile);            
-                }
-                else
-                {
-                    recording.Close();
-                    double[][] motion = HMMClassifier.getMotion(recordFile);
-                    ClassifyMotion(motion);
-                    recording = null;
-                }
             }
 
             prior_keys = keyState;
@@ -369,8 +339,8 @@ namespace KinectViewer
             viewMatrix = Matrix.CreateLookAt(cameraPosition, cameraFinalTarget, cameraOriginalUpVector);
         }
 
-        public Vector3 getLoc(Joint j) { return getLoc(j.Position); }
-        public Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
+        public static Vector3 getLoc(Joint j) { return getLoc(j.Position); }
+        public static Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
 
         private void InitializeClassifiers()
         {
