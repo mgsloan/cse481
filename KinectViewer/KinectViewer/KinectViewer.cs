@@ -96,7 +96,7 @@ namespace KinectViewer
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
-            //naoSpeech.Connect("128.208.4.225");
+            naoSpeech.Connect("128.208.4.225");
             sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
@@ -136,28 +136,17 @@ namespace KinectViewer
                 }
                 else
                 {
+                    sc.triggerDing(440);
+                    if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
                     for (int i = 0; i < classifiers.Length; i++)
                     {
                         // TODO: this is sorta inefficient..
                         classifier_probs[i] = classifiers[i].evaluate(record.GetArray());
-/*
-                    motion_window.AddLast(sample);
-                    if (motion_window.Count > WINDOW_SIZE) motion_window.RemoveFirst();
-                    if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
-                    if (motion_window.Count >= WINDOW_SIZE)
-                    {
-                        for (int i = 0; i < classifiers.Length; i++)
+                        if (classifier_probs[i] > 0.0000000000001)
                         {
-                            // TODO: this is sorta inefficient..
-                            classifier_probs[i] = classifiers[i].evaluate(motion_window.ToArray());
-                            if (classifier_probs[i] > 0.0000000001)
-                            {
-                                naoSpeech.Say("you are perfroming " + classifiers[i].getName());
-                                motion_window.Clear();
-                                break;
-                            }
+                            naoSpeech.Say("you are performing " + classifiers[i].getName());
+                            break;
                         }
-*/
                     }
                 }
                 record.data.Clear();
