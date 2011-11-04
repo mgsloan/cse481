@@ -74,7 +74,6 @@ namespace KinectViewer
 
         public void SetJoint(int ix, float val)
         {
-            if (_motion == null) return;
             values[ix] = limits.Count <= ix
                        ? val
                        : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);

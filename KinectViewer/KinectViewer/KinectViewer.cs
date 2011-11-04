@@ -28,6 +28,7 @@ namespace KinectViewer
         Vector3 skeletonStartPos;
         bool record_ang = true;
         bool recording = false;
+        bool between = false;
         protected MotionRecord record;
 
         bool performingAction = false;
@@ -95,12 +96,13 @@ namespace KinectViewer
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
-            naoSpeech.Connect("128.208.4.225");
+            //naoSpeech.Connect("128.208.4.225");
             sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
+            sc.sendRotationSpeeds(nao.values);
             if (record_ang)
             {
                 record.TakeAngleSample(nao);
@@ -110,14 +112,25 @@ namespace KinectViewer
                 record.TakePosSample(Vector3.Subtract(getLoc(skeleton.Joints[JointID.Spine]), skeletonStartPos));
             }
             record.TrimMotionless(false, 5, 0.1);
-            if (record.TrimMotionless(true, 5, 0.1) != 0)
+            int trimCnt = record.TrimMotionless(true, 5, 0.1);
+            if (trimCnt != 0)
             {
+                Console.WriteLine("trim: " + trimCnt.ToString());
                 if (recording)
                 {
-                    if (record.data.Count > 30)
+                    if (record.data.Count > 20)
                     {
-                        record.SaveRecording();
-                        sc.triggerDing();
+                        if (between)
+                        {
+                            between = false;
+                            sc.triggerDing(860);
+                        }
+                        else
+                        {
+                            record.SaveRecording();
+                            sc.triggerDing(440);
+                            between = true;
+                        }
                     }
                 }
                 else
@@ -152,6 +165,7 @@ namespace KinectViewer
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
+            Console.WriteLine("got frame!");
             SkeletonFrame allSkeletons = e.SkeletonFrame;
 
             // Get the first tracked skeleton
@@ -159,12 +173,11 @@ namespace KinectViewer
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
 
-            if (skeleton != null  && !performingAction)
+            if (skeleton != null  && (!performingAction || recording))
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
             }
-            Console.WriteLine("exit");
         }
 
         protected override void Draw(GameTime gameTime)
@@ -303,7 +316,7 @@ namespace KinectViewer
             if (KeyFreshPress(keyState, Keys.T) || rPressed)
             {
                 record_ang = rPressed;
-                recording = true;
+                recording = !recording;
                 skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
             }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Net;
 using Bespoke.Common.Osc;
 
@@ -8,8 +9,8 @@ namespace KinectViewer
     {
         IPEndPoint _sound_source = null;
         IPEndPoint _sound_dest = null;
-        double[] prior = null;
-        double[] speeds = null;
+        ArrayList prior = null;
+        float[] speeds = null;
 
         public SoundController(int dport = 10337, int sport = 10338)
         {
@@ -20,15 +21,15 @@ namespace KinectViewer
             OscPacket.LittleEndianByteOrder = false;
         }
 
-        public void sendRotationSpeeds(double[] values)
+        public void sendRotationSpeeds(ArrayList values)
         {
             if (prior != null)
             {
-                for (int i = 0; i < values.Length; i++)
+                for (int i = 0; i < values.Count; i++)
                 {
-                    speeds[i] = ((float)speeds[i] + (float)values[i] - (float)prior[i]) / 2;
-                    if (float.IsNaN((float)speeds[i]) || float.IsInfinity((float)speeds[i])) speeds[i] = 0f;
-                    prior[i] = values[i];
+                    speeds[i] = (speeds[i] + (float)values[i] - (float)prior[i]) / 2;
+                    if (float.IsNaN(speeds[i]) || float.IsInfinity(speeds[i])) speeds[i] = 0f;
+                    prior[i] = (float)values[i];
                     float val = (Math.Abs((float)speeds[i]) * 10000f);
                     OscMessage msg = new OscMessage(_sound_source, "/motor" + i.ToString(), val);
                     msg.Send(_sound_dest);
@@ -36,14 +37,14 @@ namespace KinectViewer
             }
             else
             {
-                speeds = new double[values.Length];
+                speeds = new float[values.Count];
             }
-            prior = (double[]) values.Clone();
+            prior = (ArrayList) values.Clone();
         }
 
-        public void triggerDing()
+        public void triggerDing(float freq)
         {
-            OscMessage msg = new OscMessage(_sound_source, "/ding", 1);
+            OscMessage msg = new OscMessage(_sound_source, "/ding", freq);
             msg.Send(_sound_dest);
         }
     }

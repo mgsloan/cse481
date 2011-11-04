@@ -65,7 +65,6 @@ class MotionRecord
         foreach (Tuple<long, double[]> tup in data)
         {
             builder.Append(tup.Item1);
-            builder.Append(", ");
             double[] vals = tup.Item2;
             for (int i = 0; i < vals.Length; i++)
             {
@@ -92,7 +91,9 @@ class MotionRecord
                 for (int j = 0; j < vals.Length; j++) {
                     dist += Math.Pow(vals[j] - prior[j], 2);
                 }
-                if (dist < sqThresh) remCount++; else break;
+                if (vals[0] != 0.0)
+                    Console.WriteLine("dist = " + dist.ToString());
+                if (dist < sqThresh || double.IsNaN(dist)) remCount++; else break;
             }
             prior = (double[])vals.Clone();
         }
