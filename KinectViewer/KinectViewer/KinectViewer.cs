@@ -111,14 +111,14 @@ namespace KinectViewer
             {
                 record.TakePosSample(Vector3.Subtract(getLoc(skeleton.Joints[JointID.Spine]), skeletonStartPos));
             }
-            record.TrimMotionless(false, 5, 0.1);
-            int trimCnt = record.TrimMotionless(true, 5, 0.1);
+            int trimCnt = record.TrimMotionless(true, 10, 0.01);
             if (trimCnt != 0)
             {
-                Console.WriteLine("trim: " + trimCnt.ToString());
+                Console.WriteLine("trim: " + trimCnt.ToString() + " " + record.data.Count.ToString());
                 if (recording)
                 {
-                    if (record.data.Count > 20)
+                    if (((record.data.Count > 20) && !between) ||
+                        ((record.data.Count > 5) && between))
                     {
                         if (between)
                         {
@@ -127,8 +127,9 @@ namespace KinectViewer
                         }
                         else
                         {
+                            record.TrimMotionless(false, 5, 0.01);
                             record.SaveRecording();
-                            sc.triggerDing(440);
+                            sc.triggerDing(240);
                             between = true;
                         }
                     }
