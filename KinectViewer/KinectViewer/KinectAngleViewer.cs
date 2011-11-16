@@ -64,7 +64,7 @@ namespace KinectViewer
 
             calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
             base.updateSkeleton(skeleton);
-            nao.RSSend();
+            //nao.RSSend();
         }
 
         bool rhand, lhand;

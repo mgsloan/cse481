@@ -30,6 +30,7 @@ namespace KinectViewer
         bool recording = false;
         bool between = false;
         protected MotionRecord record;
+        protected MotionRecord pos_record;
 
         bool performingAction = false;
 
@@ -49,6 +50,7 @@ namespace KinectViewer
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
             record = new MotionRecord();
+            pos_record = new MotionRecord();
             InitializeClassifiers();
             //graphics.PreferredBackBufferWidth = 1280;
             //graphics.PreferredBackBufferHeight = 1024;
@@ -95,27 +97,64 @@ namespace KinectViewer
             
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.225");
+            //nao.Connect("128.208.4.225");
+            //naoSpeech.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
-            naoSpeech.Connect("128.208.4.225");
             sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
             sc.sendRotationSpeeds(nao.values);
-            if (record_ang)
+            record.TakeAngleSample(nao);
+            pos_record.TakePosSample(Vector3.Subtract(getLoc(skeleton.Joints[JointID.Spine]), skeletonStartPos));
+
+            if (pos_record.TrimMotionless(true, 10, 0.02) != 0)
             {
-                record.TakeAngleSample(nao);
+                if (!record_ang && recording)
+                {
+                    if (((pos_record.data.Count > 10) && !between) ||
+                        ((pos_record.data.Count > 10) && between))
+                    {
+                        if (between)
+                        {
+                            between = false;
+                            sc.triggerDing(860);
+                        }
+                        else
+                        {
+                            pos_record.TrimMotionless(false, 5, 0.02);
+                            pos_record.SaveRecording();
+                            sc.triggerDing(240);
+                            between = true;
+                        }
+                    }
+                }
+                else if (!recording)
+                {
+                    if (pos_record.data.Count > 20)
+                    {
+                        for (int i = 0; i < classifiers.Length; i++)
+                        {
+                            if (classifiers[i].dimension != pos_record.arity) continue;
+                            // TODO: this is sorta inefficient..
+                            classifier_probs[i] = classifiers[i].evaluate(pos_record.GetArray());
+                            if (classifier_probs[i] > 0.00000000000000001)
+                            {
+                                naoSpeech.Say("you are performing " + classifiers[i].getName());
+                                break;
+                            }
+                        }
+                    }
+                }
+                skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
+                pos_record.data.Clear();
             }
-            else
-            {
-                record.TakePosSample(Vector3.Subtract(getLoc(skeleton.Joints[JointID.Spine]), skeletonStartPos));
-            }
-            int trimCnt = record.TrimMotionless(true, 10, 0.01);
+            int trimCnt = record.TrimMotionless(true, recording ? 10 : 20, 0.01);
             if (trimCnt != 0)
             {
-                Console.WriteLine("trim: " + trimCnt.ToString() + " " + record.data.Count.ToString());
-                if (recording)
+                //Console.WriteLine("trim: " + trimCnt.ToString() + " " + record.data.Count.ToString());
+                if (record_ang && recording)
                 {
                     if (((record.data.Count > 20) && !between) ||
                         ((record.data.Count > 5) && between))
@@ -134,18 +173,24 @@ namespace KinectViewer
                         }
                     }
                 }
-                else
+                else if (!recording)
                 {
-                    sc.triggerDing(440);
-                    if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
-                    for (int i = 0; i < classifiers.Length; i++)
+                    //int max_ix = 0;
+                    //double max_l = 0;
+                    if (record.data.Count > 20)
                     {
-                        // TODO: this is sorta inefficient..
-                        classifier_probs[i] = classifiers[i].evaluate(record.GetArray());
-                        if (classifier_probs[i] > 0.0000000000001)
+                        sc.triggerDing(440);
+                        if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
+                        for (int i = 0; i < classifiers.Length; i++)
                         {
-                            naoSpeech.Say("you are performing " + classifiers[i].getName());
-                            break;
+                            // TODO: this is sorta inefficient..
+                            if (classifiers[i].dimension != record.arity) continue;
+                            classifier_probs[i] = classifiers[i].evaluate(record.GetArray());
+                            if (classifier_probs[i] > 0.0000000000000000000000000000000000000000001)
+                            {
+                                naoSpeech.Say("you are performing " + classifiers[i].getName());
+                                break;
+                            }
                         }
                     }
                 }
@@ -155,7 +200,6 @@ namespace KinectViewer
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
-            Console.WriteLine("got frame!");
             SkeletonFrame allSkeletons = e.SkeletonFrame;
 
             // Get the first tracked skeleton
@@ -307,7 +351,9 @@ namespace KinectViewer
             {
                 record_ang = rPressed;
                 recording = !recording;
-                skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
+                between = recording;
+                if (cur_skeleton != null)
+                    skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
             }
 
             prior_keys = keyState;

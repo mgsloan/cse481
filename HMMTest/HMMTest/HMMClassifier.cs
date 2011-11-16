@@ -40,7 +40,7 @@ namespace HMMTest
         private double threshold;
         private HiddenMarkovModel<MultivariateNormalDistribution> hMM;
         private PrincipalComponentAnalysis pca;
-        private int dimension;
+        public int dimension;
         private int reducedDimension;
 
         private String name; public String getName() { return name; }
@@ -155,7 +155,7 @@ namespace HMMTest
             // May have to specify a regularization constant here
             var bWL = new BaumWelchLearning<MultivariateNormalDistribution>(hMM)
             {
-                Tolerance = 0.0001,
+                Tolerance = 0.00001,
                 Iterations = 0,
 
                 // Specify a regularization constant

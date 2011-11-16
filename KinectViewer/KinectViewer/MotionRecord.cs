@@ -12,6 +12,10 @@ class MotionRecord
 {
     public LinkedList<Tuple<long, double[]>> data = new LinkedList<Tuple<long, double[]>>();
 
+    public int arity {
+        get { return data.Count == 0 ? 0 : data.ElementAt(0).Item2.Count();  }
+    }
+
     public void TakeAngleSample(NaoUpperBody nao, int limit = -1)
     {
         Type typ = nao.values[0].GetType();
@@ -74,6 +78,7 @@ class MotionRecord
             writer.WriteLine(builder.ToString());
             builder.Clear();
         }
+        writer.Close();
     }
 
     public int TrimMotionless(bool fromBack, int minRem, double sqThresh)
@@ -91,9 +96,8 @@ class MotionRecord
                 for (int j = 0; j < vals.Length; j++) {
                     dist += Math.Pow(vals[j] - prior[j], 2);
                 }
-                if (vals[0] != 0.0)
-                    Console.WriteLine("dist = " + dist.ToString());
                 if (dist < sqThresh || double.IsNaN(dist)) remCount++; else break;
+                //Console.WriteLine(dist.ToString());
             }
             prior = (double[])vals.Clone();
         }

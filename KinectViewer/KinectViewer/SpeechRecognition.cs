@@ -54,7 +54,7 @@ namespace KinectViewer
             actions.Add(new Choices(new GrammarBuilder[] { forward, back, left, right, goodbye, superman, dance }));
             */
             Choices startPhrase = new Choices(new string[] { "Nao", "The name of this action is" });
-            Choices actions = new Choices(new string[] {",walk forward", ",walk back", ",walk left", ",walk right", ",wave goodbye", ",superman", ",do the robot"});
+            Choices actions = new Choices(new string[] {",walk forward", ",walk back", ",walk left", ",walk right", ",wave goodbye", ",superman", ",do the robot", ",left hand close", ",left hand open", ",right hand close", ",right hand open"});
             Choices sequenceActions = new Choices(new string[] {",disco dance", ",zig zag", ",go away"});
             GrammarBuilder gb = new GrammarBuilder(startPhrase);
             //gb.Append(new SemanticResultKey("actions", actions));
@@ -192,6 +192,18 @@ namespace KinectViewer
                     naoSpeech.Say("Goodbye");
                     //kinectViewer.performAction(action);
                     kinectViewer.performAction("wave");
+                    break;
+                case "left hand close":
+                    nao.SetLHand(true);
+                    break;
+                case "left hand open":
+                    nao.SetLHand(false);
+                    break;
+                case "right hand close":
+                    nao.SetRHand(true);
+                    break;
+                case "right hand open":
+                    nao.SetRHand(false);
                     break;
                 case "disco dance":
                     if (discoDance != null)
