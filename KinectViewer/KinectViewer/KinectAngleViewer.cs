@@ -71,7 +71,7 @@ namespace KinectViewer
         Vector3 R1b, R2b, R3b;
         Matrix R1, R2;
 
-        private void calculateAngles(SkeletonData skeleton, bool right, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
+        private void calculateAngles(SkeletonData skeleton, bool right, bool leg, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
         {
             // Compute angular reference frame used for pitch
 
@@ -174,6 +174,8 @@ namespace KinectViewer
             lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
 
+        /*
+
         public Vector toNuiVec(Vector3 vec)
         {
             Vector result = new Vector();
@@ -182,7 +184,6 @@ namespace KinectViewer
             result.Z = vec.Z;
             return result;
         }
-        /*
         public void localCloud(PlanarImage image)
         {
             float x, y;
