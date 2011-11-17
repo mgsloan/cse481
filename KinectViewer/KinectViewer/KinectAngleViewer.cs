@@ -10,22 +10,54 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
-
         protected override void updateSkeleton(SkeletonData skeleton)
         {
-            Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight]),
-                    handRight      = getLoc(skeleton.Joints[JointID.HandRight]),
-                    shoulderRight  = getLoc(skeleton.Joints[JointID.ShoulderRight]),
-                    wristRight     = getLoc(skeleton.Joints[JointID.WristRight]),
-                    elbowLeft      = getLoc(skeleton.Joints[JointID.ElbowLeft]),
-                    handLeft       = getLoc(skeleton.Joints[JointID.HandLeft]),
-                    shoulderLeft   = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
-                    wristLeft      = getLoc(skeleton.Joints[JointID.WristLeft]),
+            Vector3 elbowRight = getLoc(skeleton.Joints[JointID.ElbowRight]),
+                    handRight = getLoc(skeleton.Joints[JointID.HandRight]),
+                    shoulderRight = getLoc(skeleton.Joints[JointID.ShoulderRight]),
+                    wristRight = getLoc(skeleton.Joints[JointID.WristRight]),
+                    elbowLeft = getLoc(skeleton.Joints[JointID.ElbowLeft]),
+                    handLeft = getLoc(skeleton.Joints[JointID.HandLeft]),
+                    shoulderLeft = getLoc(skeleton.Joints[JointID.ShoulderLeft]),
+                    wristLeft = getLoc(skeleton.Joints[JointID.WristLeft]),
                     shoulderCenter = getLoc(skeleton.Joints[JointID.ShoulderCenter]),
-                    spine = getLoc(skeleton.Joints[JointID.Spine]);
+                    spine = getLoc(skeleton.Joints[JointID.Spine]),
+                    hipLeft = getLoc(skeleton.Joints[JointID.HipLeft]),
+                    hipRight = getLoc(skeleton.Joints[JointID.HipRight]),
+                    kneeLeft = getLoc(skeleton.Joints[JointID.KneeLeft]),
+                    kneeRight = getLoc(skeleton.Joints[JointID.KneeRight]),
+                    ankleLeft = getLoc(skeleton.Joints[JointID.AnkleLeft]),
+                    ankleRight = getLoc(skeleton.Joints[JointID.AnkleRight]),
+                    footLeft = getLoc(skeleton.Joints[JointID.FootLeft]),
+                    footRight = getLoc(skeleton.Joints[JointID.FootRight]);
 
             lines.Clear();
 
+            // legs
+            Vector3 Xlegs = Vector3.Subtract(hipLeft, hipRight);
+            Vector3 Ylegs = Vector3.Subtract(shoulderCenter, spine);
+
+            Xlegs.Normalize(); Ylegs.Normalize();
+            Vector3 dZlegs = Vector3.Cross(Xlegs, Ylegs);
+            Vector3 dY2legs = Vector3.Cross(dZlegs, Xlegs);
+            Matrix srReflegs = Matrix.CreateWorld(Vector3.Zero, dZlegs, dY2legs);
+            Matrix srRefInvlegs = Matrix.Invert(srReflegs);
+
+            // right leg
+            Vector3 RUAlegs = Vector3.Subtract(kneeRight, hipRight);
+            Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
+            Vector3 RHlegs = Vector3.Subtract(footRight, ankleRight);
+            RUAlegs.Normalize(); RLAlegs.Normalize(); RHlegs.Normalize();
+            calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
+
+            // left leg
+            Vector3 LUAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(kneeLeft, hipLeft));
+            Vector3 LLAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(ankleLeft, kneeLeft));
+            Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
+            LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
+            calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
+
+            // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
             Vector3 Y = Vector3.Subtract(shoulderCenter, spine);
 
@@ -35,43 +67,40 @@ namespace KinectViewer
             Matrix srRef = Matrix.CreateWorld(Vector3.Zero, dz, dy2);
             Matrix srRefInv = Matrix.Invert(srRef);
 
+            // right arm
             Vector3 RUA = Vector3.Subtract(elbowRight, shoulderRight);
             Vector3 RLA = Vector3.Subtract(wristRight, elbowRight);
             Vector3 RH = Vector3.Subtract(handRight, wristRight);
             RUA.Normalize(); RLA.Normalize(); RH.Normalize();
-            calculateAngles(skeleton, true, srRef, srRefInv, RUA, RLA, RH);
+            calculateAngles(skeleton, "ra", srRef, srRefInv, RUA, RLA, RH);
 
             R1b = shoulderRight;
             R2b = elbowRight;
             R3b = handRight;
 
-            // reflect across YZ plane
-            Vector3 LUA = Vector3.Transform(Vector3.Subtract(elbowLeft, shoulderLeft), srRefInv);
-            Vector3 LLA = Vector3.Transform(Vector3.Subtract(wristLeft, elbowLeft), srRefInv);
-            Vector3 LH = Vector3.Transform(Vector3.Subtract(handLeft, wristLeft), srRefInv);
+            // left arm
+            Vector3 LUA = flipXInRef(srRef, srRefInv, Vector3.Subtract(elbowLeft, shoulderLeft));
+            Vector3 LLA = flipXInRef(srRef, srRefInv, Vector3.Subtract(wristLeft, elbowLeft));
+            Vector3 LH  = flipXInRef(srRef, srRefInv, Vector3.Subtract(handLeft, wristLeft));
+            LLA.Normalize(); LUA.Normalize(); LH.Normalize();
 
-            LUA.X = -LUA.X;
-            LLA.X = -LLA.X;
-            LH.X = -LH.X;
-
-            LUA = Vector3.Transform(LUA, srRef);
-            LLA = Vector3.Transform(LLA, srRef);
-            LH = Vector3.Transform(LH, srRef);
-
-            LLA.Normalize();
-            LUA.Normalize();
-            LH.Normalize();
-
-            calculateAngles(skeleton, false, srRef, srRefInv, LUA, LLA, LH);
+            calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
             base.updateSkeleton(skeleton);
-            //nao.RSSend();
+            nao.RSSend();
         }
 
         bool rhand, lhand;
         Vector3 R1b, R2b, R3b;
         Matrix R1, R2;
 
-        private void calculateAngles(SkeletonData skeleton, bool right, bool leg, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
+        private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
+        {
+            Vector3 vec2 = Vector3.Transform(vec, back);
+            vec2.X = -vec2.X;
+            return Vector3.Transform(vec2, forward);
+        }
+
+        private void calculateAngles(SkeletonData skeleton, string extremity, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
         {
             // Compute angular reference frame used for pitch
 
@@ -99,7 +128,7 @@ namespace KinectViewer
             //elocal2.Normalize();
             //lines.Add(new LabelledVector(Vector3.Zero, elocal2 * 3, Color.Gold, "e_local"));
 
-            // Compute angular reference frame used for elbow pitch by rolling the previous frame.
+            // Compute angular reference frame used for elbow yaw by rolling the previous frame.
             Matrix eRef = Matrix.Multiply(Matrix.CreateRotationZ((float)Math.PI - roll), srRef2);
 
             // Compute elbow yaw by transforming into this frame, and projecting onto X-Z plane.
@@ -125,29 +154,50 @@ namespace KinectViewer
             //hlocal2.Normalize();
             //lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
 
-            if (right)
+            float knee = (float)Math.Acos(Vector3.Dot(UA, LA));
+            switch (extremity)
             {
-                R1 = srRefInv;
-                R2 = eRef2Inv;
-                //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
-                //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
-              //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
-                nao.RSUpdatePitch(pitch);
-                nao.RSUpdateRoll(roll - (float)Math.PI);
-                nao.REUpdateYaw(eyaw + (float)(Math.PI / 2));
-                nao.REUpdateRoll(eroll + (float)Math.PI);
-                //debugReferenceFrame("", srRef2, 3, getLoc(skeleton.Joints[JointID.ShoulderRight]));
-                //debugReferenceFrame("", eRef2, 3, getLoc(skeleton.Joints[JointID.ElbowRight]));
-                //debugReferenceFrame("", wRef2, 3, getLoc(skeleton.Joints[JointID.WristRight]));
-            }
-            else
-            {
-                //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
-                //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
-                nao.LSUpdatePitch(pitch);
-                nao.LSUpdateRoll(-(roll - (float)Math.PI));
-                nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
-                nao.LEUpdateRoll(-(eroll + (float)Math.PI));
+                case "ra":
+                    {
+                        R1 = srRefInv;
+                        R2 = eRef2Inv;
+                        //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
+                        //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
+                        //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
+                        nao.RSUpdatePitch(pitch);
+                        nao.RSUpdateRoll(roll - (float)Math.PI);
+                        nao.REUpdateYaw(eyaw + (float)(Math.PI / 2));
+                        nao.REUpdateRoll(eroll + (float)Math.PI);
+                        break;
+                    }
+                case "la":
+                    {
+                        //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
+                        //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
+                        nao.LSUpdatePitch(pitch);
+                        nao.LSUpdateRoll(-(roll - (float)Math.PI));
+                        nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
+                        nao.LEUpdateRoll(-(eroll + (float)Math.PI));
+                        break;
+                    }
+                case "rl":
+                    {
+                        roll = roll - (float)Math.PI;
+                        if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
+                        nao.RHUpdateRoll(roll);
+                        nao.RHUpdatePitch(pitch - (float)Math.PI / 2);
+                        nao.RKUpdatePitch(knee);
+                        break;
+                    }
+                case "ll":
+                    {
+                        roll = roll - (float)Math.PI;
+                        if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
+                        nao.LHUpdateRoll(roll);
+                        nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
+                        nao.LKUpdatePitch(knee);
+                        break;
+                    }
             }
 
             // visualizations of values involved
@@ -174,8 +224,6 @@ namespace KinectViewer
             lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
 
-        /*
-
         public Vector toNuiVec(Vector3 vec)
         {
             Vector result = new Vector();
@@ -184,6 +232,7 @@ namespace KinectViewer
             result.Z = vec.Z;
             return result;
         }
+        /*
         public void localCloud(PlanarImage image)
         {
             float x, y;

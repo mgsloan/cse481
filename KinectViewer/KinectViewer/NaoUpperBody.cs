@@ -9,6 +9,7 @@ namespace KinectViewer
 {
     class NaoUpperBody
     {
+        MemoryProxy _memory = null;
         MotionProxy _motion = null;
 
         private float speed = 0.5f;
@@ -31,6 +32,12 @@ namespace KinectViewer
             names.Add("LShoulderRoll");
             names.Add("LElbowRoll");
             names.Add("LElbowYaw");
+            names.Add("RHipRoll");
+            names.Add("RHipPitch");
+            names.Add("RKneePitch");
+            names.Add("LHipRoll");
+            names.Add("LHipPitch");
+            names.Add("LKneePitch");
 
             for (int i = 0; i < names.Count; i++) {
                 values.Add(0.0f);
@@ -38,6 +45,7 @@ namespace KinectViewer
 
             try
             {
+                _memory = new MemoryProxy(ip, 9559);
                 _motion = new MotionProxy(ip, 9559);
 
                 for (int i = 0; i < names.Count; i++)
@@ -92,6 +100,14 @@ namespace KinectViewer
         public void LSUpdateRoll(float val)  { SetJoint(5, val); }
         public void LEUpdateYaw(float val)   { SetJoint(7, val); }
         public void LEUpdateRoll(float val)  { SetJoint(6, val); }
+
+        public void RHUpdateRoll(float val)  { SetJoint(8, val); }
+        public void RHUpdatePitch(float val) { SetJoint(9, val); }
+        public void RKUpdatePitch(float val) { SetJoint(10, val); }
+
+        public void LHUpdateRoll(float val) { SetJoint(11, val); }
+        public void LHUpdatePitch(float val) { SetJoint(12, val); }
+        public void LKUpdatePitch(float val) { SetJoint(13, val); }
 
         public void SetLHand(bool close)
         {
@@ -179,6 +195,18 @@ namespace KinectViewer
                     Console.Out.WriteLine("Walking exception: " + e);
                 }
             }
+        }
+
+        public void readFSR()
+        {
+            List<string> list = _memory.getEventList();
+            Console.WriteLine(_memory.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value"));
+
+            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccX/Sensor/Value"));
+            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccY/Sensor/Value"));
+            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccZ/Sensor/Value"));
+
+            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value"));
         }
     }
 }
