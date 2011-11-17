@@ -184,21 +184,25 @@ namespace KinectViewer
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        nao.RHUpdateRoll(roll);
-                        nao.RHUpdatePitch(pitch - (float)Math.PI / 2);
-                        nao.RKUpdatePitch(knee);
+                        //nao.RHUpdateRoll(roll);
+                       //nao.RHUpdatePitch(pitch - (float)Math.PI / 2);
+                        //nao.RKUpdatePitch(knee);
                         break;
                     }
                 case "ll":
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        nao.LHUpdateRoll(roll);
-                        nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
-                        nao.LKUpdatePitch(knee);
+                        //nao.LHUpdateRoll(roll);
+                        //nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
+                        //nao.LKUpdatePitch(knee);
                         break;
                     }
             }
+
+
+
+
 
             // visualizations of values involved
             //Vector3 offset = Vector3.Add(spine, new Vector3(5, 0, 0));

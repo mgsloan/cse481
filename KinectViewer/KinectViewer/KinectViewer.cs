@@ -41,6 +41,8 @@ namespace KinectViewer
         SpriteBatch spriteBatch;
         SpriteFont spriteFont;
         SpherePrimitive sphere;
+        SpherePrimitive COMsphere;
+        SpherePrimitive BodySphere;
         SampleGrid grid;
         SampleGrid grid2;
         protected List<LabelledVector> lines = new List<LabelledVector>();
@@ -65,6 +67,9 @@ namespace KinectViewer
 
             sphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
 
+            COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
+            BodySphere = new SpherePrimitive(GraphicsDevice, 0.6f, 8);
+
             grid = new SampleGrid();
             grid.GridSize = 16;
             grid.GridScale = 1.0f;
@@ -82,6 +87,7 @@ namespace KinectViewer
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             // Must set to true and set after call to Initialize
+            nui.NuiCamera.ElevationAngle = 15;
 
             nui.SkeletonEngine.TransformSmooth = true;
             // Use to transform and reduce jitter
@@ -100,7 +106,7 @@ namespace KinectViewer
             //nao.Connect("128.208.4.225");
             //naoSpeech.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
-            sr.InitalizeKinect(nao, naoSpeech, this);
+            //sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -271,6 +277,24 @@ namespace KinectViewer
             catch
             {
             }
+
+            //display COM (indicated by a green ball. 
+            List<float> COMvalues = nao.getCOM();
+            List<float> BodyPosition = nao.getPosition();
+
+            var v = new Vector3();
+            v.X = COMvalues[0];
+            v.Y = COMvalues[1];
+            v.Z = COMvalues[2];
+
+            var v2 = new Vector3();
+            v2.X = BodyPosition[0];
+            v2.Y = BodyPosition[1];
+            v2.Z = BodyPosition[2];
+
+            COMsphere.Draw(Matrix.CreateTranslation(v),viewMatrix, projection, Color.Green);
+            BodySphere.Draw(Matrix.CreateTranslation(v2), viewMatrix, projection, Color.Blue);
+
 
             // Reset the fill mode renderstate.
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;

@@ -32,12 +32,12 @@ namespace KinectViewer
             names.Add("LShoulderRoll");
             names.Add("LElbowRoll");
             names.Add("LElbowYaw");
-            names.Add("RHipRoll");
-            names.Add("RHipPitch");
-            names.Add("RKneePitch");
-            names.Add("LHipRoll");
-            names.Add("LHipPitch");
-            names.Add("LKneePitch");
+            //names.Add("RHipRoll");
+            //names.Add("RHipPitch");
+            //names.Add("RKneePitch");
+            //names.Add("LHipRoll");
+            //names.Add("LHipPitch");
+            //names.Add("LKneePitch");
 
             for (int i = 0; i < names.Count; i++) {
                 values.Add(0.0f);
@@ -86,7 +86,18 @@ namespace KinectViewer
                        ? val
                        : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
         }
+
+        public List<float> getCOM()
+        {
+           return _motion.getCOM("Body", 2, true);
+        }
+
+        public List<float> getPosition()
+        {
+            return _motion.getPosition("Torso", 2, true);
         
+        }
+
         public void RecordAngles(System.IO.StreamWriter writer)
         {
 
@@ -101,13 +112,13 @@ namespace KinectViewer
         public void LEUpdateYaw(float val)   { SetJoint(7, val); }
         public void LEUpdateRoll(float val)  { SetJoint(6, val); }
 
-        public void RHUpdateRoll(float val)  { SetJoint(8, val); }
-        public void RHUpdatePitch(float val) { SetJoint(9, val); }
-        public void RKUpdatePitch(float val) { SetJoint(10, val); }
+        //public void RHUpdateRoll(float val)  { SetJoint(8, val); }
+        //public void RHUpdatePitch(float val) { SetJoint(9, val); }
+        //public void RKUpdatePitch(float val) { SetJoint(10, val); }
 
-        public void LHUpdateRoll(float val) { SetJoint(11, val); }
-        public void LHUpdatePitch(float val) { SetJoint(12, val); }
-        public void LKUpdatePitch(float val) { SetJoint(13, val); }
+        //public void LHUpdateRoll(float val) { SetJoint(11, val); }
+        //public void LHUpdatePitch(float val) { SetJoint(12, val); }
+        //public void LKUpdatePitch(float val) { SetJoint(13, val); }
 
         public void SetLHand(bool close)
         {
