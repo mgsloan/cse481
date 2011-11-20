@@ -16,16 +16,16 @@ using Accord.Statistics.Analysis;
 
 namespace HMMTest
 {
-    class HMMClassifier
+    public class HMMClassifier
     {
         private static BinaryFormatter bin = new BinaryFormatter();
 
         // fraction of samples to use for training a given HMM
-        private static readonly double TRAIN_PROPORTION = .9; 
+        private static readonly double TRAIN_PROPORTION = .8; 
 
         // the series of positions for a gesture is condensed into NUM_BLOCKS values
         // (after applying PCA), using averaging (see 'shrink')
-        private static readonly int NUM_BLOCKS = 8;
+        private static readonly int NUM_BLOCKS = 6;
 
         // minimum MLE probability for accepting a gesture for the HMM
         // in PCA, the relative weights of the eigenvals correspond to how much of
@@ -33,12 +33,18 @@ namespace HMMTest
         // dimensions to account for INFO_PROPORTION of the variance
         private static readonly double INFO_PROPORTION = .999;
 
+        // the number of states for the underlying HMM (it may be best to keep this
+        // equal to the number of blocks, since this creates a state for each 'timestep')
+        private static readonly int NUM_STATES = 6;
+
         private double threshold;
         private HiddenMarkovModel<MultivariateNormalDistribution> hMM;
         private PrincipalComponentAnalysis pca;
-        private int dimension;
+        public int dimension;
         private int reducedDimension;
-        
+
+        private String name; public String getName() { return name; }
+
         static void Main(string[] args)
         {
             String directory = Directory.GetCurrentDirectory();
@@ -48,28 +54,14 @@ namespace HMMTest
             var classifier1 = new HMMClassifier();
             double[][][] motions1 = getMotions(motion_dir + "\\raise2");
             classifier1.Initialize(motions1);
-            int pos = 0;
-            for (int i = 0; i < motions1.Length; i++)
-            {
-                bool class1 = classifier1.isMember(motions1[i]);
-                if (class1) pos++;
-            }
-            Console.WriteLine("" + pos + " of " + motions1.Length);
 
             // should all be true
             var classifier2 = new HMMClassifier();
-            double[][][] motions2 = getMotions(motion_dir + "\\wave");
+            double[][][] motions2 = getMotions(motion_dir + "\\raise");
             classifier2.Initialize(motions2);
-            pos = 0;
-            for (int i = 0; i < motions2.Length; i++)
-            {
-                bool class1 = classifier2.isMember(motions2[i]);
-                if (class1) pos++;
-            }
-            Console.WriteLine("" + pos + " of " + motions2.Length);
 
             // should all be false
-            pos = 0;
+            int pos = 0;
             for (int i = 0; i < motions2.Length; i++)
             {
                 bool class1 = classifier1.isMember(motions2[i]);
@@ -85,10 +77,14 @@ namespace HMMTest
                 if (class1) pos++;
             }
             Console.WriteLine("" + pos + " of " + motions1.Length);
+
+            Console.ReadLine();
         }
 
-        void Initialize(String dirName)
+        public void Initialize(String dirName)
         {
+            String[] path = dirName.Split('\\');
+            this.name = path[path.Length - 1];
             double[][][] motions = getMotions(dirName);
             Initialize(motions);
         }
@@ -111,32 +107,55 @@ namespace HMMTest
             for (int i = 0; i < train; i++) trainMotions[i] = shrink(reducedMotions[trainIndexes[i]], NUM_BLOCKS);
 
             this.hMM = HMMClassifier.createHMM(trainMotions);
-            double sum = 0;
+
+            // allow for some (!) slop, other gestures should score extremely low
+            // so this shouldn't be a problem
+            this.threshold = 1e-10; 
+
+            // the rest is printing stats
+            double[] probs = new double[reducedMotions.Length]; // for information purposes
             for (int i = 0; i < reducedMotions.Length; i++)
             {
                 double prob = hMM.Evaluate(shrink(reducedMotions[i], NUM_BLOCKS));
-                sum += prob;
+                probs[i] = prob; // for information purposes
             }
 
-            this.threshold = .8 * (sum / reducedMotions.Length);
+            int yesTrain = 0, yesTest = 0;
+            int tI = 0;
+            for (int i = 0; i < reducedMotions.Length; i++)
+            {
+                if (probs[i] >= threshold)
+                {
+                    if (tI < trainIndexes.Length && i == trainIndexes[tI]) yesTrain++;
+                    else yesTest++;
+                }
+                if (tI < trainIndexes.Length && i == trainIndexes[tI]) tI++;
+            }
+            Console.WriteLine("" + yesTrain + " of " + train + " train.");
+            Console.WriteLine("" + yesTest + " of " + test + " test.");
+            Console.WriteLine("" + (yesTrain + yesTest) + " of " + (train + test) + " total.");
         }
 
-        bool isMember(double[][] motion)
+        public double evaluate(double[][] motion)
         {
-            double likelihood = hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
-            return (likelihood > threshold);
+            return hMM.Evaluate(shrink(reduce(motion), NUM_BLOCKS));
+        }
+
+        public bool isMember(double[][] motion)
+        {
+            return evaluate(motion) > threshold;
         }
 
         static HiddenMarkovModel<MultivariateNormalDistribution> createHMM(double[][][] motions)
         {
             int dimension = motions[0][0].Length; // use 1st observation (any would suffice)
             var density = new MultivariateNormalDistribution(dimension);
-            var hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(8, density);
+            var hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(NUM_STATES, density);
 
             // May have to specify a regularization constant here
             var bWL = new BaumWelchLearning<MultivariateNormalDistribution>(hMM)
             {
-                Tolerance = 0.0001,
+                Tolerance = 0.00001,
                 Iterations = 0,
 
                 // Specify a regularization constant
@@ -239,7 +258,7 @@ namespace HMMTest
 
         // expects a file to contain data for 1 example of 1 motion, where
         // each line contains all the angle values for 1 instant in time.
-        static double[][] getMotion(String fileName)
+        public static double[][] getMotion(String fileName)
         {
             StreamReader reader = new StreamReader(fileName);
             ArrayList observations = new ArrayList();
@@ -373,6 +392,16 @@ namespace HMMTest
             var emissions     = (MultivariateNormalDistribution[]) bin.Deserialize(stream);
             var probabilities = (double[])                         bin.Deserialize(stream);
             hMM = new HiddenMarkovModel<MultivariateNormalDistribution>(transitions, emissions, probabilities);
+        }
+
+        public double[][] getPerformMotion()
+        {
+            String directory = Directory.GetCurrentDirectory() + "\\motion_data\\" + this.name;
+            String[] files = Directory.GetFiles(directory, "*.rec");
+            
+            double[][] motions = getMotion(files[7]);
+            
+            return motions;
         }
     }
 }
