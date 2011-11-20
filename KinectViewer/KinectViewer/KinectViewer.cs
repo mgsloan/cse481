@@ -68,7 +68,7 @@ namespace KinectViewer
             sphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
 
             COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
-            BodySphere = new SpherePrimitive(GraphicsDevice, 0.6f, 8);
+            BodySphere = new SpherePrimitive(GraphicsDevice, 0.4f, 8);
 
             grid = new SampleGrid();
             grid.GridSize = 16;
@@ -87,7 +87,7 @@ namespace KinectViewer
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             // Must set to true and set after call to Initialize
-            nui.NuiCamera.ElevationAngle = 15;
+            nui.NuiCamera.ElevationAngle = 1;
 
             nui.SkeletonEngine.TransformSmooth = true;
             // Use to transform and reduce jitter
@@ -106,13 +106,11 @@ namespace KinectViewer
             //nao.Connect("128.208.4.225");
             //naoSpeech.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
-<<<<<<< HEAD
             //naoSpeech.Connect("127.0.0.1");
             //speech = new SpeechRecog(this, naoSpeech);
-            sr.InitalizeKinect(nao, naoSpeech);
-=======
+            //sr.InitalizeKinect(nao, naoSpeech);
             //sr.InitalizeKinect(nao, naoSpeech, this);
->>>>>>> origin/master
+
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -236,7 +234,7 @@ namespace KinectViewer
 
         protected override void Draw(GameTime gameTime)
         {
-            nao.supportedBalance(3, lines);
+            //nao.supportedBalance(3, lines);
             nao.RSSend();
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
@@ -299,8 +297,25 @@ namespace KinectViewer
             if (nao.connected)
             {
                 //display COM (indicated by a green ball.
-                COMsphere.Draw(Matrix.CreateTranslation(nao.getCOM()), viewMatrix, projection, Color.Green);
-                BodySphere.Draw(Matrix.CreateTranslation(nao.getPosition("Torso")), viewMatrix, projection, Color.Blue);
+
+
+                
+                COMsphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getCOM(), 15f))), viewMatrix, projection, Color.Green);
+                COMsphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getGyro(), 15f))), viewMatrix, projection, Color.Red);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("Torso"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RShoulderPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LShoulderPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RWristYaw"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LWristYaw"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("HeadYaw"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LKneePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RKneePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LAnklePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RAnklePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LHipPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RHipPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LAnklePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                
             }
 
             // Reset the fill mode renderstate.
@@ -308,7 +323,22 @@ namespace KinectViewer
 
             base.Draw(gameTime);
         }
-        
+
+        private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        {
+            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
+            lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
+            lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
+        }
+
+        private Vector3 RotateOrientation(Vector3 current) 
+        {
+            Matrix rotatex = Matrix.CreateRotationX((float) - Math.PI / 2);
+            Matrix rotatey = Matrix.CreateRotationY((float) Math.PI / 2);
+            return Vector3.Transform(Vector3.Transform(current, rotatex), rotatey);
+            
+        }
+
         private Vector3 ConvertRealWorldPoint(Vector position)
         {
             var returnVector = new Vector3();

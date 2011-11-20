@@ -48,14 +48,14 @@ namespace KinectViewer
             Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
             Vector3 RHlegs = Vector3.Subtract(footRight, ankleRight);
             RUAlegs.Normalize(); RLAlegs.Normalize(); RHlegs.Normalize();
-            //calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
+            calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
 
             // left leg
             Vector3 LUAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(kneeLeft, hipLeft));
             Vector3 LLAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(ankleLeft, kneeLeft));
             Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
-            //calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
+            calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
 
             // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
@@ -217,8 +217,8 @@ namespace KinectViewer
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        //nao.LHUpdateRoll(roll);
-                       // nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
+                        nao.LHUpdateRoll(roll);
+                        nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
                         nao.LKUpdatePitch(knee / 2);
                         nao.RKUpdatePitch(knee / 2);
                         
@@ -243,12 +243,12 @@ namespace KinectViewer
             //debugReferenceFrame(eyaw.ToString(), eRef, 3, elbowRight);
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
         }
-
+        
         private void debugReferenceFrame(String str, Matrix m, float sz)
         {
             debugReferenceFrame(str, m, sz, m.Translation);
         }
-
+        
         private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
         {
             lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
