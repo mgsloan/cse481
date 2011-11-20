@@ -136,7 +136,7 @@
     <Compile Include="NaoSpeech.cs" />
     <Compile Include="KinectAngleViewer.cs" />
     <Compile Include="KinectViewer.cs" />
-    <Compile Include="NaoUpperBody.cs" />
+    <Compile Include="NaoBody.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />

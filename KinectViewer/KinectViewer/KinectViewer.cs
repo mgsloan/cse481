@@ -15,7 +15,7 @@ namespace KinectViewer
 {
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
-        protected NaoUpperBody nao = new NaoUpperBody();
+        protected NaoBody nao = new NaoBody();
         protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
@@ -53,7 +53,7 @@ namespace KinectViewer
             graphics = new GraphicsDeviceManager(this);
             record = new MotionRecord();
             pos_record = new MotionRecord();
-            InitializeClassifiers();
+            //InitializeClassifiers();
             //graphics.PreferredBackBufferWidth = 1280;
             //graphics.PreferredBackBufferHeight = 1024;
             //graphics.IsFullScreen = true;
@@ -93,11 +93,11 @@ namespace KinectViewer
             // Use to transform and reduce jitter
             var parameters = new TransformSmoothParameters
             {
-                Smoothing = 0.75f,
-                Correction = 0.0f,
+                Smoothing = 0.5f,
+                Correction = 0.5f,
                 Prediction = 0.0f,
                 JitterRadius = 0.05f,
-                MaxDeviationRadius = 0.04f
+                MaxDeviationRadius = 0.05f
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
             
@@ -217,11 +217,17 @@ namespace KinectViewer
             {
                 cur_skeleton = skeleton;
                 updateSkeleton(skeleton);
+                //nao.LHUpdatePitch(-1);
+                //nao.LKUpdatePitch(1);
+                nao.LKUpdatePitch(0.2f);
+                nao.RKUpdatePitch(0.2f);
             }
         }
 
         protected override void Draw(GameTime gameTime)
         {
+            nao.supportedBalance(3, lines);
+            nao.RSSend();
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
@@ -278,30 +284,19 @@ namespace KinectViewer
             {
             }
 
-            //display COM (indicated by a green ball. 
-            List<float> COMvalues = nao.getCOM();
-            List<float> BodyPosition = nao.getPosition();
-
-            var v = new Vector3();
-            v.X = COMvalues[0];
-            v.Y = COMvalues[1];
-            v.Z = COMvalues[2];
-
-            var v2 = new Vector3();
-            v2.X = BodyPosition[0];
-            v2.Y = BodyPosition[1];
-            v2.Z = BodyPosition[2];
-
-            COMsphere.Draw(Matrix.CreateTranslation(v),viewMatrix, projection, Color.Green);
-            BodySphere.Draw(Matrix.CreateTranslation(v2), viewMatrix, projection, Color.Blue);
-
+            if (nao.connected)
+            {
+                //display COM (indicated by a green ball.
+                COMsphere.Draw(Matrix.CreateTranslation(nao.getCOM()), viewMatrix, projection, Color.Green);
+                BodySphere.Draw(Matrix.CreateTranslation(nao.getPosition("Torso")), viewMatrix, projection, Color.Blue);
+            }
 
             // Reset the fill mode renderstate.
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
             base.Draw(gameTime);
         }
-
+        
         private Vector3 ConvertRealWorldPoint(Vector position)
         {
             var returnVector = new Vector3();
@@ -368,6 +363,7 @@ namespace KinectViewer
                     graphics.PreferredBackBufferHeight = 1024;
                     graphics.IsFullScreen = true;
                 }
+                graphics.ApplyChanges();
             }
 
             bool rPressed = KeyFreshPress(keyState, Keys.R);

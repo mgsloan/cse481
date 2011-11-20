@@ -11,7 +11,7 @@ namespace KinectViewer
 {
     class SpeechRecognition 
     {
-        NaoUpperBody nao;
+        NaoBody nao;
         NaoSpeech naoSpeech;
         KinectViewer kinectViewer;
         KinectAudioSource kinectSource;
@@ -27,7 +27,7 @@ namespace KinectViewer
         bool storingSequence = false;
 
 
-        public void InitalizeKinect(NaoUpperBody naoBody, NaoSpeech naoSpeaker, KinectViewer kViewer)
+        public void InitalizeKinect(NaoBody naoBody, NaoSpeech naoSpeaker, KinectViewer kViewer)
         {
             nao = naoBody;
             naoSpeech = naoSpeaker;
