@@ -21,8 +21,8 @@ namespace KinectViewer
         SkeletonData cur_skeleton;
         protected SpeechRecognition sr = new SpeechRecognition();
 
-        HMMClassifier[] classifiers;
-        double[] classifier_probs;
+        //HMMClassifier[] classifiers;
+        //double[] classifier_probs;
         protected SoundController sc = new SoundController();
 
         Vector3 skeletonStartPos;
@@ -53,7 +53,7 @@ namespace KinectViewer
             graphics = new GraphicsDeviceManager(this);
             record = new MotionRecord();
             pos_record = new MotionRecord();
-            //InitializeClassifiers();
+            //InitializeClassifiers(); // UNCOMMENT FOR CLASSIFICATION
             //graphics.PreferredBackBufferWidth = 1280;
             //graphics.PreferredBackBufferHeight = 1024;
             //graphics.IsFullScreen = true;
@@ -136,6 +136,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                /* // UNCOMMENT FOR CLASSIFICATION
                 else if (!recording)
                 {
                     if (pos_record.data.Count > 20)
@@ -153,6 +154,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                */
                 skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
                 pos_record.data.Clear();
             }
@@ -179,6 +181,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                /* // UNCOMMENT FOR CLASSIFICATION
                 else if (!recording)
                 {
                     //int max_ix = 0;
@@ -200,6 +203,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                */
                 record.data.Clear();
             }
         }
@@ -255,6 +259,7 @@ namespace KinectViewer
             foreach(LabelledVector l in lines) {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
+            /* // UNCOMMENT FOR CLASSIFICATION
             if (classifier_probs != null)
             {
                 for (int i = 0; i < classifier_probs.Length; i++)
@@ -264,6 +269,7 @@ namespace KinectViewer
                         new Vector2((float)(prob * 640.0f), (float)(i * 20.0f + 20)), Color.Black);
                 }
             }
+            */
             spriteBatch.End();
 
             try
@@ -419,6 +425,7 @@ namespace KinectViewer
         public static Vector3 getLoc(Joint j) { return getLoc(j.Position); }
         public static Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
 
+        /* // UNCOMMENT FOR CLASSIFICATION
         private void InitializeClassifiers()
         {
             String directory = Directory.GetCurrentDirectory();
@@ -445,9 +452,12 @@ namespace KinectViewer
             }
             Console.WriteLine("Done");
         }
+        */
 
+        
         public void performAction(string action)
         {
+            /* // UNCOMMENT FOR PERFORMING MOTIONS (NEED CLASSIFIERS FOR THIS - TODO SEPARATE THIS FUNCTIONALITY OUT?)
             double[][] performMotion = null;
             for (int i = 0; i < classifiers.Length; i++)
             {
@@ -482,6 +492,7 @@ namespace KinectViewer
                 }
                 performingAction = false;
             }
+            */
         }
     }
 }
