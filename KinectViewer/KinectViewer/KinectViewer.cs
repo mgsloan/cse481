@@ -21,18 +21,7 @@ namespace KinectViewer
         SkeletonData cur_skeleton;
         protected SpeechRecognition sr = new SpeechRecognition();
 
-        //HMMClassifier[] classifiers;
-        //double[] classifier_probs;
         protected SoundController sc = new SoundController();
-
-        Vector3 skeletonStartPos;
-        bool record_ang = true;
-        bool recording = false;
-        bool between = false;
-        protected MotionRecord record;
-        protected MotionRecord pos_record;
-
-        bool performingAction = false;
 
         bool trap_mouse = true;
         KeyboardState prior_keys;
@@ -51,12 +40,6 @@ namespace KinectViewer
         {
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
-            record = new MotionRecord();
-            pos_record = new MotionRecord();
-            //InitializeClassifiers(); // UNCOMMENT FOR CLASSIFICATION
-            //graphics.PreferredBackBufferWidth = 1280;
-            //graphics.PreferredBackBufferHeight = 1024;
-            //graphics.IsFullScreen = true;
         }
 
         protected override void LoadContent()
@@ -115,101 +98,7 @@ namespace KinectViewer
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
-            sc.sendRotationSpeeds(nao.values);
-            record.TakeAngleSample(nao);
-            pos_record.TakePosSample(Vector3.Subtract(getLoc(skeleton.Joints[JointID.Spine]), skeletonStartPos));
-
-            if (pos_record.TrimMotionless(true, 10, 0.02) != 0)
-            {
-                if (!record_ang && recording)
-                {
-                    if (((pos_record.data.Count > 10) && !between) ||
-                        ((pos_record.data.Count > 10) && between))
-                    {
-                        if (between)
-                        {
-                            between = false;
-                            sc.triggerDing(860);
-                        }
-                        else
-                        {
-                            pos_record.TrimMotionless(false, 5, 0.02);
-                            pos_record.SaveRecording();
-                            sc.triggerDing(240);
-                            between = true;
-                        }
-                    }
-                }
-                /* // UNCOMMENT FOR CLASSIFICATION
-                else if (!recording)
-                {
-                    if (pos_record.data.Count > 20)
-                    {
-                        for (int i = 0; i < classifiers.Length; i++)
-                        {
-                            if (classifiers[i].dimension != pos_record.arity) continue;
-                            // TODO: this is sorta inefficient..
-                            classifier_probs[i] = classifiers[i].evaluate(pos_record.GetArray());
-                            if (classifier_probs[i] > 0.00000000000000001)
-                            {
-                                naoSpeech.Say("you are performing " + classifiers[i].getName());
-                                break;
-                            }
-                        }
-                    }
-                }
-                */
-                skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
-                pos_record.data.Clear();
-            }
-            int trimCnt = record.TrimMotionless(true, recording ? 10 : 20, 0.01);
-            if (trimCnt != 0)
-            {
-                //Console.WriteLine("trim: " + trimCnt.ToString() + " " + record.data.Count.ToString());
-                if (record_ang && recording)
-                {
-                    if (((record.data.Count > 20) && !between) ||
-                        ((record.data.Count > 5) && between))
-                    {
-                        if (between)
-                        {
-                            between = false;
-                            sc.triggerDing(860);
-                        }
-                        else
-                        {
-                            record.TrimMotionless(false, 5, 0.01);
-                            record.SaveRecording();
-                            sc.triggerDing(240);
-                            between = true;
-                        }
-                    }
-                }
-                /* // UNCOMMENT FOR CLASSIFICATION
-                else if (!recording)
-                {
-                    //int max_ix = 0;
-                    //double max_l = 0;
-                    if (record.data.Count > 20)
-                    {
-                        sc.triggerDing(440);
-                        if (classifier_probs == null) classifier_probs = new double[classifiers.Length];
-                        for (int i = 0; i < classifiers.Length; i++)
-                        {
-                            // TODO: this is sorta inefficient..
-                            if (classifiers[i].dimension != record.arity) continue;
-                            classifier_probs[i] = classifiers[i].evaluate(record.GetArray());
-                            if (classifier_probs[i] > 0.0000000000000000000000000000000000000000001)
-                            {
-                                naoSpeech.Say("you are performing " + classifiers[i].getName());
-                                break;
-                            }
-                        }
-                    }
-                }
-                */
-                record.data.Clear();
-            }
+            //sc.sendRotationSpeeds(nao.values);
         }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
@@ -221,7 +110,7 @@ namespace KinectViewer
                                      where s.TrackingState == SkeletonTrackingState.Tracked
                                      select s).FirstOrDefault();
 
-            if (skeleton != null  && (!performingAction || recording))
+            if (skeleton != null)
             {
                 cur_skeleton = skeleton;
                 //updateSkeleton(skeleton);
@@ -273,17 +162,7 @@ namespace KinectViewer
             foreach(LabelledVector l in lines) {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
-            /* // UNCOMMENT FOR CLASSIFICATION
-            if (classifier_probs != null)
-            {
-                for (int i = 0; i < classifier_probs.Length; i++)
-                {
-                    double prob = classifier_probs[i];
-                    spriteBatch.DrawString(spriteFont, classifiers[i].getName() + " " + prob.ToString(),
-                        new Vector2((float)(prob * 640.0f), (float)(i * 20.0f + 20)), Color.Black);
-                }
-            }
-            */
+
             spriteBatch.End();
 
             try
@@ -317,9 +196,6 @@ namespace KinectViewer
             foreach (String part in nao.parts) {
                 drawPrimitive(BodySphere, FromRobotSpace(nao.getPosition(part)), Color.Blue);
             }
-            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
-            lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
-            lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
 
         private void drawFoot(string prefix) {
@@ -414,16 +290,6 @@ namespace KinectViewer
                 graphics.ApplyChanges();
             }
 
-            bool rPressed = KeyFreshPress(keyState, Keys.R);
-            if (KeyFreshPress(keyState, Keys.T) || rPressed)
-            {
-                record_ang = rPressed;
-                recording = !recording;
-                between = recording;
-                if (cur_skeleton != null)
-                    skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
-            }
-
             prior_keys = keyState;
 
             if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
@@ -466,75 +332,5 @@ namespace KinectViewer
 
         public static Vector3 getLoc(Joint j) { return getLoc(j.Position); }
         public static Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
-
-        /* // UNCOMMENT FOR CLASSIFICATION
-        private void InitializeClassifiers()
-        {
-            String directory = Directory.GetCurrentDirectory();
-            String motion_dir = directory + "\\motion_data";
-            if (!Directory.Exists(motion_dir)) Directory.CreateDirectory(motion_dir);
-            String[] directories = Directory.GetDirectories(motion_dir);
-            this.classifiers = new HMMClassifier[directories.Length];
-            for (int i = 0; i < directories.Length; i++)
-            {
-                classifiers[i] = new HMMClassifier();
-                classifiers[i].Initialize(directories[i]);
-            }
-            Console.WriteLine("Initialized " + classifiers.Length + " classifiers.");
-        }
-
-        private void ClassifyMotion(double[][] motion)
-        {
-            Console.WriteLine("Classifying...");
-            for (int i = 0; i < classifiers.Length; i++)
-            {
-                if (classifiers[i].isMember(motion))
-                    naoSpeech.Say("You are performing " + classifiers[i].getName()); 
-                    Console.WriteLine("Recognized: " + classifiers[i].getName());
-            }
-            Console.WriteLine("Done");
-        }
-        */
-
-        
-        public void performAction(string action)
-        {
-            /* // UNCOMMENT FOR PERFORMING MOTIONS (NEED CLASSIFIERS FOR THIS - TODO SEPARATE THIS FUNCTIONALITY OUT?)
-            double[][] performMotion = null;
-            for (int i = 0; i < classifiers.Length; i++)
-            {
-                if (classifiers[i].getName() == action)
-                    performMotion = classifiers[i].getPerformMotion();
-            }
-            if (performMotion != null)
-            {
-                performingAction = true;
-                for (int i = 0; i < performMotion.Length; i++)
-                {
-                    nao.RSUpdatePitch((float)performMotion[i][0]);
-                    nao.RSUpdateRoll((float)performMotion[i][1]);
-                    nao.REUpdateYaw((float)performMotion[i][3]);
-                    nao.REUpdateRoll((float)performMotion[i][2]);
-
-                    nao.LSUpdatePitch((float)performMotion[i][4]);
-                    nao.LSUpdateRoll((float)performMotion[i][5]);
-                    nao.LEUpdateYaw((float)performMotion[i][7]);
-                    nao.LEUpdateRoll((float)performMotion[i][6]);
-
-                    if (i == 0)
-                    {
-                        nao.RSSendBlocking();
-                    }
-                    else
-                    {
-                        nao.RSSend();
-                    }
-
-                    System.Threading.Thread.Sleep(33);
-                }
-                performingAction = false;
-            }
-            */
-        }
     }
 }

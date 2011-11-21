@@ -151,7 +151,7 @@ namespace KinectViewer
             Vector3 fr = getPosition(prefix + "FsrFR"),
                     rr = getPosition(prefix + "FsrRR"),
                     fl = getPosition(prefix + "FsrFL"),
-                    rl = getPosition(prefix + "FsrFL");
+                    rl = getPosition(prefix + "FsrRL");
             return new Tuple<Vector3, Vector3>(
                 vectorAverage(fr, rr, fl, rl),
                 vectorAverage(Vector3.Subtract(fr, rr), Vector3.Subtract(fl, rl)));
@@ -220,8 +220,70 @@ namespace KinectViewer
             }
         }
 
+
         public void forceBalance() {
             Console.WriteLine(_memory.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value"));
+        }
+
+        public struct foot {
+            public float outerEdge;
+            public float innerEdge;
+            public float width;
+            public string name;
+        };
+
+        public foot constructFoot(string side)
+        {
+            foot foot = new foot();
+            foot.name = side;
+
+            Vector3 fr = getPosition(side + "FsrFR"),
+                    rr = getPosition(side + "FsrRR"),
+                    fl = getPosition(side + "FsrFL"),
+                    rl = getPosition(side + "FsrRL");
+            Vector3 com =  getCOM();
+
+
+
+
+
+
+            float width = Vector3.Distance(fr, fl);
+            foot.width = width;
+
+            return foot;
+        }
+
+        public float footOffsetParameter(foot foot)
+        {
+            if (foot.outerEdge < foot.width)
+            {
+                return 0;
+            }
+            else if (foot.outerEdge < foot.innerEdge)
+            {
+                return 0;
+            }
+            else
+            {
+                return foot.innerEdge;
+            }
+        }
+
+        public float offsetParameter(float offsetL, float offsetR)
+        {
+            if (offsetL < offsetR)
+            {
+                return (offsetL / offsetR) / 2;
+            }
+            else if (offsetR < offsetL)
+            {
+                return 1 - ((offsetR / offsetL) / 2);
+            }
+            else
+            {
+                return 0.5f;
+            }
         }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val);  }
