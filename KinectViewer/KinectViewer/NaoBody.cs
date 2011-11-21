@@ -265,25 +265,25 @@ namespace KinectViewer
         }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val);  }
-        public void RSUpdateRoll(float val)  { SetJoint(1, val);  }
-        public void REUpdateYaw(float val)   { SetJoint(3, val);  }
-        public void REUpdateRoll(float val)  { SetJoint(2, val);  }
+        public void RSUpdateRoll (float val) { SetJoint(1, val);  }
+        public void REUpdateYaw  (float val) { SetJoint(3, val);  }
+        public void REUpdateRoll (float val) { SetJoint(2, val);  }
         public void LSUpdatePitch(float val) { SetJoint(4, val);  }
-        public void LSUpdateRoll(float val)  { SetJoint(5, val);  }
-        public void LEUpdateYaw(float val)   { SetJoint(7, val);  }
-        public void LEUpdateRoll(float val)  { SetJoint(6, val);  }
+        public void LSUpdateRoll (float val) { SetJoint(5, val);  }
+        public void LEUpdateYaw  (float val) { SetJoint(7, val);  }
+        public void LEUpdateRoll (float val) { SetJoint(6, val);  }
 
-        public void RHUpdateRoll(float val)  { SetJoint(8, val);  }
+        public void RHUpdateRoll (float val) { SetJoint(8, val);  }
         public void RHUpdatePitch(float val) { SetJoint(9, val);  }
         public void RKUpdatePitch(float val) { SetJoint(10, val); }
         public void RAUpdatePitch(float val) { SetJoint(11, val); }
-        public void RAUpdateRoll(float val)  { SetJoint(12, val); }
+        public void RAUpdateRoll (float val) { SetJoint(12, val); }
 
-        public void LHUpdateRoll(float val)  { SetJoint(13, val); }
+        public void LHUpdateRoll (float val) { SetJoint(13, val); }
         public void LHUpdatePitch(float val) { SetJoint(14, val); }
         public void LKUpdatePitch(float val) { SetJoint(15, val); }
         public void LAUpdatePitch(float val) { SetJoint(16, val); }
-        public void LAUpdateRoll(float val)  { SetJoint(17, val); }
+        public void LAUpdateRoll (float val) { SetJoint(17, val); }
 
         public void SetLHand(bool close)
         {
