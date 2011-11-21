@@ -35,6 +35,7 @@ namespace KinectViewer
         SampleGrid grid;
         SampleGrid grid2;
         protected List<LabelledVector> lines = new List<LabelledVector>();
+        Matrix projection;
 
         public KinectViewer()
         {
@@ -108,14 +109,9 @@ namespace KinectViewer
             {
                 cur_skeleton = skeleton;
                 //updateSkeleton(skeleton);
-                //nao.LHUpdatePitch(-1);
-                //nao.LKUpdatePitch(1);
-                //nao.LKUpdatePitch(0.2f);
-                //nao.RKUpdatePitch(0.2f);
             }
         }
 
-        Matrix projection;
 
         protected override void Draw(GameTime gameTime)
         {
@@ -197,8 +193,8 @@ namespace KinectViewer
             foreach (String part in nao.parts) {
                 NaoPos p = nao.GetPosition(part);
                 //lines.Add(p.DebugLine(3.0f, Color.Black, ""));
-                if (part == "RKneePitch")
-                    debugReferenceFrame("", p.transform, 3.0f);
+                //if (part == "RKneePitch")
+                debugReferenceFrame("", p.transform, 3.0f);
                 drawPrimitive(BodySphere, p.position, Color.Blue);
             }
         }

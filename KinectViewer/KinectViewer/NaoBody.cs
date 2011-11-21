@@ -124,100 +124,7 @@ namespace KinectViewer
             System.Threading.Thread.Sleep(3000);
         }
 
-        public void SetJoint(int ix, float val)
-        {
-            values[ix] = limits.Count <= ix
-                       ? val
-                       : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
-        }
 
-        public static Vector3 VectorFromList(List<float> fs)
-        {
-            return new Vector3(fs[0], fs[1], fs[2]);
-        }
-
-        public Vector3 GetCOM()
-        {
-            return Vector3.Transform(NaoPos.Convert(VectorFromList(_motion.getCOM("Body", 0, false))), Matrix.Identity);
-        }
-
-        public NaoPos GetPosition(string part)
-        {
-            return new NaoPos(_motion.getPosition(part, 0, false), Matrix.Identity);
-        }
-
-        public void PollSensors() {
-            PollFootSensors(rightFoot, "R");
-            PollFootSensors(leftFoot, "L");
-            float gx = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
-            float gy = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
-            gyrot = NaoPos.ConvertRotation(gx, gy, 0);
-        }
-
-        public void PollFootSensors(NaoFoot foot, string prefix) {
-            foot.pfr = GetPosition(prefix + "FsrFR");
-            foot.prr = GetPosition(prefix + "FsrRR");
-            foot.pfl = GetPosition(prefix + "FsrFL");
-            foot.prl = GetPosition(prefix + "FsrRL");
-            foot.ffr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontRight/Sensor/Value");
-            foot.frr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearRight/Sensor/Value");
-            foot.ffl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontLeft/Sensor/Value");
-            foot.frl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearLeft/Sensor/Value");
-        }
-
-        public void Balance(int feet, List<LabelledVector> ls)
-        {
-            Matrix mat = Matrix.Identity;
-            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
-            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
-            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
-            delt.Normalize();
-            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
-            orient.Y = 0;
-            orient.Normalize();
-            Vector3 perp = new Vector3(-orient.Z, 0, orient.X);
-            
-/*
-            NaoPos lleg = GetPosition("RKneePitch");
-            Matrix mat = Matrix.Invert(lleg.transform);
-            
-            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
-            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
-            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
-            delt.Normalize();
-            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
-            orient.Z = 0;
-            orient.Normalize();
-            Vector3 perp = new Vector3(-orient.Y, orient.X, 0);
-*/
-            //ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Green, ""));
-            ls.Add(new LabelledVector(target, Vector3.Add(target, perp), Color.Green, ""));
-            ls.Add(new LabelledVector(target, Vector3.Add(target, delt), Color.Blue, ""));
-            ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Red, ""));
-
-            float pitch = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(orient, delt)));
-            float roll  = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(perp,   delt)));
-            //Console.WriteLine("pitch = " + pitch.ToString());
-            //Console.WriteLine("roll = " + roll.ToString());
-            /* if (feet == 3)
-            {
-                RAUpdate((float)(Math.PI / 2) - pitch, 0);
-                LAUpdate((float)(Math.PI / 2) - pitch, 0);
-            }
-            else */
-            if (feet == 2)
-            {
-                RAUpdate(pitch, roll);
-            }
-            else if (feet == 1)
-            {
-                LAUpdate(pitch - 0.1f, roll + 0.07f);
-            }
-        }
-
-        public void forceBalance() {
-            Console.WriteLine(_memory.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value"));
-        }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val);  }
         public void RSUpdateRoll (float val) { SetJoint(1, val);  }
@@ -406,6 +313,98 @@ namespace KinectViewer
             Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccZ/Sensor/Value"));
 
             Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value"));
+        }
+
+
+        public void SetJoint(int ix, float val)
+        {
+            values[ix] = limits.Count <= ix
+                       ? val
+                       : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
+        }
+
+        public static Vector3 VectorFromList(List<float> fs)
+        {
+            return new Vector3(fs[0], fs[1], fs[2]);
+        }
+
+        public Vector3 GetCOM()
+        {
+            return Vector3.Transform(NaoPos.Convert(VectorFromList(_motion.getCOM("Body", 0, false))), Matrix.Identity);
+        }
+
+        public NaoPos GetPosition(string part)
+        {
+            return new NaoPos(_motion.getPosition(part, 0, false), Matrix.Identity);
+        }
+
+        public void PollSensors() {
+            PollFootSensors(rightFoot, "R");
+            PollFootSensors(leftFoot, "L");
+            float gx = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
+            float gy = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
+            gyrot = NaoPos.ConvertRotation(gx, gy, 0);
+        }
+
+        public void PollFootSensors(NaoFoot foot, string prefix) {
+            foot.pfr = GetPosition(prefix + "FsrFR");
+            foot.prr = GetPosition(prefix + "FsrRR");
+            foot.pfl = GetPosition(prefix + "FsrFL");
+            foot.prl = GetPosition(prefix + "FsrRL");
+            foot.ffr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontRight/Sensor/Value");
+            foot.frr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearRight/Sensor/Value");
+            foot.ffl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontLeft/Sensor/Value");
+            foot.frl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearLeft/Sensor/Value");
+        }
+
+        public void Balance(int feet, List<LabelledVector> ls)
+        {
+            Matrix mat = Matrix.Identity;
+            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
+            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
+            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
+            delt.Normalize();
+            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
+            orient.Y = 0;
+            orient.Normalize();
+            Vector3 perp = new Vector3(-orient.Z, 0, orient.X);
+            
+/*
+            NaoPos lleg = GetPosition("RKneePitch");
+            Matrix mat = Matrix.Invert(lleg.transform);
+            
+            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
+            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
+            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
+            delt.Normalize();
+            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
+            orient.Z = 0;
+            orient.Normalize();
+            Vector3 perp = new Vector3(-orient.Y, orient.X, 0);
+*/
+            //ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Green, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, perp), Color.Green, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, delt), Color.Blue, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Red, ""));
+
+            float pitch = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(orient, delt)));
+            float roll  = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(perp,   delt)));
+            //Console.WriteLine("pitch = " + pitch.ToString());
+            //Console.WriteLine("roll = " + roll.ToString());
+            /* if (feet == 3)
+            {
+                RAUpdate((float)(Math.PI / 2) - pitch, 0);
+                LAUpdate((float)(Math.PI / 2) - pitch, 0);
+            }
+            else */
+            if (feet == 2)
+            {
+                RAUpdate(pitch, roll);
+            }
+            else if (feet == 1)
+            {
+                LAUpdate(pitch - 0.1f, roll + 0.07f);
+            }
         }
     }
 }
