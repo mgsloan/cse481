@@ -48,14 +48,14 @@ namespace KinectViewer
             Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
             Vector3 RHlegs = Vector3.Subtract(footRight, ankleRight);
             RUAlegs.Normalize(); RLAlegs.Normalize(); RHlegs.Normalize();
-            //calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
+            calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
 
             // left leg
             Vector3 LUAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(kneeLeft, hipLeft));
             Vector3 LLAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(ankleLeft, kneeLeft));
             Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
-            //calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
+            calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
 
             // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
@@ -217,8 +217,8 @@ namespace KinectViewer
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        //nao.LHUpdateRoll(roll);
-                       // nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
+                        nao.LHUpdateRoll(roll);
+                        nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
                         nao.LKUpdatePitch(knee / 2);
                         nao.RKUpdatePitch(knee / 2);
                         
@@ -243,12 +243,12 @@ namespace KinectViewer
             //debugReferenceFrame(eyaw.ToString(), eRef, 3, elbowRight);
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
         }
-
+        
         private void debugReferenceFrame(String str, Matrix m, float sz)
         {
             debugReferenceFrame(str, m, sz, m.Translation);
         }
-
+        
         private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
         {
             lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
@@ -272,5 +272,47 @@ namespace KinectViewer
             short val;
             nui.SkeletonEngine.SkeletonToDepthImage(R3b, out x, out y, out val);
         }*/
+
+        private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
+        {
+            // (1) find hip roll 
+            // from 0 (X-axis) to -pi (negative X-axis) where X-axis is model's right-to-left vector
+            // get hip to foot vector in world space
+            Vector3 hip_to_foot = foot - hip;
+            // txform to torso space
+            Vector3 hip_to_foot_tx = Vector3.Transform(hip_to_foot, BodyTxform);   
+            // project onto XY plane in torso space
+            double hiproll = Math.Atan2(hip_to_foot_tx.X, hip_to_foot_tx.Y);
+
+            // now do other two angles, will need distance from hip to foot for this
+            float hip_to_foot_len;
+            Vector3.Distance(ref hip, ref foot, out hip_to_foot_len);
+
+            // (2) find knee pitch (easy, use law of cosines)
+            double a2 = UL_len;
+            double b2 = LL_len;
+            double c2 = hip_to_foot_len;
+            double kneepitch = Math.Acos((a2*a2 + b2*b2 + c2*c2)/(2*a2*b2));
+
+            // (3) find hip pitch (there are two parts to this) 
+            // from 0 (Z-axis) to -pi (negative Z-axis) where Z-axis is vector out of model's torso
+            // do part one: project hip-to-foot vector onto XZ plane in torso space
+            double p1 = Math.Atan2(hip_to_foot_tx.Z, hip_to_foot_tx.Y);
+
+            // now do part 2: use law of cosines
+            double a1 = hip_to_foot_len;
+            double b1 = UL_len;
+            double c1 = LL_len;
+            double p2 = Math.Acos((a1 * a1 + b1 * b1 + c1 * c1) / (2 * a1 * b1));
+
+            // now combine part 1 and 2
+            double hippitch = p2 - p1;
+
+            // return three angles in a double[]
+            double[] angles = new double[3];
+            angles[0] = hiproll; angles[1] = hippitch; angles[2] = kneepitch;
+
+            return angles;
+        }
     }
 }

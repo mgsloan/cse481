@@ -105,14 +105,26 @@ namespace KinectViewer
             return new Vector3(fs[0], fs[1], fs[2]);
         }
 
+        public Vector3 getGyro()
+        {
+            float x = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
+            float y = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
+            Vector3 v = new Vector3();
+            v.X = x;
+            v.Y = y;
+            v.Z = 0;
+
+            return v; 
+        }
+
         public Vector3 getCOM()
         {
-            return VectorFromList(_motion.getCOM("Body", 1, true));
+            return VectorFromList(_motion.getCOM("Body", 1, false));
         }
 
         public Vector3 getPosition(string part)
         {
-            return VectorFromList(_motion.getPosition(part, 1, true));
+            return VectorFromList(_motion.getPosition(part, 1, false));
         }
 
         //TODO: return the support polygon

@@ -21,8 +21,8 @@ namespace KinectViewer
         SkeletonData cur_skeleton;
         protected SpeechRecognition sr = new SpeechRecognition();
 
-        HMMClassifier[] classifiers;
-        double[] classifier_probs;
+        //HMMClassifier[] classifiers;
+        //double[] classifier_probs;
         protected SoundController sc = new SoundController();
 
         Vector3 skeletonStartPos;
@@ -53,7 +53,7 @@ namespace KinectViewer
             graphics = new GraphicsDeviceManager(this);
             record = new MotionRecord();
             pos_record = new MotionRecord();
-            //InitializeClassifiers();
+            //InitializeClassifiers(); // UNCOMMENT FOR CLASSIFICATION
             //graphics.PreferredBackBufferWidth = 1280;
             //graphics.PreferredBackBufferHeight = 1024;
             //graphics.IsFullScreen = true;
@@ -68,7 +68,7 @@ namespace KinectViewer
             sphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
 
             COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
-            BodySphere = new SpherePrimitive(GraphicsDevice, 0.6f, 8);
+            BodySphere = new SpherePrimitive(GraphicsDevice, 0.4f, 8);
 
             grid = new SampleGrid();
             grid.GridSize = 16;
@@ -87,7 +87,7 @@ namespace KinectViewer
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             // Must set to true and set after call to Initialize
-            nui.NuiCamera.ElevationAngle = 15;
+            nui.NuiCamera.ElevationAngle = 1;
 
             nui.SkeletonEngine.TransformSmooth = true;
             // Use to transform and reduce jitter
@@ -106,7 +106,11 @@ namespace KinectViewer
             //nao.Connect("128.208.4.225");
             //naoSpeech.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
+            //naoSpeech.Connect("127.0.0.1");
+            //speech = new SpeechRecog(this, naoSpeech);
+            //sr.InitalizeKinect(nao, naoSpeech);
             //sr.InitalizeKinect(nao, naoSpeech, this);
+
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -136,6 +140,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                /* // UNCOMMENT FOR CLASSIFICATION
                 else if (!recording)
                 {
                     if (pos_record.data.Count > 20)
@@ -153,6 +158,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                */
                 skeletonStartPos = getLoc(cur_skeleton.Joints[JointID.Spine]);
                 pos_record.data.Clear();
             }
@@ -179,6 +185,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                /* // UNCOMMENT FOR CLASSIFICATION
                 else if (!recording)
                 {
                     //int max_ix = 0;
@@ -200,6 +207,7 @@ namespace KinectViewer
                         }
                     }
                 }
+                */
                 record.data.Clear();
             }
         }
@@ -226,7 +234,7 @@ namespace KinectViewer
 
         protected override void Draw(GameTime gameTime)
         {
-            nao.supportedBalance(3, lines);
+            //nao.supportedBalance(3, lines);
             nao.RSSend();
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
@@ -255,6 +263,7 @@ namespace KinectViewer
             foreach(LabelledVector l in lines) {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
+            /* // UNCOMMENT FOR CLASSIFICATION
             if (classifier_probs != null)
             {
                 for (int i = 0; i < classifier_probs.Length; i++)
@@ -264,6 +273,7 @@ namespace KinectViewer
                         new Vector2((float)(prob * 640.0f), (float)(i * 20.0f + 20)), Color.Black);
                 }
             }
+            */
             spriteBatch.End();
 
             try
@@ -287,8 +297,25 @@ namespace KinectViewer
             if (nao.connected)
             {
                 //display COM (indicated by a green ball.
-                COMsphere.Draw(Matrix.CreateTranslation(nao.getCOM()), viewMatrix, projection, Color.Green);
-                BodySphere.Draw(Matrix.CreateTranslation(nao.getPosition("Torso")), viewMatrix, projection, Color.Blue);
+
+
+                
+                COMsphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getCOM(), 15f))), viewMatrix, projection, Color.Green);
+                COMsphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getGyro(), 15f))), viewMatrix, projection, Color.Red);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("Torso"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RShoulderPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LShoulderPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RWristYaw"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LWristYaw"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("HeadYaw"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LKneePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RKneePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LAnklePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RAnklePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LHipPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("RHipPitch"), 15f))), viewMatrix, projection, Color.Blue);
+                BodySphere.Draw(Matrix.CreateTranslation(RotateOrientation(Vector3.Multiply(nao.getPosition("LAnklePitch"), 15f))), viewMatrix, projection, Color.Blue);
+                
             }
 
             // Reset the fill mode renderstate.
@@ -296,7 +323,22 @@ namespace KinectViewer
 
             base.Draw(gameTime);
         }
-        
+
+        private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        {
+            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
+            lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
+            lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
+        }
+
+        private Vector3 RotateOrientation(Vector3 current) 
+        {
+            Matrix rotatex = Matrix.CreateRotationX((float) - Math.PI / 2);
+            Matrix rotatey = Matrix.CreateRotationY((float) Math.PI / 2);
+            return Vector3.Transform(Vector3.Transform(current, rotatex), rotatey);
+            
+        }
+
         private Vector3 ConvertRealWorldPoint(Vector position)
         {
             var returnVector = new Vector3();
@@ -419,6 +461,7 @@ namespace KinectViewer
         public static Vector3 getLoc(Joint j) { return getLoc(j.Position); }
         public static Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
 
+        /* // UNCOMMENT FOR CLASSIFICATION
         private void InitializeClassifiers()
         {
             String directory = Directory.GetCurrentDirectory();
@@ -445,9 +488,12 @@ namespace KinectViewer
             }
             Console.WriteLine("Done");
         }
+        */
 
+        
         public void performAction(string action)
         {
+            /* // UNCOMMENT FOR PERFORMING MOTIONS (NEED CLASSIFIERS FOR THIS - TODO SEPARATE THIS FUNCTIONALITY OUT?)
             double[][] performMotion = null;
             for (int i = 0; i < classifiers.Length; i++)
             {
@@ -482,6 +528,7 @@ namespace KinectViewer
                 }
                 performingAction = false;
             }
+            */
         }
     }
 }
