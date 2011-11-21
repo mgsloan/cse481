@@ -133,6 +133,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MotionRecord.cs" />
+    <Compile Include="NaoFoot.cs" />
+    <Compile Include="NaoPos.cs" />
     <Compile Include="NaoSpeech.cs" />
     <Compile Include="KinectAngleViewer.cs" />
     <Compile Include="KinectViewer.cs" />

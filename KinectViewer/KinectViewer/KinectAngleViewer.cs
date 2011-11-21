@@ -31,8 +31,6 @@ namespace KinectViewer
                     footLeft       = getLoc(skeleton.Joints[JointID.FootLeft      ]),
                     footRight      = getLoc(skeleton.Joints[JointID.FootRight     ]);
 
-            lines.Clear();
-
             // legs
             Vector3 Xlegs = Vector3.Subtract(hipLeft, hipRight);
             Vector3 Ylegs = Vector3.Subtract(shoulderCenter, spine);
@@ -244,17 +242,6 @@ namespace KinectViewer
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
         }
         
-        private void debugReferenceFrame(String str, Matrix m, float sz)
-        {
-            debugReferenceFrame(str, m, sz, m.Translation);
-        }
-        
-        private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
-        {
-            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
-            lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
-            lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
-        }
 
         public Vector toNuiVec(Vector3 vec)
         {

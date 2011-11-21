@@ -84,16 +84,10 @@ namespace KinectViewer
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
             
-            //nao.Connect("128.208.7.48");
-            nao.Connect("128.208.4.238");
-            //nao.Connect("128.208.4.225");
             //naoSpeech.Connect("128.208.4.225");
             //nao.Connect("127.0.0.1");
+            nao.Connect("128.208.4.238");
             nao.Relax();
-            //naoSpeech.Connect("127.0.0.1");
-            //speech = new SpeechRecog(this, naoSpeech);
-            //sr.InitalizeKinect(nao, naoSpeech);
-            //sr.InitalizeKinect(nao, naoSpeech, this);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -125,8 +119,7 @@ namespace KinectViewer
 
         protected override void Draw(GameTime gameTime)
         {
-            nao.supportedBalance(3, lines);
-            nao.RSSend();
+            
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
@@ -154,6 +147,13 @@ namespace KinectViewer
             if (nao.connected)
             {
                 //display COM (indicated by a green ball.
+                nao.PollSensors();
+                nao.Balance(1, lines);
+                nao.Stiffen("LLeg");
+                nao.RSSend();
+                //nao.leftFoot.FootLines(lines);
+                //nao.rightFoot.FootLines(lines);
+                debugReferenceFrame("", nao.gyrot, 3.0f);
                 drawRobot();
                 //nao.readFSR();
             }
@@ -162,6 +162,7 @@ namespace KinectViewer
             foreach(LabelledVector l in lines) {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
+            lines.Clear();
 
             spriteBatch.End();
 
@@ -191,37 +192,35 @@ namespace KinectViewer
 
         private void drawRobot()
         {
-            drawPrimitive(COMsphere, FromRobotSpace(nao.getCOM()), Color.Green);
-            drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
+            drawPrimitive(COMsphere, nao.GetCOM(), Color.Green);
+            //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
             foreach (String part in nao.parts) {
-                drawPrimitive(BodySphere, FromRobotSpace(nao.getPosition(part)), Color.Blue);
+                NaoPos p = nao.GetPosition(part);
+                //lines.Add(p.DebugLine(3.0f, Color.Black, ""));
+                if (part == "RKneePitch")
+                    debugReferenceFrame("", p.transform, 3.0f);
+                drawPrimitive(BodySphere, p.position, Color.Blue);
             }
         }
 
-        private void drawFoot(string prefix) {
-            FromRobotSpace(nao.getPosition("LFsrFR"));
-        }
-
-        private void drawPrimitive(GeometricPrimitive p, Vector3 pos, Color c)
+        public void drawPrimitive(GeometricPrimitive p, Vector3 pos, Color c)
         {
             p.Draw(Matrix.CreateTranslation(pos), viewMatrix, projection, c);
         }
 
-        private void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        public void debugReferenceFrame(String str, Matrix m, float sz)
         {
-            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Black, str));
+            debugReferenceFrame(str, m, sz, m.Translation);
+        }
+        
+        public void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        {
+            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Red, str));
             lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
             lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
 
-        private Vector3 FromRobotSpace(Vector3 current) 
-        {
-            Matrix rotatex = Matrix.CreateRotationX((float) - Math.PI / 2);
-            Matrix rotatey = Matrix.CreateRotationY((float) Math.PI / 2);
-            return Vector3.Multiply(Vector3.Transform(Vector3.Transform(current, rotatex), rotatey), 15f);
-        }
-
-        private Vector3 FromKinectSpace(Vector position)
+        public Vector3 FromKinectSpace(Vector position)
         {
             var returnVector = new Vector3();
             returnVector.X = position.X * 10;
@@ -257,6 +256,8 @@ namespace KinectViewer
 
         private void ProcessInput(float amount)
         {
+            Vector3 moveVector = new Vector3(0, 0, 0);
+            KeyboardState keyState = Keyboard.GetState();
             MouseState currentMouseState = Mouse.GetState();
             if (trap_mouse)
             {
@@ -266,10 +267,21 @@ namespace KinectViewer
                 updownRot += rotationSpeed * yDifference * amount;
                 Mouse.SetPosition(GraphicsDevice.Viewport.Width / 2, GraphicsDevice.Viewport.Height / 2);
                 UpdateViewMatrix();
-            }
 
-            Vector3 moveVector = new Vector3(0, 0, 0);
-            KeyboardState keyState = Keyboard.GetState();
+                if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
+                    moveVector -= new Vector3(0, 0, -1);
+                if (keyState.IsKeyDown(Keys.Down) || keyState.IsKeyDown(Keys.S) || currentMouseState.RightButton.HasFlag(ButtonState.Pressed))
+                    moveVector -= new Vector3(0, 0, 1);
+                if (keyState.IsKeyDown(Keys.Right) || keyState.IsKeyDown(Keys.D))
+                    moveVector -= new Vector3(1, 0, 0);
+                if (keyState.IsKeyDown(Keys.Left) || keyState.IsKeyDown(Keys.A))
+                    moveVector -= new Vector3(-1, 0, 0);
+                if (keyState.IsKeyDown(Keys.Q))
+                    moveVector += new Vector3(0, 1, 0);
+                if (keyState.IsKeyDown(Keys.Z))
+                    moveVector += new Vector3(0, -1, 0);
+                AddToCameraPosition(moveVector * amount);
+            }
 
             if (KeyFreshPress(keyState, Keys.K)) trap_mouse = !trap_mouse;
 
@@ -290,21 +302,11 @@ namespace KinectViewer
                 graphics.ApplyChanges();
             }
 
+            // if (keyState.IsKeyDown(Keys.Escape)) 
+
             prior_keys = keyState;
 
-            if (keyState.IsKeyDown(Keys.Up) || keyState.IsKeyDown(Keys.W) || currentMouseState.LeftButton.HasFlag(ButtonState.Pressed))
-                moveVector -= new Vector3(0, 0, -1);
-            if (keyState.IsKeyDown(Keys.Down) || keyState.IsKeyDown(Keys.S) || currentMouseState.RightButton.HasFlag(ButtonState.Pressed))
-                moveVector -= new Vector3(0, 0, 1);
-            if (keyState.IsKeyDown(Keys.Right) || keyState.IsKeyDown(Keys.D))
-                moveVector -= new Vector3(1, 0, 0);
-            if (keyState.IsKeyDown(Keys.Left) || keyState.IsKeyDown(Keys.A))
-                moveVector -= new Vector3(-1, 0, 0);
-            if (keyState.IsKeyDown(Keys.Q))
-                moveVector += new Vector3(0, 1, 0);
-            if (keyState.IsKeyDown(Keys.Z))
-                moveVector += new Vector3(0, -1, 0);
-            AddToCameraPosition(moveVector * amount);
+
         }
 
         private void AddToCameraPosition(Vector3 vectorToAdd)

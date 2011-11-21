@@ -23,13 +23,16 @@ namespace KinectViewer
 
         private float speed = 1.0f;
 
-        public ArrayList joints;
-        public ArrayList values;
-        public ArrayList limits;
-        public ArrayList parts;
+        public ArrayList joints, values, limits, parts;
+
+        public NaoFoot leftFoot, rightFoot;
+        public Matrix gyrot;
 
         public void Connect(string ip)
         {
+            leftFoot = new NaoFoot();
+            rightFoot = new NaoFoot();
+
             values = new ArrayList();
             limits = new ArrayList();
 
@@ -92,15 +95,25 @@ namespace KinectViewer
             }
         }
 
-        public void Relax()
+        public void Relax() { Relax("Body"); }
+        public void Relax(String part)
         {
             _motion.setStiffnesses("Body", 0.0f);
+        }
+
+        public void Stiffen() { Stiffen("Body"); }
+        public void Stiffen(String part)
+        {
+            _motion.setStiffnesses(part, 1.0f);
         }
 
         public void RSSend()
         {
             if (_motion == null) return;
-            _motion.setAngles(joints, values, speed);
+            ArrayList joints2 = (ArrayList)joints.Clone(), values2 = (ArrayList)values.Clone();
+            joints2.RemoveRange(8, 7);
+            values2.RemoveRange(8, 7);
+            _motion.setAngles(joints2, values2, speed);
         }
 
         public void RSSendBlocking()
@@ -123,167 +136,87 @@ namespace KinectViewer
             return new Vector3(fs[0], fs[1], fs[2]);
         }
 
-        public Vector3 getGyro()
+        public Vector3 GetCOM()
         {
-            float x = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
-            float y = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
-            Vector3 v = new Vector3();
-            v.X = x;
-            v.Y = y;
-            v.Z = 0;
-
-            return v; 
+            return Vector3.Transform(NaoPos.Convert(VectorFromList(_motion.getCOM("Body", 0, false))), Matrix.Identity);
         }
 
-        public Vector3 getCOM()
+        public NaoPos GetPosition(string part)
         {
-            return VectorFromList(_motion.getCOM("Body", 0, false));
+            return new NaoPos(_motion.getPosition(part, 0, false), Matrix.Identity);
         }
 
-        public Vector3 getPosition(string part)
-        {
-            return VectorFromList(_motion.getPosition(part, 0, false));
+        public void PollSensors() {
+            PollFootSensors(rightFoot, "R");
+            PollFootSensors(leftFoot, "L");
+            float gx = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
+            float gy = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
+            gyrot = NaoPos.ConvertRotation(gx, gy, 0);
         }
 
-        //TODO: return the support polygon
-        public Tuple<Vector3, Vector3> getFootInfo(string prefix)
-        {
-            Vector3 fr = getPosition(prefix + "FsrFR"),
-                    rr = getPosition(prefix + "FsrRR"),
-                    fl = getPosition(prefix + "FsrFL"),
-                    rl = getPosition(prefix + "FsrRL");
-            return new Tuple<Vector3, Vector3>(
-                vectorAverage(fr, rr, fl, rl),
-                vectorAverage(Vector3.Subtract(fr, rr), Vector3.Subtract(fl, rl)));
+        public void PollFootSensors(NaoFoot foot, string prefix) {
+            foot.pfr = GetPosition(prefix + "FsrFR");
+            foot.prr = GetPosition(prefix + "FsrRR");
+            foot.pfl = GetPosition(prefix + "FsrFL");
+            foot.prl = GetPosition(prefix + "FsrRL");
+            foot.ffr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontRight/Sensor/Value");
+            foot.frr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearRight/Sensor/Value");
+            foot.ffl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontLeft/Sensor/Value");
+            foot.frl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearLeft/Sensor/Value");
         }
 
-        protected static Vector3 vectorAverage(params Vector3[] vs)
+        public void Balance(int feet, List<LabelledVector> ls)
         {
-            Vector3 result = new Vector3();
-            foreach (Vector3 v in vs) {
-                result = Vector3.Add(v, result);
-            }
-            return Vector3.Divide(result, vs.Length);
-        }
-
-        public void supportedBalance(int feet, List<LabelledVector> ls)
-        {
-            if (feet == 3)
-            {
-                Tuple<Vector3, Vector3> infr = getFootInfo("R"), infl = getFootInfo("L");
-                
-                balance(new Tuple<Vector3, Vector3>(
-                    vectorAverage(infr.Item1, infl.Item1),
-                    vectorAverage(infr.Item2, infl.Item2)), feet, ls);
-            }
-            else if (feet == 2)
-            {
-                balance(getFootInfo("R"), feet, ls);
-            }
-            else if (feet == 1)
-            {
-                balance(getFootInfo("L"), feet, ls);
-            }
-        }
-
-        public void balance(Tuple<Vector3, Vector3> target, int feet, List<LabelledVector> ls)
-        {
-            Vector3 com = getCOM();
-            Vector3 delt = Vector3.Subtract(com, target.Item1);
+            Matrix mat = Matrix.Identity;
+            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
+            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
+            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
             delt.Normalize();
-            Vector3 orient = target.Item2;
+            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
+            orient.Y = 0;
+            orient.Normalize();
+            Vector3 perp = new Vector3(-orient.Z, 0, orient.X);
+            
+/*
+            NaoPos lleg = GetPosition("RKneePitch");
+            Matrix mat = Matrix.Invert(lleg.transform);
+            
+            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
+            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
+            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
+            delt.Normalize();
+            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
             orient.Z = 0;
             orient.Normalize();
             Vector3 perp = new Vector3(-orient.Y, orient.X, 0);
-            ls.Clear();
-            //ls.Add(new LabelledVector(Vector3.Zero, Vector3.Multiply(orient, 5f), Color.Red,   "o"));
-            //ls.Add(new LabelledVector(Vector3.Zero, Vector3.Multiply(perp, 5f), Color.Green, "p"));
-            //ls.Add(new LabelledVector(Vector3.Zero, Vector3.Multiply(delt, 5f), Color.Blue, "d"));
-            ls.Add(new LabelledVector(Vector3.Zero, Vector3.Multiply(com, 5f), Color.Blue, "c"));
-            ls.Add(new LabelledVector(Vector3.Zero, Vector3.Multiply(target.Item1, 5f), Color.Red, "d"));
-            float pitch = (float)Math.Acos((double)Vector3.Dot(orient, delt));
-            float roll  = (float)Math.Acos((double)Vector3.Dot(perp,   delt));
-            Console.WriteLine("pitch = " + pitch.ToString());
-            Console.WriteLine("roll = " + roll.ToString());
-            if (feet == 3)
+*/
+            //ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Green, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, perp), Color.Green, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, delt), Color.Blue, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Red, ""));
+
+            float pitch = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(orient, delt)));
+            float roll  = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(perp,   delt)));
+            //Console.WriteLine("pitch = " + pitch.ToString());
+            //Console.WriteLine("roll = " + roll.ToString());
+            /* if (feet == 3)
             {
                 RAUpdate((float)(Math.PI / 2) - pitch, 0);
                 LAUpdate((float)(Math.PI / 2) - pitch, 0);
             }
-            else if (feet == 2)
+            else */
+            if (feet == 2)
             {
-                RAUpdate((float)(Math.PI / 2) - pitch, (float)(Math.PI / 2) - roll);
+                RAUpdate(pitch, roll);
             }
             else if (feet == 1)
             {
-                LAUpdate((float)(Math.PI / 2) - pitch, (float)(Math.PI / 2) - roll);
+                LAUpdate(pitch - 0.1f, roll + 0.07f);
             }
         }
-
 
         public void forceBalance() {
             Console.WriteLine(_memory.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value"));
-        }
-
-        public struct foot {
-            public float outerEdge;
-            public float innerEdge;
-            public float width;
-            public string name;
-        };
-
-        public foot constructFoot(string side)
-        {
-            foot foot = new foot();
-            foot.name = side;
-
-            Vector3 fr = getPosition(side + "FsrFR"),
-                    rr = getPosition(side + "FsrRR"),
-                    fl = getPosition(side + "FsrFL"),
-                    rl = getPosition(side + "FsrRL");
-            Vector3 com =  getCOM();
-
-
-
-
-
-
-            float width = Vector3.Distance(fr, fl);
-            foot.width = width;
-
-            return foot;
-        }
-
-        public float footOffsetParameter(foot foot)
-        {
-            if (foot.outerEdge < foot.width)
-            {
-                return 0;
-            }
-            else if (foot.outerEdge < foot.innerEdge)
-            {
-                return 0;
-            }
-            else
-            {
-                return foot.innerEdge;
-            }
-        }
-
-        public float offsetParameter(float offsetL, float offsetR)
-        {
-            if (offsetL < offsetR)
-            {
-                return (offsetL / offsetR) / 2;
-            }
-            else if (offsetR < offsetL)
-            {
-                return 1 - ((offsetR / offsetL) / 2);
-            }
-            else
-            {
-                return 0.5f;
-            }
         }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val);  }
@@ -322,7 +255,9 @@ namespace KinectViewer
         public static float InterpClamp(float x1, float t1, float f1, float x2, float t2, float f2, float x, float y)
         {
             float t = UnLerp(x1, x2, x);
-            return Clamp(Lerp(f1, f2, t), Lerp(t1, t2, t), y);
+            float l = Lerp(f1, f2, t), h = Lerp(t1, t2, t);
+            //Console.WriteLine("Clamp: " + l.ToString() + " " + h.ToString());
+            return Clamp(l, h, y);
         }
 
         public static float FromRad(float rad) { return rad / (float)Math.PI * 180f; }
@@ -336,27 +271,27 @@ namespace KinectViewer
             if (pitchDeg < -48.12) {
                 return ToRad(InterpClamp(-68.15f, 2.86f, -4.29f,
                                          -48.12f, 10.31f, -9.74f,
-                                         rollDeg, pitchDeg));
+                                         pitchDeg, rollDeg));
             } else if (pitchDeg < -40.10) {
                 return ToRad(InterpClamp(-48.12f, 10.31f, -9.74f,
                                          -40.10f, 22.79f, -12.60f,
-                                         rollDeg, pitchDeg));
+                                         pitchDeg, rollDeg));
             } else if (pitchDeg < -25.78) {
                 return ToRad(InterpClamp(-40.10f, 22.79f, -12.60f,
                                          -25.78f, 22.79f, -44.06f,
-                                         rollDeg, pitchDeg));
+                                         pitchDeg, rollDeg));
             } else if (pitchDeg < 5.72) {
                 return ToRad(InterpClamp(-25.78f, 22.79f, -44.06f,
                                          5.72f, 22.79f, -44.06f,
-                                         rollDeg, pitchDeg));
+                                         pitchDeg, rollDeg));
             } else if (pitchDeg < 20.05) {
                 return ToRad(InterpClamp(5.72f, 22.79f, -44.06f,
                                          20.05f, 22.79f, -31.54f,
-                                         rollDeg, pitchDeg));
+                                         pitchDeg, rollDeg));
             } else {
                 return ToRad(InterpClamp(20.05f, 22.79f, -31.54f,
                                          52.86f, 0f, -2.86f,
-                                         rollDeg, pitchDeg));
+                                         pitchDeg, rollDeg));
             }
         }
 
@@ -367,7 +302,10 @@ namespace KinectViewer
 
         public void LAUpdate(float pitch, float roll) {
             float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
-            LAUpdatePitch(pitch2); LAUpdateRoll(NearestFeasibleRoll(pitch2, roll));
+            float roll2 = NearestFeasibleRoll(pitch2, roll);
+            Console.WriteLine("pitch = " + pitch2.ToString());
+            Console.WriteLine("roll = " + roll2.ToString());
+            LAUpdatePitch(pitch2); LAUpdateRoll(roll2);
         }
 
         public void SetLHand(bool close)
