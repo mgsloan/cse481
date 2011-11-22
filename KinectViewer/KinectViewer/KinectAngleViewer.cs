@@ -41,6 +41,7 @@ namespace KinectViewer
             Matrix srReflegs = Matrix.CreateWorld(Vector3.Zero, dZlegs, dY2legs);
             Matrix srRefInvlegs = Matrix.Invert(srReflegs);
 
+            /*
             // right leg
             Vector3 RUAlegs = Vector3.Subtract(kneeRight, hipRight);
             Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
@@ -54,6 +55,7 @@ namespace KinectViewer
             Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
             calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
+            */
 
             // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
@@ -87,7 +89,26 @@ namespace KinectViewer
             float UL_len, LL_len;
             Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
             Vector3.Distance(ref kneeLeft, ref footLeft, out LL_len);
-            LegIK(srRefInv, hipLeft, footLeft, UL_len, LL_len);
+
+            double[] legAngles = LegIK(srRefInv, hipLeft, footLeft, UL_len, LL_len);
+            nao.LHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
+            nao.LHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
+            nao.LKUpdatePitch((float) (Math.PI - legAngles[2]));
+
+            Vector3 origin = new Vector3(4, 0, 0);
+            Vector3 displayHipRoll = new Vector3(-2, 10, 0);
+            lines.Add(new LabelledVector(origin + displayHipRoll, origin + displayHipRoll, Color.Black, "HipRoll: " + legAngles[1]));
+
+            Vector3 displayHipPitch = new Vector3(-2, 12, 0);
+            lines.Add(new LabelledVector(origin + displayHipPitch, origin + displayHipPitch, Color.Black, "HipPitch: " + (legAngles[0] + Math.PI / 2)));
+
+            Vector3 displayKneePitch = new Vector3(-2, 14, 0);
+            lines.Add(new LabelledVector(origin + displayKneePitch, origin + displayKneePitch, Color.Black, "KneePitch: " + legAngles[2]));
+
+            legAngles = LegIK(srRefInv, hipRight, footRight, UL_len, LL_len);
+            nao.RHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
+            nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
+            nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
 
             // END IK DEBUG
         }
@@ -319,6 +340,7 @@ namespace KinectViewer
 
             // DISPLAY DEBUG
 
+            /*
             Vector3 Zvec = new Vector3(0, 0, (float) UL_len);
             Zvec = Vector3.Transform(Zvec, BodyTxform);
             Matrix hippitch_rot = Matrix.CreateRotationX((float) hippitch);
@@ -326,19 +348,11 @@ namespace KinectViewer
             Vector3 Z_txform = Vector3.Transform(Zvec, hippitch_rot);
             Z_txform = Vector3.Transform(Z_txform, -hiproll_rot);
 
-            Vector3 origin = new Vector3(4, 0, 0);
             lines.Add(new LabelledVector(origin, origin + Z_txform, Color.Black, "UL " + UL_len));
             lines.Add(new LabelledVector(origin, origin + hip_to_foot_tx, Color.Black, "H_F " + LL_len));
+            */
 
-            Vector3 displayHipRoll = new Vector3(-2, 10, 0);
-            lines.Add(new LabelledVector(origin + displayHipRoll, origin + displayHipRoll, Color.Black, "HipRoll: " + hiproll));
-
-            Vector3 displayHipPitch = new Vector3(-2, 12, 0);
-            lines.Add(new LabelledVector(origin + displayHipPitch, origin + displayHipPitch, Color.Black, "HipPitch: " + hippitch));
-
-            Vector3 displayKneePitch = new Vector3(-2, 14, 0);
-            lines.Add(new LabelledVector(origin + displayKneePitch, origin + displayKneePitch, Color.Black, "KneePitch: " + kneepitch));
-
+            /*
             float knee_foot_dist;
             Vector3.Distance(ref Z_txform, ref hip_to_foot_tx, out knee_foot_dist);
             Vector3 displayDist = new Vector3(-2, 16, 0);
@@ -347,6 +361,7 @@ namespace KinectViewer
             lines.Add(new LabelledVector(origin, origin + BodyTxform.Up, Color.GreenYellow, "Y"));
             lines.Add(new LabelledVector(origin, origin + BodyTxform.Right, Color.GreenYellow, "X"));
             lines.Add(new LabelledVector(origin, origin + BodyTxform.Forward, Color.GreenYellow, "Z"));
+            */
             // END DISPLAY DEBUG
 
             return angles;
