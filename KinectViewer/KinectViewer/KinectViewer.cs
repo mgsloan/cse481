@@ -86,8 +86,8 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
             
             //naoSpeech.Connect("128.208.4.225");
-            //nao.Connect("127.0.0.1");
-            nao.Connect("128.208.4.238");
+            nao.Connect("127.0.0.1");
+            //nao.Connect("128.208.4.238");
             nao.Relax();
         }
 
@@ -109,6 +109,8 @@ namespace KinectViewer
             {
                 cur_skeleton = skeleton;
                 //updateSkeleton(skeleton);
+                float offset = nao.computeOffsetParam();
+                Console.WriteLine("offset: " + offset);
             }
         }
 
