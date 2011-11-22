@@ -179,32 +179,32 @@ namespace KinectViewer
                     Console.WriteLine("Yes, I can fly");
                     naoSpeech.Say("Yes, I can fly");
                     //kinectViewer.performAction(action);
-                    kinectViewer.performAction("raise2");
+                    //kinectViewer.performAction("raise2");
                     break;
                 case "do the robot":
                     Console.WriteLine("Yes, I can dance!");
                     naoSpeech.Say("Yes, I can dance!");
                     //kinectViewer.performAction(action);
-                    kinectViewer.performAction("raise");
+                    //kinectViewer.performAction("raise");
                     break;
                 case "wave goodbye":
                     Console.WriteLine("Goodbye");
                     naoSpeech.Say("Goodbye");
                     //kinectViewer.performAction(action);
-                    kinectViewer.performAction("wave");
+                    //kinectViewer.performAction("wave");
                     break;
 
                 case "gun show":
                     Console.WriteLine("Check these out!");
                     naoSpeech.Say("Check these out!");
-                    kinectViewer.performAction("guns");
+                    //kinectViewer.performAction("guns");
                     break;
                 case "disco dance":
                     if (discoDance != null)
                     {
                         for (int i = 0; i < discoDance.ToArray().Length; i++)
                         {
-                            performAction(discoDance[i]);
+                            //performAction(discoDance[i]);
                         }
                     }
                     else
@@ -218,7 +218,7 @@ namespace KinectViewer
                     {
                         for (int i = 0; i < zigZag.ToArray().Length; i++)
                         {
-                            performAction(zigZag[i]);
+                            //performAction(zigZag[i]);
                         }
                     }
                     else
@@ -232,7 +232,7 @@ namespace KinectViewer
                     {
                         for (int i = 0; i < goAway.ToArray().Length; i++)
                         {
-                            performAction(goAway[i]);
+                            //performAction(goAway[i]);
                         }
                     }
                     else
