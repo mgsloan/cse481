@@ -103,7 +103,7 @@ namespace KinectViewer
             
             //nao.Connect("128.208.7.48");
             //nao.Connect("128.208.4.225");
-            //nao.Connect("128.208.4.225");
+            //nao.Connect("128.208.4.238");
             //naoSpeech.Connect("128.208.4.225");
             nao.Connect("127.0.0.1");
             //naoSpeech.Connect("127.0.0.1");
@@ -224,11 +224,14 @@ namespace KinectViewer
             if (skeleton != null  && (!performingAction || recording))
             {
                 cur_skeleton = skeleton;
-                updateSkeleton(skeleton);
+                //updateSkeleton(skeleton);
                 //nao.LHUpdatePitch(-1);
                 //nao.LKUpdatePitch(1);
                 nao.LKUpdatePitch(0.2f);
                 nao.RKUpdatePitch(0.2f);
+
+                float offset = nao.computeOffsetParam();
+                Console.WriteLine("offset parameter: " + offset);
             }
         }
 

@@ -41,7 +41,7 @@ namespace KinectViewer
             names.Add("LShoulderRoll");
             names.Add("LElbowRoll");
             names.Add("LElbowYaw");
-            names.Add("RHipRoll");
+        /*    names.Add("RHipRoll");
             names.Add("RHipPitch");
             names.Add("RKneePitch");
             names.Add("RAnklePitch");
@@ -51,7 +51,7 @@ namespace KinectViewer
             names.Add("LKneePitch");
             names.Add("LAnklePitch");
             names.Add("LAnkleRoll");
-            
+      */      
             for (int i = 0; i < names.Count; i++) {
                 values.Add(0.0f);
             }
@@ -75,7 +75,7 @@ namespace KinectViewer
             }
             catch (Exception e)
             {
-                Console.Out.WriteLine("Elbow.Connect exception: " + e);
+                Console.Out.WriteLine("Connect exception: " + e);
             }
         }
 
@@ -212,21 +212,54 @@ namespace KinectViewer
 
         public foot constructFoot(string side)
         {
-            foot foot = new foot();
-            foot.name = side;
-
             Vector3 fr = getPosition(side + "FsrFR"),
                     rr = getPosition(side + "FsrRR"),
                     fl = getPosition(side + "FsrFL"),
                     rl = getPosition(side + "FsrRL");
-            Vector3 com =  getCOM();
+
+            Vector3 leftSide = Vector3.Subtract(fl, rl);
+            Vector3 rightSide = Vector3.Subtract(fr, rr);
+            
+            Vector3 COM =  getCOM();
+            //A || B = B × (A × B) / |B|² 
+
+            Plane footPlane = new Plane(fr, fl, rr);
+            Vector3 planeNormal = footPlane.Normal;
+
+            Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
+
+            //(AB x AC)/|AB|
+            // AB = leftSide, rightSide
+            // A = rl, rr
+            Vector3 tempL = Vector3.Subtract(COMproj, rl);
+            Vector3 tempR = Vector3.Subtract(COMproj, rr);
 
 
+            double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
+            double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
 
+            float d1 = Vector3.Distance(leftSide, COMproj);
+            float d2 = Vector3.Distance(rightSide, COMproj);
 
-
-
+            double rise = (fl.Y - fr.Y);
+            double run = (fl.X - fr.X);
+            double width2D = Math.Sqrt(rise*rise + run*run);
             float width = Vector3.Distance(fr, fl);
+            // width front = 0.053
+            
+            foot foot = new foot();
+            //if (distance1 < distance2)
+            if (side == "R")
+            {
+                foot.innerEdge = (float) distance1;
+                foot.outerEdge = (float) distance2;
+            }
+            else
+            {
+                foot.innerEdge = (float) distance2;
+                foot.outerEdge = (float) distance1;
+            }
+            foot.name = side;
             foot.width = width;
 
             return foot;
@@ -264,26 +297,35 @@ namespace KinectViewer
             }
         }
 
+        public float computeOffsetParam()
+        {
+            foot L = constructFoot("L");
+            foot R = constructFoot("R");
+            float offsetL = footOffsetParameter(L);
+            float offsetR = footOffsetParameter(R);
+            return offsetParameter(offsetL, offsetR);
+        }
+
         public void RSUpdatePitch(float val) { SetJoint(0, val);  }
-        public void RSUpdateRoll (float val) { SetJoint(1, val);  }
-        public void REUpdateYaw  (float val) { SetJoint(3, val);  }
-        public void REUpdateRoll (float val) { SetJoint(2, val);  }
+        public void RSUpdateRoll(float val)  { SetJoint(1, val);  }
+        public void REUpdateYaw(float val)   { SetJoint(3, val);  }
+        public void REUpdateRoll(float val)  { SetJoint(2, val);  }
         public void LSUpdatePitch(float val) { SetJoint(4, val);  }
-        public void LSUpdateRoll (float val) { SetJoint(5, val);  }
-        public void LEUpdateYaw  (float val) { SetJoint(7, val);  }
-        public void LEUpdateRoll (float val) { SetJoint(6, val);  }
+        public void LSUpdateRoll(float val)  { SetJoint(5, val);  }
+        public void LEUpdateYaw(float val)   { SetJoint(7, val);  }
+        public void LEUpdateRoll(float val)  { SetJoint(6, val);  }
 
-        public void RHUpdateRoll (float val) { SetJoint(8, val);  }
-        public void RHUpdatePitch(float val) { SetJoint(9, val);  }
-        public void RKUpdatePitch(float val) { SetJoint(10, val); }
-        public void RAUpdatePitch(float val) { SetJoint(11, val); }
-        public void RAUpdateRoll (float val) { SetJoint(12, val); }
+        public void RHUpdateRoll(float val) { }//SetJoint(8, val);  }
+        public void RHUpdatePitch(float val) { }//SetJoint(9, val);  }
+        public void RKUpdatePitch(float val) { }//SetJoint(10, val); }
+        public void RAUpdatePitch(float val) { }//SetJoint(11, val); }
+        public void RAUpdateRoll(float val)  { }//SetJoint(12, val); }
 
-        public void LHUpdateRoll (float val) { SetJoint(13, val); }
-        public void LHUpdatePitch(float val) { SetJoint(14, val); }
-        public void LKUpdatePitch(float val) { SetJoint(15, val); }
-        public void LAUpdatePitch(float val) { SetJoint(16, val); }
-        public void LAUpdateRoll (float val) { SetJoint(17, val); }
+        public void LHUpdateRoll(float val)  { }//SetJoint(13, val); }
+        public void LHUpdatePitch(float val) { }//SetJoint(14, val); }
+        public void LKUpdatePitch(float val) { }//SetJoint(15, val); }
+        public void LAUpdatePitch(float val) { }//SetJoint(16, val); }
+        public void LAUpdateRoll(float val)  { }//SetJoint(17, val); }
 
         public void SetLHand(bool close)
         {
