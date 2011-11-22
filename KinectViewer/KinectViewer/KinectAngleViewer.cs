@@ -41,7 +41,6 @@ namespace KinectViewer
             Matrix srReflegs = Matrix.CreateWorld(Vector3.Zero, dZlegs, dY2legs);
             Matrix srRefInvlegs = Matrix.Invert(srReflegs);
 
-            /*
             // right leg
             Vector3 RUAlegs = Vector3.Subtract(kneeRight, hipRight);
             Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
@@ -55,7 +54,6 @@ namespace KinectViewer
             Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
             calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
-            */
 
             // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
@@ -85,7 +83,7 @@ namespace KinectViewer
             nao.RSSend();
 
             // IK DEBUG
-
+            /*
             float UL_len, LL_len;
             Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
             Vector3.Distance(ref kneeLeft, ref footLeft, out LL_len);
@@ -109,7 +107,7 @@ namespace KinectViewer
             nao.RHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
             nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
             nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
-
+            */
             // END IK DEBUG
         }
 
