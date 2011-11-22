@@ -30,8 +30,8 @@ namespace KinectViewer
 
         public void Connect(string ip)
         {
-            leftFoot = new NaoFoot();
-            rightFoot = new NaoFoot();
+            leftFoot = new NaoFoot("L");
+            rightFoot = new NaoFoot("R");
 
             values = new ArrayList();
             limits = new ArrayList();
@@ -502,6 +502,83 @@ namespace KinectViewer
             else if (feet == 1)
             {
                 LAUpdate(pitch - 0.15f, roll + 0.1f);
+            }
+        }
+
+        public void updateFoot(NaoFoot foot)
+        {
+            Vector3 fr = GetPosition(foot.name + "FsrFR").position,
+                    rr = GetPosition(foot.name + "FsrRR").position,
+                    fl = GetPosition(foot.name + "FsrFL").position,
+                    rl = GetPosition(foot.name + "FsrRL").position;
+ 
+            Vector3 leftSide = Vector3.Subtract(fl, rl);
+            Vector3 rightSide = Vector3.Subtract(fr, rr);
+            
+            Vector3 COM =  GetCOM();
+            //A || B = B Ã— (A Ã— B) / |B|Â² 
+
+            Plane footPlane = new Plane(fr, fl, rr);
+            Vector3 planeNormal = footPlane.Normal;
+
+            Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
+
+            //(AB x AC)/|AB|
+            // AB = leftSide, rightSide
+            // A = rl, rr
+            Vector3 tempL = Vector3.Subtract(COMproj, rl);
+            Vector3 tempR = Vector3.Subtract(COMproj, rr);
+
+
+            double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
+            double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
+
+            float d1 = Vector3.Distance(leftSide, COMproj);
+            float d2 = Vector3.Distance(rightSide, COMproj);
+
+            double rise = (fl.Y - fr.Y);
+            double run = (fl.X - fr.X);
+            double width2D = Math.Sqrt(rise*rise + run*run);
+            float width = Vector3.Distance(fr, fl);
+            // width front = 0.053
+            
+
+            //if (distance1 < distance2)
+            if (foot.name == "R")
+            {
+                foot.innerEdge = (float) distance1;
+                foot.outerEdge = (float) distance2;
+            }
+            else
+            {
+                foot.innerEdge = (float) distance2;
+                foot.outerEdge = (float) distance1;
+            }
+            foot.width = width;
+        }
+
+        public float computeOffsetParam()
+        {
+            updateFoot(leftFoot);
+            updateFoot(rightFoot);
+            float offsetL = leftFoot.GetOffset();
+            float offsetR = rightFoot.GetOffset();
+            return OffsetParameter(offsetL, offsetR);
+        }
+
+        public float OffsetParameter(float offsetL, float offsetR)
+        {
+            if (offsetL < offsetR)
+            {
+                return (offsetL / offsetR) / 2;
+            }
+            else if (offsetR < offsetL)
+            {
+                return 1 - ((offsetR / offsetL) / 2);
+            }
+            else
+            {
+                return 0.5f;
             }
         }
     }
