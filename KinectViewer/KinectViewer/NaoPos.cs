@@ -43,7 +43,7 @@ namespace KinectViewer
         }
 
         public static Matrix ConvertRotation(float ax, float ay, float az) {
-            return Matrix.CreateFromYawPitchRoll(az, -ay, -ax);
+            return Matrix.CreateFromYawPitchRoll(az, ay, ax);
         }
     }
 }

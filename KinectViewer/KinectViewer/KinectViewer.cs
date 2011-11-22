@@ -36,6 +36,7 @@ namespace KinectViewer
         SampleGrid grid2;
         protected List<LabelledVector> lines = new List<LabelledVector>();
         Matrix projection;
+        int frame = 0;
 
         public KinectViewer()
         {
@@ -87,8 +88,9 @@ namespace KinectViewer
             
             //naoSpeech.Connect("128.208.4.225");
             //nao.Connect("127.0.0.1");
-            nao.Connect("128.208.4.238");
-            nao.Relax();
+            nao.Connect("128.208.4.225");
+            //nao.Stiffen("LLeg");
+            //nao.Relax("LElbow");
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -108,7 +110,7 @@ namespace KinectViewer
             if (skeleton != null)
             {
                 cur_skeleton = skeleton;
-                //updateSkeleton(skeleton);
+                updateSkeleton(skeleton);
             }
         }
 
@@ -142,12 +144,30 @@ namespace KinectViewer
 
             if (nao.connected)
             {
+                frame++;
                 //display COM (indicated by a green ball.
                 nao.PollSensors();
-                nao.Balance(1, lines);
-                nao.Stiffen("LLeg");
+                int foot = 1; 
+                nao.Balance(foot, lines);
+                if (foot == 2)
+                {
+                    nao.RKUpdatePitch(0.5f);
+                    nao.RHUpdatePitch(-0.5f);
+                    nao.LHUpdateRoll(0.73f);
+                    nao.LHUpdatePitch(-0.5f);
+                    nao.rightFoot.FootLines(lines);
+                }
+                else
+                {
+                    float ang = 0.2f;
+                    //float ang = (float)Math.Sin(frame / 10) * 0.2f + 0.2f;
+                    nao.LKUpdatePitch(ang);
+                    nao.LHUpdatePitch(-ang);
+                    nao.RHUpdateRoll(-0.73f);
+                    nao.RHUpdatePitch(-0.5f);
+                    nao.leftFoot.FootLines(lines);
+                }
                 nao.RSSend();
-                //nao.leftFoot.FootLines(lines);
                 //nao.rightFoot.FootLines(lines);
                 debugReferenceFrame("", nao.gyrot, 3.0f);
                 drawRobot();
@@ -193,8 +213,8 @@ namespace KinectViewer
             foreach (String part in nao.parts) {
                 NaoPos p = nao.GetPosition(part);
                 //lines.Add(p.DebugLine(3.0f, Color.Black, ""));
-                //if (part == "RKneePitch")
-                debugReferenceFrame("", p.transform, 3.0f);
+                if (part == "LKneePitch")
+                    debugReferenceFrame("", p.transform, 3.0f);
                 drawPrimitive(BodySphere, p.position, Color.Blue);
             }
         }

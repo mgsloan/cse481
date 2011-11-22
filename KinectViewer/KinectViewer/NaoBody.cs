@@ -21,7 +21,7 @@ namespace KinectViewer
             }
         }
 
-        private float speed = 1.0f;
+        private float speed = 0.2f;
 
         public ArrayList joints, values, limits, parts;
 
@@ -111,8 +111,8 @@ namespace KinectViewer
         {
             if (_motion == null) return;
             ArrayList joints2 = (ArrayList)joints.Clone(), values2 = (ArrayList)values.Clone();
-            joints2.RemoveRange(8, 7);
-            values2.RemoveRange(8, 7);
+            //joints2.RemoveRange(8 + 5, 5);
+            //values2.RemoveRange(8 + 5, 5);
             _motion.setAngles(joints2, values2, speed);
         }
 
@@ -124,7 +124,21 @@ namespace KinectViewer
             System.Threading.Thread.Sleep(3000);
         }
 
+        public void SetJoint(int ix, float val) { SetJoint(ix, val, 0); }
 
+        public void SetJoint(int ix, float val, float smooth)
+        {
+            float prior = (float)values[ix];
+            if (float.IsNaN(prior)) prior = 0;
+            values[ix] = limits.Count <= ix
+                       ? val
+                       : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
+            if (smooth != 0)
+            {
+                values[ix] = prior * smooth + (float)values[ix] * (1 - smooth);
+                Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
+            }
+        }
 
         public void RSUpdatePitch(float val) { SetJoint(0, val);  }
         public void RSUpdateRoll (float val) { SetJoint(1, val);  }
@@ -138,14 +152,14 @@ namespace KinectViewer
         public void RHUpdateRoll (float val) { SetJoint(8, val);  }
         public void RHUpdatePitch(float val) { SetJoint(9, val);  }
         public void RKUpdatePitch(float val) { SetJoint(10, val); }
-        public void RAUpdatePitch(float val) { SetJoint(11, val); }
-        public void RAUpdateRoll (float val) { SetJoint(12, val); }
+        public void RAUpdatePitch(float val) { SetJoint(11, val, 0.5f); }
+        public void RAUpdateRoll (float val) { SetJoint(12, val, 0.5f); }
 
         public void LHUpdateRoll (float val) { SetJoint(13, val); }
         public void LHUpdatePitch(float val) { SetJoint(14, val); }
         public void LKUpdatePitch(float val) { SetJoint(15, val); }
-        public void LAUpdatePitch(float val) { SetJoint(16, val); }
-        public void LAUpdateRoll (float val) { SetJoint(17, val); }
+        public void LAUpdatePitch(float val) { SetJoint(16, val, 0.5f); }
+        public void LAUpdateRoll (float val) { SetJoint(17, val, 0.5f); }
 
         public static float Clamp(float f, float t, float v) {
             return Math.Max(f, Math.Min(t, v));
@@ -156,7 +170,7 @@ namespace KinectViewer
         }
 
         public static float UnLerp(float f, float t, float v) {
-            return (v - f) / (t - v);
+            return (v - f) / (t - f);
         }
 
         public static float InterpClamp(float x1, float t1, float f1, float x2, float t2, float f2, float x, float y)
@@ -316,12 +330,6 @@ namespace KinectViewer
         }
 
 
-        public void SetJoint(int ix, float val)
-        {
-            values[ix] = limits.Count <= ix
-                       ? val
-                       : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
-        }
 
         public static Vector3 VectorFromList(List<float> fs)
         {
@@ -357,38 +365,125 @@ namespace KinectViewer
             foot.frl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearLeft/Sensor/Value");
         }
 
+        public float Average(params float[] xs) {
+            float sum = 0;
+            foreach (float x in xs)
+            {
+                sum += x;
+            }
+            return sum / xs.Length;
+        }
+
         public void Balance(int feet, List<LabelledVector> ls)
         {
+            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
+
+            // Center of mass, and center of target, both in torso space.
+            Vector3 com = GetCOM();
+            Vector3 target = targetFoot.GetCenter();
+
+            // Balance vector.  We need it to be vertical.
+            Vector3 delta = Vector3.Subtract(com, target);
+
+            // Transform into lower leg local space.
+            Matrix mat = Matrix.Invert(GetPosition((feet == 2 ? "R" : "L") + "KneePitch").transform);
+            Vector3 local = Vector3.Transform(delta, mat);
+
+            // Take the angle of the vector to be the angle we need to rotate
+            // the ground plane in order to achieve balance.
+            float roll  = (float) Math.Atan2(local.X, local.Y);
+            float pitch = (float) Math.Atan2(local.Z, local.Y);
+
+            // Use Force sensors to tweak result.
+            float forwardBias = Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
+            float leftwardBias = Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
+            Console.WriteLine("Biases: " + forwardBias.ToString() + " " + leftwardBias.ToString());
+
+            Vector3 offset = new Vector3(0, 0, 3f);
+            ls.Add(new LabelledVector(offset, Vector3.Add(offset, local), Color.Black, ""));
+            ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
+            
+            // Foot commands with experimental fudge factors
+            if (feet == 2)
+            {
+                pitch += forwardBias;
+                roll += leftwardBias;
+                RAUpdate(pitch + 0.05f, -roll);
+            }
+            else
+            {
+                pitch += forwardBias;
+                roll += leftwardBias;
+                LAUpdate(pitch - 0.05f, 0.05f - roll);
+            }
+        }
+
+        public void BalanceOld(int feet, List<LabelledVector> ls)
+        {
+            /*
             Matrix mat = Matrix.Identity;
             NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
             Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
             Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
-            delt.Normalize();
-            Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
-            orient.Y = 0;
-            orient.Normalize();
-            Vector3 perp = new Vector3(-orient.Z, 0, orient.X);
-            
-/*
-            NaoPos lleg = GetPosition("RKneePitch");
-            Matrix mat = Matrix.Invert(lleg.transform);
-            
+             */
+            Matrix inv = Matrix.Invert(gyrot);
+            Matrix mat = Matrix.Invert(GetPosition("LKneePitch").transform);
+            //Vector3 kneeVec = Vector3.Transform(Vector3.UnitY, mat);
+
+            //Matrix mat = GetPosition("LKneePitch").transform;
+
             NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
-            Vector3 target = Vector3.Transform(targetFoot.GetCenter(), mat);
-            Vector3 delt = Vector3.Subtract(Vector3.Transform(GetCOM(), mat), target);
+
+            float forwardBias = Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr);
+            float leftwardBias = Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr);
+            Console.WriteLine(forwardBias.ToString() + " " + leftwardBias.ToString());
+
+            Vector3 com = Vector3.Transform(GetCOM(), mat);
+            Vector3 target = targetFoot.GetCenter();
+            Vector3 orient = targetFoot.GetDirection();
+            // TODO: make orient direction independent of current foot position.
+            orient.Y = 0;
+            Vector3 perp = new Vector3(-orient.Z, 0, orient.X);
+
+            ls.Add(new LabelledVector(target, Vector3.Add(target, perp), Color.Green, ""));
+            ls.Add(new LabelledVector(target, com, Color.Blue, ""));
+            ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Red, ""));
+
+            /*
+            Matrix mat = Matrix.Invert(GetPosition("LKneePitch").transform);
+            //Vector3 comT    = Vector3.Transform(com,    mat);
+            Vector3 targetT = Vector3.Transform(target, mat);
+            Vector3 orientT = Vector3.Transform(orient, mat);
+            Vector3 perpT   = Vector3.Transform(perp,   mat);
+            */
+
+            Vector3 delt = Vector3.Subtract(com, target);
+            
+            orient.Normalize();
+            perp.Normalize();
+            delt.Normalize();
+            //kneeVec.Normalize();
+
+            //delt = Vector3.Subtract(delt, kneeVec);
+            //delt.Normalize();
+
+            /*
             delt.Normalize();
             Vector3 orient = Vector3.Transform(targetFoot.GetDirection(), mat);
             orient.Z = 0;
             orient.Normalize();
             Vector3 perp = new Vector3(-orient.Y, orient.X, 0);
-*/
-            //ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Green, ""));
-            ls.Add(new LabelledVector(target, Vector3.Add(target, perp), Color.Green, ""));
-            ls.Add(new LabelledVector(target, Vector3.Add(target, delt), Color.Blue, ""));
-            ls.Add(new LabelledVector(target, Vector3.Add(target, orient), Color.Red, ""));
+            */
 
+            Vector3 offset = new Vector3(0, 0, 3f);
+
+            ls.Add(new LabelledVector(offset, Vector3.Add(offset, perp),  Color.Green, ""));
+            ls.Add(new LabelledVector(offset, Vector3.Add(offset, delt),  Color.Blue,  ""));
+            ls.Add(new LabelledVector(offset, Vector3.Add(offset, orient), Color.Red, ""));
+           // ls.Add(new LabelledVector(offset, Vector3.Add(offset, kneeVec), Color.Purple, ""));
+
+            float roll  = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(perp, delt)));
             float pitch = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(orient, delt)));
-            float roll  = (float)(Math.PI / 2 - Math.Acos((double)Vector3.Dot(perp,   delt)));
             //Console.WriteLine("pitch = " + pitch.ToString());
             //Console.WriteLine("roll = " + roll.ToString());
             /* if (feet == 3)
@@ -397,13 +492,16 @@ namespace KinectViewer
                 LAUpdate((float)(Math.PI / 2) - pitch, 0);
             }
             else */
+            //if (forwardBias > 0)
+            pitch -= 0.04f * forwardBias;
+            roll  -= 0.04f * leftwardBias;
             if (feet == 2)
             {
-                RAUpdate(pitch, roll);
+                RAUpdate(-pitch, -roll);
             }
             else if (feet == 1)
             {
-                LAUpdate(pitch - 0.1f, roll + 0.07f);
+                LAUpdate(pitch - 0.15f, roll + 0.1f);
             }
         }
     }
