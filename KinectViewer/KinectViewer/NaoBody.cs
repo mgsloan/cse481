@@ -136,7 +136,7 @@ namespace KinectViewer
             if (smooth != 0)
             {
                 values[ix] = prior * smooth + (float)values[ix] * (1 - smooth);
-                Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
+                //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
             }
         }
 
@@ -224,8 +224,8 @@ namespace KinectViewer
         public void LAUpdate(float pitch, float roll) {
             float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
             float roll2 = NearestFeasibleRoll(pitch2, roll);
-            Console.WriteLine("pitch = " + pitch2.ToString());
-            Console.WriteLine("roll = " + roll2.ToString());
+            //Console.WriteLine("pitch = " + pitch2.ToString());
+            //Console.WriteLine("roll = " + roll2.ToString());
             LAUpdatePitch(pitch2); LAUpdateRoll(roll2);
         }
 
@@ -374,6 +374,10 @@ namespace KinectViewer
             return sum / xs.Length;
         }
 
+
+        
+
+
         public void Balance(int feet, List<LabelledVector> ls)
         {
             NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
@@ -397,7 +401,7 @@ namespace KinectViewer
             // Use Force sensors to tweak result.
             float forwardBias = Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
             float leftwardBias = Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
-            Console.WriteLine("Biases: " + forwardBias.ToString() + " " + leftwardBias.ToString());
+            //Console.WriteLine("Biases: " + forwardBias.ToString() + " " + leftwardBias.ToString());
 
             Vector3 offset = new Vector3(0, 0, 3f);
             ls.Add(new LabelledVector(offset, Vector3.Add(offset, local), Color.Black, ""));

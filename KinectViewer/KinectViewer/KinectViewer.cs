@@ -34,6 +34,10 @@ namespace KinectViewer
         SpherePrimitive BodySphere;
         SampleGrid grid;
         SampleGrid grid2;
+        Vector3 leftFootInitial;
+        Vector3 rightFootInitial;
+
+
         protected List<LabelledVector> lines = new List<LabelledVector>();
         Matrix projection;
         int frame = 0;
@@ -54,6 +58,9 @@ namespace KinectViewer
 
             COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
             BodySphere = new SpherePrimitive(GraphicsDevice, 0.4f, 8);
+            leftFootInitial = new Vector3();
+            rightFootInitial = new Vector3();
+
 
             grid = new SampleGrid();
             grid.GridSize = 16;
@@ -107,14 +114,97 @@ namespace KinectViewer
 
             if (skeleton != null)
             {
-                cur_skeleton = skeleton;
 
-                updateSkeleton(skeleton);
+                //first time to see a skeleton.
+                if (cur_skeleton == null)
+                {
+                    //set the initial position of the feet
+                    //var set = TryInitializeFeetPosition(skeleton);
+                    //if (set) //if it succesfully sets the feet
+                    //{
+                    //    cur_skeleton = skeleton;
+                    //}
+                    //else
+                    //{
+                    //    cur_skeleton = null;
+                    //}
+                }
+
+                //if the initial positions have been set
+                //if (cur_skeleton != null)
+                //{
+                    determineFootElevation(skeleton);
+                //}
 
                 //updateSkeleton(skeleton);
                 float offset = nao.computeOffsetParam();
-                Console.WriteLine("offset: " + offset);
+                //Console.WriteLine("offset: " + offset);
             }
+            else
+            {
+                cur_skeleton = null;
+            }
+        }
+
+        //once the intial position has been determined, this method determines which foot is 
+        //lifted
+        private void determineFootElevation(SkeletonData skeleton)
+        {
+            
+            var leftjoint = skeleton.Joints[JointID.AnkleLeft];
+            var rightjoint = skeleton.Joints[JointID.AnkleRight];
+
+            var cur_left = FromKinectSpace(leftjoint.Position);
+            var cur_right = FromKinectSpace(rightjoint.Position);
+
+            //will only determine which foot is lifted if both feet are being tracked
+            //sets the threshold at .4
+            if (leftjoint.TrackingState == JointTrackingState.Tracked && rightjoint.TrackingState == JointTrackingState.Tracked)
+            {
+                Console.WriteLine("init_left: " + leftFootInitial.Y);
+                Console.WriteLine("init_right: " + rightFootInitial.Y);
+                Console.WriteLine("cur_left: " + cur_left.Y);
+                Console.WriteLine("cur_right: " + cur_right.Y);
+                if (cur_left.Y - cur_right.Y > .3)
+                {
+                    Console.WriteLine("your left foot is up");
+                }
+                else if (cur_left.Y- cur_right.Y < -.3)
+                {
+                    Console.WriteLine("your right foot is up");
+                }
+                else
+                {
+                    Console.WriteLine("both of your feet are on the ground");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Feet are not tracked");
+            }
+
+        }
+
+        //tries to initialize the feet position. if it succeeds then returns true, otherwise false.
+        private bool TryInitializeFeetPosition(SkeletonData skeleton) 
+        {   
+            //get ankle joints
+            var leftjoint = skeleton.Joints[JointID.AnkleLeft];
+            var rightjoint = skeleton.Joints[JointID.AnkleRight];
+
+            var left = FromKinectSpace(leftjoint.Position);
+            var right = FromKinectSpace(rightjoint.Position);
+            
+            //the feet must be tracked and the y coordinates cannot differ more than .3 to initialize the position.
+            if (Math.Abs(left.Y - right.Y) < .3 && leftjoint.TrackingState == JointTrackingState.Tracked
+                && rightjoint.TrackingState == JointTrackingState.Tracked)
+            {
+                leftFootInitial = left;
+                rightFootInitial = right;
+                return true;
+            }
+            return false;
+
         }
 
 

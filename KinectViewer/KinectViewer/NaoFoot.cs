@@ -35,7 +35,7 @@ namespace KinectViewer
             ls.Add(prl.DebugLine(frl * 4f, Color.Black, "", Vector3.Up));
             Vector3 center = GetCenter();
             ls.Add(new LabelledVector(center, Vector3.Add(center, GetDirection()), Color.Red, ""));
-            Console.WriteLine(ffr.ToString() + " " + frr.ToString() + " " + ffl.ToString() + " " + frl.ToString());
+            //Console.WriteLine(ffr.ToString() + " " + frr.ToString() + " " + ffl.ToString() + " " + frl.ToString());
         }
 
         public static Vector3 VectorAverage(params Vector3[] vs)
