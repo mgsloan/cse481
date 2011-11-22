@@ -8,10 +8,16 @@ namespace KinectViewer
 {
     class NaoFoot
     {
+        public string name;
         public float ffr, frr, ffl, frl;
         public NaoPos pfr, prr, pfl, prl;
         public float outerEdge, innerEdge, width;
-        
+
+        public NaoFoot(string side)
+        {
+            this.name = side;
+        }
+
         public Vector3 GetDirection() {
             return VectorAverage(Vector3.Subtract(pfr.position, prr.position),
                                  Vector3.Subtract(pfl.position, prl.position));
@@ -29,6 +35,7 @@ namespace KinectViewer
             ls.Add(prl.DebugLine(frl * 4f, Color.Black, "", Vector3.Up));
             Vector3 center = GetCenter();
             ls.Add(new LabelledVector(center, Vector3.Add(center, GetDirection()), Color.Red, ""));
+            //Console.WriteLine(ffr.ToString() + " " + frr.ToString() + " " + ffl.ToString() + " " + frl.ToString());
         }
 
         public static Vector3 VectorAverage(params Vector3[] vs)
@@ -53,22 +60,6 @@ namespace KinectViewer
             else
             {
                 return innerEdge;
-            }
-        }
-
-        public static float CalculateOffset(float offsetL, float offsetR)
-        {
-            if (offsetL < offsetR)
-            {
-                return (offsetL / offsetR) / 2;
-            }
-            else if (offsetR < offsetL)
-            {
-                return 1 - ((offsetR / offsetL) / 2);
-            }
-            else
-            {
-                return 0.5f;
             }
         }
     }

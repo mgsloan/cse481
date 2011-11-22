@@ -34,8 +34,13 @@ namespace KinectViewer
         SpherePrimitive BodySphere;
         SampleGrid grid;
         SampleGrid grid2;
+        Vector3 leftFootInitial;
+        Vector3 rightFootInitial;
+
+
         protected List<LabelledVector> lines = new List<LabelledVector>();
         Matrix projection;
+        int frame = 0;
 
         public KinectViewer()
         {
@@ -53,6 +58,9 @@ namespace KinectViewer
 
             COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
             BodySphere = new SpherePrimitive(GraphicsDevice, 0.4f, 8);
+            leftFootInitial = new Vector3();
+            rightFootInitial = new Vector3();
+
 
             grid = new SampleGrid();
             grid.GridSize = 16;
@@ -86,9 +94,8 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
             
             //naoSpeech.Connect("128.208.4.225");
-            //nao.Connect("127.0.0.1");
-            nao.Connect("128.208.4.238");
-            nao.Relax();
+            nao.Connect("127.0.0.1");
+            //nao.Connect("128.208.4.225");
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -107,9 +114,97 @@ namespace KinectViewer
 
             if (skeleton != null)
             {
-                cur_skeleton = skeleton;
+
+                //first time to see a skeleton.
+                if (cur_skeleton == null)
+                {
+                    //set the initial position of the feet
+                    //var set = TryInitializeFeetPosition(skeleton);
+                    //if (set) //if it succesfully sets the feet
+                    //{
+                    //    cur_skeleton = skeleton;
+                    //}
+                    //else
+                    //{
+                    //    cur_skeleton = null;
+                    //}
+                }
+
+                //if the initial positions have been set
+                //if (cur_skeleton != null)
+                //{
+                    determineFootElevation(skeleton);
+                //}
+
                 //updateSkeleton(skeleton);
+                float offset = nao.computeOffsetParam();
+                //Console.WriteLine("offset: " + offset);
             }
+            else
+            {
+                cur_skeleton = null;
+            }
+        }
+
+        //once the intial position has been determined, this method determines which foot is 
+        //lifted
+        private void determineFootElevation(SkeletonData skeleton)
+        {
+            
+            var leftjoint = skeleton.Joints[JointID.AnkleLeft];
+            var rightjoint = skeleton.Joints[JointID.AnkleRight];
+
+            var cur_left = FromKinectSpace(leftjoint.Position);
+            var cur_right = FromKinectSpace(rightjoint.Position);
+
+            //will only determine which foot is lifted if both feet are being tracked
+            //sets the threshold at .4
+            if (leftjoint.TrackingState == JointTrackingState.Tracked && rightjoint.TrackingState == JointTrackingState.Tracked)
+            {
+                Console.WriteLine("init_left: " + leftFootInitial.Y);
+                Console.WriteLine("init_right: " + rightFootInitial.Y);
+                Console.WriteLine("cur_left: " + cur_left.Y);
+                Console.WriteLine("cur_right: " + cur_right.Y);
+                if (cur_left.Y - cur_right.Y > .3)
+                {
+                    Console.WriteLine("your left foot is up");
+                }
+                else if (cur_left.Y- cur_right.Y < -.3)
+                {
+                    Console.WriteLine("your right foot is up");
+                }
+                else
+                {
+                    Console.WriteLine("both of your feet are on the ground");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Feet are not tracked");
+            }
+
+        }
+
+        //tries to initialize the feet position. if it succeeds then returns true, otherwise false.
+        private bool TryInitializeFeetPosition(SkeletonData skeleton) 
+        {   
+            //get ankle joints
+            var leftjoint = skeleton.Joints[JointID.AnkleLeft];
+            var rightjoint = skeleton.Joints[JointID.AnkleRight];
+
+            var left = FromKinectSpace(leftjoint.Position);
+            var right = FromKinectSpace(rightjoint.Position);
+            
+            //the feet must be tracked and the y coordinates cannot differ more than .3 to initialize the position.
+            if (Math.Abs(left.Y - right.Y) < .3 && leftjoint.TrackingState == JointTrackingState.Tracked
+                && rightjoint.TrackingState == JointTrackingState.Tracked)
+            {
+                leftFootInitial = left;
+                rightFootInitial = right;
+                return true;
+            }
+            return false;
+
         }
 
 
@@ -142,12 +237,30 @@ namespace KinectViewer
 
             if (nao.connected)
             {
+                frame++;
                 //display COM (indicated by a green ball.
                 nao.PollSensors();
-                nao.Balance(1, lines);
-                nao.Stiffen("LLeg");
+                int foot = 1; 
+                nao.Balance(foot, lines);
+                if (foot == 2)
+                {
+                    nao.RKUpdatePitch(0.5f);
+                    nao.RHUpdatePitch(-0.5f);
+                    nao.LHUpdateRoll(0.73f);
+                    nao.LHUpdatePitch(-0.5f);
+                    nao.rightFoot.FootLines(lines);
+                }
+                else
+                {
+                    float ang = 0.2f;
+                    //float ang = (float)Math.Sin(frame / 10) * 0.2f + 0.2f;
+                    nao.LKUpdatePitch(ang);
+                    nao.LHUpdatePitch(-ang);
+                    nao.RHUpdateRoll(-0.73f);
+                    nao.RHUpdatePitch(-0.5f);
+                    nao.leftFoot.FootLines(lines);
+                }
                 nao.RSSend();
-                //nao.leftFoot.FootLines(lines);
                 //nao.rightFoot.FootLines(lines);
                 debugReferenceFrame("", nao.gyrot, 3.0f);
                 drawRobot();
@@ -193,8 +306,8 @@ namespace KinectViewer
             foreach (String part in nao.parts) {
                 NaoPos p = nao.GetPosition(part);
                 //lines.Add(p.DebugLine(3.0f, Color.Black, ""));
-                //if (part == "RKneePitch")
-                debugReferenceFrame("", p.transform, 3.0f);
+                if (part == "LKneePitch")
+                    debugReferenceFrame("", p.transform, 3.0f);
                 drawPrimitive(BodySphere, p.position, Color.Blue);
             }
         }
