@@ -18,6 +18,17 @@ namespace KinectViewer
             this.name = side;
         }
 
+        public NaoFoot(NaoFoot other)
+        {
+            if (other != null)
+            {
+                name = other.name;
+                ffr = other.ffr; frr = other.frr; ffl = other.ffl; frl = other.frl;
+                pfr = other.pfr; prr = other.prr; pfl = other.pfl; prl = other.prl;
+                outerEdge = other.outerEdge; innerEdge = other.innerEdge; width = other.width;
+            }
+        }
+
         public Vector3 GetDirection() {
             return VectorAverage(Vector3.Subtract(pfr.position, prr.position),
                                  Vector3.Subtract(pfl.position, prl.position));
@@ -26,7 +37,6 @@ namespace KinectViewer
         public Vector3 GetCenter() {
             return VectorAverage(pfr.position, prr.position, pfl.position, prl.position);
         }
-
 
         public void FootLines(List<LabelledVector> ls) {
             ls.Add(pfr.DebugLine(ffr * 4f, Color.Black, "", Vector3.Up));
@@ -45,6 +55,55 @@ namespace KinectViewer
                 result = Vector3.Add(v, result);
             }
             return Vector3.Divide(result, vs.Length);
+        }
+
+        public void updateFoot(Vector3 COM)
+        {
+            Vector3 fl = pfl.position,
+                    fr = pfr.position,
+                    rl = prl.position,
+                    rr = prr.position;
+
+            Vector3 leftSide = Vector3.Subtract(fl, rl);
+            Vector3 rightSide = Vector3.Subtract(fr, rr);
+
+            //A || B = B Ã— (A Ã— B) / |B|Â² 
+
+            Plane footPlane = new Plane(fr, fl, rr);
+            Vector3 planeNormal = footPlane.Normal;
+
+            Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
+
+            //(AB x AC)/|AB|
+            // AB = leftSide, rightSide
+            // A = rl, rr
+            Vector3 tempL = Vector3.Subtract(COMproj, rl);
+            Vector3 tempR = Vector3.Subtract(COMproj, rr);
+
+            double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
+            double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
+
+            float d1 = Vector3.Distance(leftSide, COMproj);
+            float d2 = Vector3.Distance(rightSide, COMproj);
+
+            double rise = (fl.Y - fr.Y);
+            double run = (fl.X - fr.X);
+            double width2D = Math.Sqrt(rise * rise + run * run);
+            float width = Vector3.Distance(fr, fl);
+            // width front = 0.053
+
+            //if (distance1 < distance2)
+            if (name == "R")
+            {
+                innerEdge = (float)distance1;
+                outerEdge = (float)distance2;
+            }
+            else
+            {
+                innerEdge = (float)distance2;
+                outerEdge = (float)distance1;
+            }
+            this.width = width;
         }
 
         public float GetOffset()

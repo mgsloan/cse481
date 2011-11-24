@@ -100,6 +100,7 @@ namespace KinectViewer
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
+            cur_skeleton = skeleton;
             //sc.sendRotationSpeeds(nao.values);
         }
 
@@ -136,7 +137,7 @@ namespace KinectViewer
                     determineFootElevation(skeleton);
                 //}
 
-                //updateSkeleton(skeleton);
+                updateSkeleton(skeleton);
                 float offset = nao.computeOffsetParam();
                 //Console.WriteLine("offset: " + offset);
             }
@@ -234,12 +235,10 @@ namespace KinectViewer
             grid.Draw();
             grid2.Draw();
 
-
             if (nao.connected)
             {
                 frame++;
                 //display COM (indicated by a green ball.
-                nao.PollSensors();
                 int foot = 1; 
                 nao.Balance(foot, lines);
                 if (foot == 2)
@@ -248,7 +247,7 @@ namespace KinectViewer
                     nao.RHUpdatePitch(-0.5f);
                     nao.LHUpdateRoll(0.73f);
                     nao.LHUpdatePitch(-0.5f);
-                    nao.rightFoot.FootLines(lines);
+                    nao.GetRightFoot().FootLines(lines);
                 }
                 else
                 {
@@ -258,13 +257,11 @@ namespace KinectViewer
                     nao.LHUpdatePitch(-ang);
                     nao.RHUpdateRoll(-0.73f);
                     nao.RHUpdatePitch(-0.5f);
-                    nao.leftFoot.FootLines(lines);
+                    nao.GetLeftFoot().FootLines(lines);
                 }
                 nao.RSSend();
-                //nao.rightFoot.FootLines(lines);
-                debugReferenceFrame("", nao.gyrot, 3.0f);
+                debugReferenceFrame("", nao.GetGyrot(), 3.0f);
                 drawRobot();
-                //nao.readFSR();
             }
 
             spriteBatch.Begin();
@@ -289,8 +286,9 @@ namespace KinectViewer
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
+                Console.WriteLine("Error Drawing Human: " + e);
             }
 
             // Reset the fill mode renderstate.

@@ -5,34 +5,27 @@ using System.Text;
 using Aldebaran.Proxies;
 using System.Collections;
 using Microsoft.Xna.Framework;
+using System.Threading;
 
 namespace KinectViewer
 {
     class NaoBody
     {
-        MemoryProxy _memory = null;
-        MotionProxy _motion = null;
-
         public bool connected
         {
             get
             {
-                return _motion != null;
+                return proxy != null;
             }
         }
 
         private float speed = 0.2f;
 
         public ArrayList joints, values, limits, parts;
-
-        public NaoFoot leftFoot, rightFoot;
-        public Matrix gyrot;
+        private NaoProxy proxy;
 
         public void Connect(string ip)
         {
-            leftFoot = new NaoFoot("L");
-            rightFoot = new NaoFoot("R");
-
             values = new ArrayList();
             limits = new ArrayList();
 
@@ -78,16 +71,19 @@ namespace KinectViewer
 
             try
             {
-                _memory = new MemoryProxy(ip, 9559);
-                _motion = new MotionProxy(ip, 9559);
+                MemoryProxy memory = new MemoryProxy(ip, 9559);
+                MotionProxy motion = new MotionProxy(ip, 9559);
 
                 for (int i = 0; i < joints.Count; i++)
                 {
-                    limits.Add(((ArrayList)_motion.getLimits((string)joints[i]))[0]);
+                    limits.Add(((ArrayList) motion.getLimits((string)joints[i]))[0]);
                 }
                 // give the joints some stiffness
-                _motion.setStiffnesses("Body", 1.0f);
+                motion.setStiffnesses("Body", 1.0f);
 
+                proxy = new NaoProxy(memory, motion, parts, 100);
+                Thread thread = new Thread(new ThreadStart(proxy.PollLoop));
+                thread.Start();
             }
             catch (Exception e)
             {
@@ -95,31 +91,38 @@ namespace KinectViewer
             }
         }
 
-        public void Relax() { Relax("Body"); }
-        public void Relax(String part)
+        public void Relax() { proxy.Relax("Body"); }
+
+
+        public void Stiffen() { proxy.Stiffen("Body"); }
+
+
+        public NaoFoot GetRightFoot()
         {
-            _motion.setStiffnesses("Body", 0.0f);
+            return proxy.getRightFoot();
         }
 
-        public void Stiffen() { Stiffen("Body"); }
-        public void Stiffen(String part)
+        public NaoFoot GetLeftFoot()
         {
-            _motion.setStiffnesses(part, 1.0f);
+            return proxy.getRightFoot();
+        }
+
+        public Matrix GetGyrot()
+        {
+            return proxy.GetGyRot();
         }
 
         public void RSSend()
         {
-            if (_motion == null) return;
+            if (proxy == null) return;
             ArrayList joints2 = (ArrayList)joints.Clone(), values2 = (ArrayList)values.Clone();
-            //joints2.RemoveRange(8 + 5, 5);
-            //values2.RemoveRange(8 + 5, 5);
-            _motion.setAngles(joints2, values2, speed);
+            proxy.SetAngles(joints2, values2, speed);
         }
 
         public void RSSendBlocking()
         {
-            if (_motion == null) return;
-            _motion.setAngles(joints, values, 0.2f);
+            if (proxy == null) return;
+            proxy.SetAngles(joints, values, 0.2f);
             //_motion.wait(id, 10000);
             System.Threading.Thread.Sleep(3000);
         }
@@ -184,7 +187,6 @@ namespace KinectViewer
         public static float FromRad(float rad) { return rad / (float)Math.PI * 180f; }
         public static float ToRad(float rad) { return rad * (float)Math.PI / 180f; }
 
-
         // Clamps roll for the left foot diagram.
         public static float NearestFeasibleRoll(float pitch, float roll) {
             float pitchDeg = FromRad(pitch);
@@ -229,6 +231,7 @@ namespace KinectViewer
             LAUpdatePitch(pitch2); LAUpdateRoll(roll2);
         }
 
+        /*
         public void SetLHand(bool close)
         {
             if (_motion != null)
@@ -272,6 +275,7 @@ namespace KinectViewer
                 }
             }
         }
+        */
 
         private static float ClampToRange(float val, float min, float max)
         {
@@ -288,48 +292,11 @@ namespace KinectViewer
 
         public void walk(string direction)
         {
-            if (_motion != null)
+            if (proxy != null)
             {
-                try
-                {
-                    //var postion = _motion.getRobotPosition(true);
-                    //var listofPositions = postion.ToList();
-                    switch (direction)
-                    {
-                        case "left":
-                            _motion.walkTo(0.0f, 1.0f, 0f);
-                            break;
-                        case "right":
-                            _motion.walkTo(0.0f, -1.0f, 0f);
-                            break;
-                        case "forward":
-                            _motion.walkTo(1f, 0.0f, 0f);
-                            break;
-                        case "back":
-                            _motion.walkTo(-1f, 0.0f, 0f);
-                            break;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Console.Out.WriteLine("Walking exception: " + e);
-                }
+                proxy.walk(direction);
             }
         }
-
-        public void readFSR()
-        {
-            List<string> list = _memory.getEventList();
-            Console.WriteLine(_memory.getData("Device/SubDeviceList/LFoot/FSR/FrontLeft/Sensor/Value"));
-
-            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccX/Sensor/Value"));
-            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccY/Sensor/Value"));
-            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AccZ/Sensor/Value"));
-
-            Console.WriteLine(_memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value"));
-        }
-
-
 
         public static Vector3 VectorFromList(List<float> fs)
         {
@@ -338,31 +305,12 @@ namespace KinectViewer
 
         public Vector3 GetCOM()
         {
-            return Vector3.Transform(NaoPos.Convert(VectorFromList(_motion.getCOM("Body", 0, false))), Matrix.Identity);
+            return Vector3.Transform(NaoPos.Convert(proxy.GetCOM()), Matrix.Identity);
         }
 
         public NaoPos GetPosition(string part)
         {
-            return new NaoPos(_motion.getPosition(part, 0, false), Matrix.Identity);
-        }
-
-        public void PollSensors() {
-            PollFootSensors(rightFoot, "R");
-            PollFootSensors(leftFoot, "L");
-            float gx = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
-            float gy = (float) _memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
-            gyrot = NaoPos.ConvertRotation(gx, gy, 0);
-        }
-
-        public void PollFootSensors(NaoFoot foot, string prefix) {
-            foot.pfr = GetPosition(prefix + "FsrFR");
-            foot.prr = GetPosition(prefix + "FsrRR");
-            foot.pfl = GetPosition(prefix + "FsrFL");
-            foot.prl = GetPosition(prefix + "FsrRL");
-            foot.ffr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontRight/Sensor/Value");
-            foot.frr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearRight/Sensor/Value");
-            foot.ffl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontLeft/Sensor/Value");
-            foot.frl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearLeft/Sensor/Value");
+            return proxy.GetPosition(part);
         }
 
         public float Average(params float[] xs) {
@@ -374,13 +322,9 @@ namespace KinectViewer
             return sum / xs.Length;
         }
 
-
-        
-
-
         public void Balance(int feet, List<LabelledVector> ls)
         {
-            NaoFoot targetFoot = feet == 2 ? rightFoot : leftFoot;
+            NaoFoot targetFoot = feet == 2 ? proxy.getRightFoot() : proxy.getLeftFoot();
 
             // Center of mass, and center of target, both in torso space.
             Vector3 com = GetCOM();
@@ -422,62 +366,12 @@ namespace KinectViewer
             }
         }
 
-        public void updateFoot(NaoFoot foot)
-        {
-            Vector3 fr = GetPosition(foot.name + "FsrFR").position,
-                    rr = GetPosition(foot.name + "FsrRR").position,
-                    fl = GetPosition(foot.name + "FsrFL").position,
-                    rl = GetPosition(foot.name + "FsrRL").position;
- 
-            Vector3 leftSide = Vector3.Subtract(fl, rl);
-            Vector3 rightSide = Vector3.Subtract(fr, rr);
-            
-            Vector3 COM =  GetCOM();
-            //A || B = B Ã— (A Ã— B) / |B|Â² 
-
-            Plane footPlane = new Plane(fr, fl, rr);
-            Vector3 planeNormal = footPlane.Normal;
-
-            Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
-
-            //(AB x AC)/|AB|
-            // AB = leftSide, rightSide
-            // A = rl, rr
-            Vector3 tempL = Vector3.Subtract(COMproj, rl);
-            Vector3 tempR = Vector3.Subtract(COMproj, rr);
-
-
-            double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
-            double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
-
-            float d1 = Vector3.Distance(leftSide, COMproj);
-            float d2 = Vector3.Distance(rightSide, COMproj);
-
-            double rise = (fl.Y - fr.Y);
-            double run = (fl.X - fr.X);
-            double width2D = Math.Sqrt(rise*rise + run*run);
-            float width = Vector3.Distance(fr, fl);
-            // width front = 0.053
-            
-
-            //if (distance1 < distance2)
-            if (foot.name == "R")
-            {
-                foot.innerEdge = (float) distance1;
-                foot.outerEdge = (float) distance2;
-            }
-            else
-            {
-                foot.innerEdge = (float) distance2;
-                foot.outerEdge = (float) distance1;
-            }
-            foot.width = width;
-        }
-
         public float computeOffsetParam()
         {
-            updateFoot(leftFoot);
-            updateFoot(rightFoot);
+            NaoFoot leftFoot = proxy.getLeftFoot();
+            NaoFoot rightFoot = proxy.getRightFoot();
+            leftFoot.updateFoot(GetCOM());
+            rightFoot.updateFoot(GetCOM());
             float offsetL = leftFoot.GetOffset();
             float offsetR = rightFoot.GetOffset();
             return OffsetParameter(offsetL, offsetR);

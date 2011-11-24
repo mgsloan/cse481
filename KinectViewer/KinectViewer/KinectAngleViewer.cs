@@ -83,37 +83,35 @@ namespace KinectViewer
             nao.RSSend();
 
             // IK DEBUG
-            /*
-            float UL_len, LL_len;
-            Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
-            Vector3.Distance(ref kneeLeft, ref footLeft, out LL_len);
 
-            double[] legAngles = LegIK(srRefInv, hipLeft, footLeft, UL_len, LL_len);
-            nao.LHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
-            nao.LHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
-            nao.LKUpdatePitch((float) (Math.PI - legAngles[2]));
+            //float UL_len, LL_len;
+            //Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
+            //Vector3.Distance(ref kneeLeft, ref footLeft, out LL_len);
+
+            //double[] legAngles = LegIK(srRefInv, new Vector3(0, 0, 0), footLeft - hipLeft, 5, 5);
+            //nao.LHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
+            //nao.LHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
+            //nao.LKUpdatePitch((float) (Math.PI - legAngles[2]));
+
+            double[] legAngles = calculateLegAngles(srRefInv, hipRight, kneeRight, footRight);
 
             Vector3 origin = new Vector3(4, 0, 0);
             Vector3 displayHipRoll = new Vector3(-2, 10, 0);
             lines.Add(new LabelledVector(origin + displayHipRoll, origin + displayHipRoll, Color.Black, "HipRoll: " + legAngles[1]));
 
             Vector3 displayHipPitch = new Vector3(-2, 12, 0);
-            lines.Add(new LabelledVector(origin + displayHipPitch, origin + displayHipPitch, Color.Black, "HipPitch: " + (legAngles[0] + Math.PI / 2)));
+            lines.Add(new LabelledVector(origin + displayHipPitch, origin + displayHipPitch, Color.Black, "HipPitch: " + (legAngles[0])));
 
             Vector3 displayKneePitch = new Vector3(-2, 14, 0);
             lines.Add(new LabelledVector(origin + displayKneePitch, origin + displayKneePitch, Color.Black, "KneePitch: " + legAngles[2]));
 
-            legAngles = LegIK(srRefInv, hipRight, footRight, UL_len, LL_len);
-            nao.RHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
-            nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
-            nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
-            */
+            //legAngles = LegIK(srRefInv, hipRight, footRight, UL_len, LL_len);
+            //nao.RHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
+            //nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
+            //nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
+
             // END IK DEBUG
         }
-
-        //bool rhand, lhand;
-        //Vector3 R1b, R2b, R3b;
-        //Matrix R1, R2;
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
         {
@@ -269,7 +267,26 @@ namespace KinectViewer
             //debugReferenceFrame(eyaw.ToString(), eRef, 3, elbowRight);
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
         }
-        
+
+        //inputs: [h]ip, [k]nee, [f]oot
+        public double[] calculateLegAngles(Matrix BodyTxform, Vector3 h, Vector3 k, Vector3 f)
+        {
+            Vector3 UL = k - h;
+
+            Vector3 UL_tx = Vector3.Transform(UL, BodyTxform);
+
+            double hiproll = Math.Atan2(UL_tx.Y, UL_tx.X);
+
+            double hippitch = Math.Atan2(UL_tx.Y, UL_tx.Z);
+
+            double kneepitch = Math.Acos(Vector3.Dot((f - k), (h - k))/ ((f - k).Length() * (h - k).Length()));
+
+            double[] angles = new double[3];
+
+            angles[0] = hippitch; angles[1] = hiproll; angles[2] = kneepitch;
+
+            return angles;
+        }
 
         public Vector toNuiVec(Vector3 vec)
         {
@@ -296,6 +313,8 @@ namespace KinectViewer
             Vector3 hip_to_foot = foot - hip;
             // txform to torso space
             Vector3 hip_to_foot_tx = Vector3.Transform(hip_to_foot, BodyTxform);
+            lines.Add(new LabelledVector(new Vector3(0, 0, 0), hip_to_foot_tx, Color.Black, "HF_tx"));
+
             // project onto XY plane in torso space
             double hiproll = -Math.Atan2(hip_to_foot_tx.Y, hip_to_foot_tx.X) - Math.PI;
 
