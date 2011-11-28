@@ -18,13 +18,14 @@ class MotionRecord
 
     public void TakeAngleSample(NaoBody nao, int limit = -1)
     {
-        Type typ = nao.values[0].GetType();
+        Type typ = nao.jointToAngle["LShoulderPitch"].GetType();
         if (typ == typeof(float))
         {
-            double[] sample = new double[nao.values.Count];
+            double[] sample = new double[nao.jointToAngle.Count];
+            var values = nao.jointToAngle.Values.ToList();
             for (int i = 0; i < sample.Count(); i++)
             {
-                sample[i] = (double)(float)nao.values[i];
+                sample[i] = (double)(float)values[i];
             }
             AddSample(sample, limit);
         }

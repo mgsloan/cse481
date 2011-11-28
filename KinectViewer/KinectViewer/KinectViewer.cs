@@ -15,12 +15,13 @@ namespace KinectViewer
 {
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
-        protected NaoBody nao = new NaoBody();
+        protected NaoBody nao;
+        protected NaoSimulator sim;
         protected NaoSpeech naoSpeech = new NaoSpeech();
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
         protected SpeechRecognition sr = new SpeechRecognition();
-
+        const string IP = "127.0.0.1"; 
         protected SoundController sc = new SoundController();
 
         bool trap_mouse = true;
@@ -92,10 +93,12 @@ namespace KinectViewer
                 MaxDeviationRadius = 0.05f
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
-            
+            nao = new NaoBody();
             //naoSpeech.Connect("128.208.4.225");
-            nao.Connect("127.0.0.1");
+            nao.Connect(IP);
             //nao.Connect("128.208.4.225");
+            sim = new NaoSimulator(IP);
+            
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -168,20 +171,20 @@ namespace KinectViewer
                 Console.WriteLine("cur_right: " + cur_right.Y);
                 if (cur_left.Y - cur_right.Y > .3)
                 {
-                    Console.WriteLine("your left foot is up");
+                    //Console.WriteLine("your left foot is up");
                 }
                 else if (cur_left.Y- cur_right.Y < -.3)
                 {
-                    Console.WriteLine("your right foot is up");
+                    //Console.WriteLine("your right foot is up");
                 }
                 else
                 {
-                    Console.WriteLine("both of your feet are on the ground");
+                    //Console.WriteLine("both of your feet are on the ground");
                 }
             }
             else
             {
-                Console.WriteLine("Feet are not tracked");
+                //Console.WriteLine("Feet are not tracked");
             }
 
         }
@@ -243,20 +246,30 @@ namespace KinectViewer
                 nao.Balance(foot, lines);
                 if (foot == 2)
                 {
-                    nao.RKUpdatePitch(0.5f);
-                    nao.RHUpdatePitch(-0.5f);
-                    nao.LHUpdateRoll(0.73f);
-                    nao.LHUpdatePitch(-0.5f);
+                    nao.UpdateAngle("RKneePitch", .5f);
+                    nao.UpdateAngle("RHipPitch", -.5f);
+                    nao.UpdateAngle("LHipRoll", .73f);
+                    nao.UpdateAngle("LHipPitch", -.5f);
+                    
+                    //nao.RKUpdatePitch(0.5f);
+                    //nao.RHUpdatePitch(-0.5f);
+                    //nao.LHUpdateRoll(0.73f);
+                    //nao.LHUpdatePitch(-0.5f);
                     nao.GetRightFoot().FootLines(lines);
                 }
                 else
                 {
                     float ang = 0.2f;
                     //float ang = (float)Math.Sin(frame / 10) * 0.2f + 0.2f;
-                    nao.LKUpdatePitch(ang);
-                    nao.LHUpdatePitch(-ang);
-                    nao.RHUpdateRoll(-0.73f);
-                    nao.RHUpdatePitch(-0.5f);
+                    nao.UpdateAngle("LKneePitch", ang);
+                    nao.UpdateAngle("LHipPitch", -ang);
+                    nao.UpdateAngle("RHipRoll", -.73f);
+                    nao.UpdateAngle("RHipPitch", -.5f);
+                    
+                    //nao.LKUpdatePitch(ang);
+                    //nao.LHUpdatePitch(-ang);
+                    //nao.RHUpdateRoll(-0.73f);
+                    //nao.RHUpdatePitch(-0.5f);
                     nao.GetLeftFoot().FootLines(lines);
                 }
                 nao.RSSend();
@@ -299,6 +312,20 @@ namespace KinectViewer
 
         private void drawRobot()
         {
+            var robot = sim.getRobot();
+            foreach (JointNode joint in robot) 
+            {
+                if (joint.name == "RKneePitch")
+                {
+                    debugReferenceFrame(joint.name, Matrix.CreateTranslation(joint.position), 3.0f);
+                }
+                drawPrimitive(BodySphere, joint.position, Color.White);
+            }
+
+
+            
+            
+            
             drawPrimitive(COMsphere, nao.GetCOM(), Color.Green);
             //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
             foreach (String part in nao.parts) {

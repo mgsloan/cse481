@@ -132,7 +132,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="JointNode.cs" />
     <Compile Include="MotionRecord.cs" />
+    <Compile Include="NaoSimulator.cs" />
     <Compile Include="NaoFoot.cs" />
     <Compile Include="NaoProxy.cs" />
     <Compile Include="NaoPos.cs" />
