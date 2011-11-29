@@ -85,7 +85,6 @@ namespace KinectViewer
            
             //initialize the positions of the robot.
             InitializePositions(Robot, proxy);
-            ComputeLocalMatrix(Robot);
                       
         }
 
@@ -106,36 +105,22 @@ namespace KinectViewer
         {
             foreach (JointNode chain in chains) {
                 JointNode cur = chain.next;
+                Matrix prev = Matrix.Identity;
                 while (cur != null) {
-                    cur.localPosition = new NaoPos(proxy.getPosition(cur.name, 0, false)).transform;
-                    cur.torsoSpacePosition = cur.localPosition;
+                    // local position is set to the initial orientation
+                    cur.torsoSpacePosition = new NaoPos(proxy.getPosition(cur.name, 0, false)).transform;
+                    var temp = cur.torsoSpacePosition;
+                    cur.localPosition = Matrix.Multiply(Matrix.Invert(prev), cur.torsoSpacePosition);
                     cur.mass = proxy.getMass(cur.name);
                     if (cur.name != "Torso") cur.initialAngle = proxy.getAngles(cur.name, false)[0];
                     cur.com = VectorFromList(proxy.getCOM(cur.name, 0, false));
                     cur = cur.next;
+                    prev = temp;
                 }
       
             }
         }   
         
-        private void ComputeLocalMatrix(LinkedList<JointNode> chains) 
-        {
-            Matrix prev = Matrix.Identity;
-            foreach (JointNode chain in chains)
-            {
-                JointNode cur = chain.next;
-                while (cur != null)
-                {
-                    var temp = cur.localPosition;
-                    cur.localPosition = Matrix.Multiply(cur.torsoSpacePosition, Matrix.Invert(prev));
-                    cur = cur.next;
-                    prev = temp;
-                }
-                prev = Matrix.Identity;
-            }
-        }
-
-
         public void UpdatePositions(Dictionary<string, float> angles)
         {
             //iterate through the chains 
