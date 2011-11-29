@@ -15,7 +15,7 @@ namespace KinectViewer
         public Matrix localPosition { get; set; }
         public Vector3 com { get; set; }
         public float initialAngle { get; set; }
-        public Matrix torsoSpacePosition { get; set; }
+        public Matrix torsoSpacePosition;
         
 
         public JointNode(string name, Vector3 orientation)

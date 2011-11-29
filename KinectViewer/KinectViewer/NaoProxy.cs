@@ -74,7 +74,7 @@ namespace KinectViewer
                 PollFoot(leftFoot, "L");
                 //rightFoot.updateFoot(COM);
                 //leftFoot.updateFoot(COM);
-            }
+            }   
 
             lock (objLock)
             {
