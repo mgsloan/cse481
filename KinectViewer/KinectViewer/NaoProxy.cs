@@ -215,15 +215,16 @@ namespace KinectViewer
         {
             lock (objLock)
             {
-                List<float> pitch1 = _motion.getAngles("LAnkleRoll", false);
-                List<float> pitch2 = _motion.getAngles("LAnkleRoll", true);
                 return (float)_memory.getData("Device/SubDeviceList/" + data + "/Position/Sensor/Value");
             }
         }
 
         public Vector3 GetPos(string part)
         {
-            return VectorFromList(_motion.getPosition(part, 0, false));
+            lock (objLock)
+            {
+                return VectorFromList(_motion.getPosition(part, 0, false));
+            }
         }
 
         public void positionInterpolation(string effector, int space, object path, int axisMask, object time, bool isAblosute)

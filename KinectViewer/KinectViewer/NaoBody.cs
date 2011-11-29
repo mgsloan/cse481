@@ -434,6 +434,9 @@ namespace KinectViewer
             //**********************************************************
             // TODO: determine which foot(feet) the robot is standing on
             //**********************************************************
+            float leftDiff = footProj.Item1.Z - leftFootPos.Z;
+            float rightDiff = footProj.Item2.Z - rightFootPos.Z;
+
 
             // Rotate Egoal so COM is within support polygon
             Tuple<Vector3, Vector3> EgoalNew = RotateEgoal(Egoal, footProj, offset, 2, COM);
@@ -449,7 +452,7 @@ namespace KinectViewer
             {
                 // move feet and ankles
                 footIK(footProjNew, leftFootPos, rightFootPos);
-                RotateAnkles(EgoalNew);
+                //RotateAnkles(EgoalNew);
             }
         }
 
@@ -654,7 +657,7 @@ namespace KinectViewer
 
             Vector3 normalLeftAnkleRoll = new Vector3(0, 0, LAnkleRoll);
             float d2 = Vector3.Dot(normalLeftAnkleRoll, EgoalNorm) / (normalLeftAnkleRoll.Length() * EgoalNorm.Length());
-            float LAnkleRollNew = (float)Math.Acos(-d2);
+            float LAnkleRollNew = (float)Math.Acos(d2);
 
             // right ankle calculations
             float RAnklePitch = proxy.GetData("RAnklePitch");
@@ -669,7 +672,7 @@ namespace KinectViewer
 
             Vector3 normalRightAnkleRoll = new Vector3(0, 0, RAnkleRoll);
             float d2_r = Vector3.Dot(normalRightAnkleRoll, EgoalNorm) / (normalRightAnkleRoll.Length() * EgoalNorm.Length());
-            float RAnkleRollNew = (float)Math.Acos(-d2_r);
+            float RAnkleRollNew = (float)Math.Acos(d2_r);
 
             // set up own SetAngles call
             ArrayList joints = new ArrayList(new String[] {
@@ -678,9 +681,9 @@ namespace KinectViewer
                 "LAnklePitch",
                 "LAnkleRoll" });
 
-            double larn2 = (double)(LAnkleRoll + LAnkleRollNew) % Math.PI;
+            double larn2 = (double)(LAnkleRoll + LAnkleRollNew - Math.PI) % Math.PI;
             double lapn2 = (double)(LAnklePitch + LAnklePitchNew) % Math.PI; 
-            double rarn2 = (double)(RAnkleRoll + RAnkleRollNew) % Math.PI;
+            double rarn2 = (double)(RAnkleRoll + RAnkleRollNew - Math.PI) % Math.PI;
             double rapn2 = (double)(RAnklePitch + RAnklePitchNew) % Math.PI;
 
             ArrayList angles = new ArrayList(new float[] {
@@ -688,6 +691,10 @@ namespace KinectViewer
                 RAnkleRoll - RAnkleRollNew,
                 LAnklePitch + LAnklePitchNew,
                 LAnkleRoll - LAnkleRollNew });
+            angles[0] = RAnklePitchNew;
+            angles[1] = RAnkleRollNew;
+            angles[2] = LAnklePitchNew;
+            angles[3] = LAnkleRollNew;
 
             proxy.SetAngles(joints, angles, speed);
         }
