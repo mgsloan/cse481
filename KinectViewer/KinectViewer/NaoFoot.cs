@@ -72,19 +72,30 @@ namespace KinectViewer
             Plane footPlane = new Plane(fr, fl, rr);
             Vector3 planeNormal = footPlane.Normal;
 
-            Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
+            // BEST PROJECTION FOUND
+            float COMoffset = Vector3.Dot((fl - COM), planeNormal) / (Vector3.Dot(planeNormal, planeNormal));
+            Vector3 COMPROJ = COMoffset * planeNormal + COM;
+            // TEST PROJECTION
+            float zero = Vector3.Dot((COMPROJ - fl), planeNormal);
+
+            // ORIGINAL PROJECTION
+            //A || B = B x (A x B) / |B|^2 
+            //Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
+            // test projection
+            //float shouldbezero = Vector3.Dot((COMproj - fr), planeNormal);
 
             //(AB x AC)/|AB|
             // AB = leftSide, rightSide
             // A = rl, rr
-            Vector3 tempL = Vector3.Subtract(COMproj, rl);
-            Vector3 tempR = Vector3.Subtract(COMproj, rr);
+            Vector3 tempL = Vector3.Subtract(COMPROJ, rl);
+            Vector3 tempR = Vector3.Subtract(COMPROJ, rr);
 
+            // use sine to get the distance from COMproj to the foot edges
             double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
             double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
 
-            float d1 = Vector3.Distance(leftSide, COMproj);
-            float d2 = Vector3.Distance(rightSide, COMproj);
+            //float d1 = Vector3.Distance(leftSide, COMPROJ);
+            //float d2 = Vector3.Distance(rightSide, COMPROJ);
 
             double rise = (fl.Y - fr.Y);
             double run = (fl.X - fr.X);
