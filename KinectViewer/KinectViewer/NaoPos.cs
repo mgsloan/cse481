@@ -27,6 +27,12 @@ namespace KinectViewer
             transform = Matrix.Multiply(transform, trans);
         }
 
+        public NaoPos(Vector3 fs) 
+        {
+            position = Convert(fs, 15f);
+            transform = Matrix.Identity;
+        }
+
         public LabelledVector DebugLine(float size, Color c, String txt) {
             return DebugLine(size, c, txt, Vector3.UnitY);
         }

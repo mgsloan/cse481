@@ -21,34 +21,37 @@ namespace KinectViewer
 
         private float speed = 0.2f;
 
-        public ArrayList joints, values, limits, parts;
+        public ArrayList parts;
+        public Dictionary<string, float> jointToAngle;
+        public Dictionary<string, ArrayList> limits;
         private NaoProxy proxy;
 
         public void Connect(string ip)
         {
-            values = new ArrayList();
-            limits = new ArrayList();
+            jointToAngle = new Dictionary<string, float>();
+            limits = new Dictionary<string, ArrayList>();
 
-            joints = new ArrayList(new String[] {
-                "RShoulderPitch",
-                "RShoulderRoll",
-                "RElbowRoll",
-                "RElbowYaw",
-                "LShoulderPitch",
-                "LShoulderRoll",
-                "LElbowRoll",
-                "LElbowYaw",
-                "RHipRoll",
-                "RHipPitch",
-                "RKneePitch",
-                "RAnklePitch",
-                "RAnkleRoll",
-                "LHipRoll",
-                "LHipPitch",
-                "LKneePitch",
-                "LAnklePitch",
-                "LAnkleRoll" });
+            jointToAngle.Add("RShoulderPitch", 0);
+            jointToAngle.Add("RShoulderRoll", 0);
+            jointToAngle.Add("RElbowRoll", 0);
+            jointToAngle.Add("RElbowYaw", 0);
+            jointToAngle.Add("LShoulderPitch",0);
+            jointToAngle.Add("LShoulderRoll", 0);
+            jointToAngle.Add("LElbowRoll", 0);
+            jointToAngle.Add("LElbowYaw", 0);
+            jointToAngle.Add("RHipRoll", 0);
+            jointToAngle.Add("RHipPitch", 0);
+            jointToAngle.Add("RKneePitch", 0);
+            jointToAngle.Add("RAnklePitch", 0);
+            jointToAngle.Add("RAnkleRoll", 0);
+            jointToAngle.Add("LHipRoll", 0);
+            jointToAngle.Add("LHipPitch", 0);
+            jointToAngle.Add("LKneePitch", 0);
+            jointToAngle.Add("LAnklePitch", 0);
+            jointToAngle.Add("LAnkleRoll", 0);
 
+
+           
             parts = new ArrayList(new String[] {
                 "Torso",
                 "RShoulderPitch",
@@ -67,18 +70,17 @@ namespace KinectViewer
                 "LAnklePitch" });
 
 
-            for (int i = 0; i < joints.Count; i++) {
-                values.Add(0.0f);
-            }
+            
 
             try
             {
                 MemoryProxy memory = new MemoryProxy(ip, 9559);
                 MotionProxy motion = new MotionProxy(ip, 9559);
 
-                for (int i = 0; i < joints.Count; i++)
+                foreach (string joint in jointToAngle.Keys)
                 {
-                    limits.Add(((ArrayList) motion.getLimits((string)joints[i]))[0]);
+                   
+                    limits.Add(joint, (ArrayList)motion.getLimits(joint));
                 }
                 // give the joints some stiffness
                 motion.setStiffnesses("Body", 1.0f);
@@ -117,54 +119,87 @@ namespace KinectViewer
         public void RSSend()
         {
             if (proxy == null) return;
-            ArrayList joints2 = (ArrayList)joints.Clone(), values2 = (ArrayList)values.Clone();
-            proxy.SetAngles(joints2, values2, speed);
+            ArrayList joints = new ArrayList();
+            ArrayList values = new ArrayList();
+            foreach (string joint in jointToAngle.Keys)
+            {
+                joints.Add(joint);
+                values.Add(jointToAngle[joint]);
+            }
+            proxy.SetAngles(joints, values, speed);
         }
+
+        public void NaoSimUpdate(NaoSimulator sim)
+        {
+            
+            sim.UpdatePositions(jointToAngle);
+
+        }
+
 
         public void RSSendBlocking()
         {
             if (proxy == null) return;
-            proxy.SetAngles(joints, values, 0.2f);
+            ArrayList joints = new ArrayList();
+            ArrayList values = new ArrayList();
+            foreach (string joint in jointToAngle.Keys)
+            {
+                joints.Add(joint);
+                values.Add(jointToAngle[joint]);
+            }
+            proxy.SetAngles(joints, values, .2f);
             //_motion.wait(id, 10000);
             System.Threading.Thread.Sleep(3000);
         }
 
-        public void SetJoint(int ix, float val) { SetJoint(ix, val, 0); }
+        //public void SetJoint(string jointName, float val) { SetJoint(jointName, val, 0); }
 
-        public void SetJoint(int ix, float val, float smooth)
+        public void SetJoint(string jointName, float val, float smooth)
         {
-            float prior = (float)values[ix];
+            float prior = (float)jointToAngle[jointName];
+            
             if (float.IsNaN(prior)) prior = 0;
-            values[ix] = limits.Count <= ix
-                       ? val
-                       : ClampToRange(val, (float)((ArrayList)limits[ix])[0], (float)((ArrayList)limits[ix])[1]);
+                ArrayList limit = (ArrayList) limits[jointName][0];
+                jointToAngle[jointName] = ClampToRange(val, (float) limit[0], (float) limit[1]);
+               
             if (smooth != 0)
             {
-                values[ix] = prior * smooth + (float)values[ix] * (1 - smooth);
+                jointToAngle[jointName] = prior * smooth + (float)jointToAngle[jointName] * (1 - smooth);
                 //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
             }
         }
 
-        public void RSUpdatePitch(float val) { SetJoint(0, val);  }
-        public void RSUpdateRoll (float val) { SetJoint(1, val);  }
-        public void REUpdateYaw  (float val) { SetJoint(3, val);  }
-        public void REUpdateRoll (float val) { SetJoint(2, val);  }
-        public void LSUpdatePitch(float val) { SetJoint(4, val);  }
-        public void LSUpdateRoll (float val) { SetJoint(5, val);  }
-        public void LEUpdateYaw  (float val) { SetJoint(7, val);  }
-        public void LEUpdateRoll (float val) { SetJoint(6, val);  }
+        public void UpdateAngle(string jointName, float val, float smooth) 
+        {
+            SetJoint(jointName, val, smooth);
+        }
 
-        public void RHUpdateRoll (float val) { SetJoint(8, val);  }
-        public void RHUpdatePitch(float val) { SetJoint(9, val);  }
-        public void RKUpdatePitch(float val) { SetJoint(10, val); }
-        public void RAUpdatePitch(float val) { SetJoint(11, val, 0.5f); }
-        public void RAUpdateRoll (float val) { SetJoint(12, val, 0.5f); }
+        public void UpdateAngle(string jointName, float val)
+        {
+           UpdateAngle(jointName, val, 0);
+        }
+        
 
-        public void LHUpdateRoll (float val) { SetJoint(13, val); }
-        public void LHUpdatePitch(float val) { SetJoint(14, val); }
-        public void LKUpdatePitch(float val) { SetJoint(15, val); }
-        public void LAUpdatePitch(float val) { SetJoint(16, val, 0.5f); }
-        public void LAUpdateRoll (float val) { SetJoint(17, val, 0.5f); }
+        //public void RSUpdatePitch(float val) { SetJoint(0, val);  }
+        //public void RSUpdateRoll (float val) { SetJoint(1, val);  }
+        //public void REUpdateYaw  (float val) { SetJoint(3, val);  }
+        //public void REUpdateRoll (float val) { SetJoint(2, val);  }
+        //public void LSUpdatePitch(float val) { SetJoint(4, val);  }
+        //public void LSUpdateRoll (float val) { SetJoint(5, val);  }
+        //public void LEUpdateYaw  (float val) { SetJoint(7, val);  }
+        //public void LEUpdateRoll (float val) { SetJoint(6, val);  }
+
+        //public void RHUpdateRoll (float val) { SetJoint(8, val);  }
+        //public void RHUpdatePitch(float val) { SetJoint(9, val);  }
+        //public void RKUpdatePitch(float val) { SetJoint(10, val); }
+        //public void RAUpdatePitch(float val) { SetJoint(11, val, 0.5f); }
+        //public void RAUpdateRoll (float val) { SetJoint(12, val, 0.5f); }
+
+        //public void LHUpdateRoll (float val) { SetJoint(13, val); }
+        //public void LHUpdatePitch(float val) { SetJoint(14, val); }
+        //public void LKUpdatePitch(float val) { SetJoint(15, val); }
+        //public void LAUpdatePitch(float val) { SetJoint(16, val, 0.5f); }
+        //public void LAUpdateRoll (float val) { SetJoint(17, val, 0.5f); }
 
         public static float Clamp(float f, float t, float v) {
             return Math.Max(f, Math.Min(t, v));
@@ -222,7 +257,9 @@ namespace KinectViewer
 
         public void RAUpdate(float pitch, float roll) {
             float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
-            RAUpdatePitch(pitch2); RAUpdateRoll(-NearestFeasibleRoll(pitch2, -roll));
+            //RAUpdatePitch(pitch2); RAUpdateRoll(-NearestFeasibleRoll(pitch2, -roll));
+            UpdateAngle("RAnklePitch", pitch2);
+            UpdateAngle("RAnkleRoll", -NearestFeasibleRoll(pitch2, -roll));
         }
 
         public void LAUpdate(float pitch, float roll) {
@@ -230,7 +267,9 @@ namespace KinectViewer
             float roll2 = NearestFeasibleRoll(pitch2, roll);
             //Console.WriteLine("pitch = " + pitch2.ToString());
             //Console.WriteLine("roll = " + roll2.ToString());
-            LAUpdatePitch(pitch2); LAUpdateRoll(roll2);
+            UpdateAngle("LAnklePitch", pitch2);
+            UpdateAngle("LAnkleRoll", roll2);
+            //LAUpdatePitch(pitch2); LAUpdateRoll(roll2);
         }
 
         /*
