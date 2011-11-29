@@ -10,14 +10,25 @@ namespace KinectViewer
     {
         public string name { get; set; }
         public double mass { get; set; }
-        public Vector3 position { get; set; }
+        public Vector3 orientation { get; set; }
+        public JointNode next { get; set; }
+        public Matrix localPosition { get; set; }
+        public Vector3 com { get; set; }
+        public float initialAngle { get; set; }
+        public Matrix torsoSpacePosition { get; set; }
+        
 
-        public JointNode(string name, double mass)
+        public JointNode(string name, Vector3 orientation)
         {
+            this.orientation = orientation;
             this.name = name;
-            this.mass = mass;
+            this.next = null;
         }
 
+        public JointNode()
+        {
+
+        }
         
 
 

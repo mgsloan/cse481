@@ -313,18 +313,19 @@ namespace KinectViewer
         private void drawRobot()
         {
             var robot = sim.getRobot();
-            foreach (JointNode joint in robot) 
+            foreach (JointNode chain in robot)
             {
-                if (joint.name == "RKneePitch")
+                JointNode cur = chain.next;
+                while (cur != null)
                 {
-                    debugReferenceFrame(joint.name, Matrix.CreateTranslation(joint.position), 3.0f);
+                    drawPrimitive(BodySphere, cur.torsoSpacePosition.Translation, Color.White);
+                    if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll") debugReferenceFrame(cur.name, cur.torsoSpacePosition, 3.0f);
+                    cur = cur.next;
                 }
-                drawPrimitive(BodySphere, joint.position, Color.White);
+
             }
 
-
-            
-            
+           
             
             drawPrimitive(COMsphere, nao.GetCOM(), Color.Green);
             //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);

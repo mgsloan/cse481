@@ -20,11 +20,10 @@ namespace KinectViewer
             }
         }
 
-        public NaoPos(List<float> fs, Matrix trans)
+        public NaoPos(List<float> fs)
         {
             transform = ConvertRotation(fs[3], fs[4], fs[5]);
             position = Convert(new Vector3(fs[0], fs[1], fs[2]));
-            transform = Matrix.Multiply(transform, trans);
         }
 
         public NaoPos(Vector3 fs) 
