@@ -74,7 +74,7 @@ namespace KinectViewer
                 PollFoot(leftFoot, "L");
                 //rightFoot.updateFoot(COM);
                 //leftFoot.updateFoot(COM);
-            }
+            }   
 
             lock (objLock)
             {
@@ -98,7 +98,7 @@ namespace KinectViewer
         // not thread safe - lock before calling this
         private NaoPos PollPosition(string part)
         {
-            return new NaoPos(_motion.getPosition(part, 0, false), Matrix.Identity);
+            return new NaoPos(_motion.getPosition(part, 0, false));
         }
 
         // setter methods for motion

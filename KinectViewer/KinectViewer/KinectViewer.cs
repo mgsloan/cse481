@@ -33,6 +33,7 @@ namespace KinectViewer
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
+        SpherePrimitive RobotSimSphere;
         SampleGrid grid;
         SampleGrid grid2;
         Vector3 leftFootInitial;
@@ -59,6 +60,7 @@ namespace KinectViewer
 
             COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
             BodySphere = new SpherePrimitive(GraphicsDevice, 0.4f, 8);
+            RobotSimSphere = new SpherePrimitive(GraphicsDevice, 0.6f, 8);
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();
 
@@ -141,7 +143,7 @@ namespace KinectViewer
                 //}
 
                 updateSkeleton(skeleton);
-                float offset = nao.computeOffsetParam();
+                //float offset = nao.computeOffsetParam();
                 //Console.WriteLine("offset: " + offset);
             }
             else
@@ -313,21 +315,28 @@ namespace KinectViewer
         private void drawRobot()
         {
             var robot = sim.getRobot();
-            foreach (JointNode joint in robot) 
+
+            foreach (JointNode chain in robot)
             {
-                if (joint.name == "RKneePitch")
+                JointNode cur = chain.next;
+                while (cur != null)
                 {
-                    debugReferenceFrame(joint.name, Matrix.CreateTranslation(joint.position), 3.0f);
+                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation)), viewMatrix, projection, Color.Red);
+                    //drawPrimitive(RobotSimSphere, cur.torsoSpacePosition.Translation, Color.White);
+                    //if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll") 
+                        //debugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
+                    float sc = (float)cur.mass * 2;
+                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(sc, sc * 2, sc), Matrix.Multiply(Matrix.CreateTranslation(cur.com), cur.torsoSpacePosition)),
+                                            viewMatrix, projection, Color.White);
+                    cur = cur.next;
                 }
-                drawPrimitive(BodySphere, joint.position, Color.White);
             }
 
-
+           
             
-            
-            
-            drawPrimitive(COMsphere, nao.GetCOM(), Color.Green);
+            drawPrimitive(COMsphere, sim.getCOM(), Color.Green);
             //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
+            /*
             foreach (String part in nao.parts) {
                 NaoPos p = nao.GetPosition(part);
                 //lines.Add(p.DebugLine(3.0f, Color.Black, ""));
@@ -335,6 +344,7 @@ namespace KinectViewer
                     debugReferenceFrame("", p.transform, 3.0f);
                 drawPrimitive(BodySphere, p.position, Color.Blue);
             }
+             */
         }
 
         public void drawPrimitive(GeometricPrimitive p, Vector3 pos, Color c)

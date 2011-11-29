@@ -134,9 +134,9 @@ namespace KinectViewer
             //float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? (Math.PI / 2)
             //            : Math.Atan2(-elocal.Y, -elocal.Z));
             float pitch;
-            if (Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2)) < .5) 
-                pitch = 0;
-            else 
+            //if (Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2)) < .5) 
+            //    pitch = 0;
+            //else 
                 pitch = (float) Math.Atan2(-elocal.Y, -elocal.Z);
 
             //Console.WriteLine("UA_PITCH: " + pitch);
