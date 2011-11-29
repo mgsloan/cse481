@@ -62,7 +62,9 @@ namespace KinectViewer
                 "LKneePitch",
                 "RKneePitch",
                 "LAnklePitch",
+                "LAnkleRoll",
                 "RAnklePitch",
+                "RAnkleRoll",
                 "LHipPitch",
                 "RHipPitch",
                 "LAnklePitch" });
@@ -405,17 +407,54 @@ namespace KinectViewer
             }
         }
 
-        public float computeOffsetParam()
+        public void doEveryting()
         {
+            // Get foot objects
             NaoFoot leftFoot = proxy.getLeftFoot();
             NaoFoot rightFoot = proxy.getRightFoot();
-            leftFoot.updateFoot(GetCOM());
-            rightFoot.updateFoot(GetCOM());
+
+            // Get foot and COM locations
+            Vector3 leftFootPos = proxy.GetPos("LAnkleRoll");
+            Vector3 rightFootPos = proxy.GetPos("RAnkleRoll");
+            Vector3 COM = proxy.GetCOM();
+
+            // Update feet for offset calculations
+            updateFoot(leftFoot, COM);
+            updateFoot(rightFoot, COM);
+
+            // Obtain the offset parameter
             float offsetL = leftFoot.GetOffset();
             float offsetR = rightFoot.GetOffset();
-            return OffsetParameter(offsetL, offsetR);
+            float offset = OffsetParameter(offsetL, offsetR);
+
+            // Get Egoal, project feet onto Egoal plane
+            Tuple<Vector3,Vector3> Egoal = GetEgoal(offset, leftFootPos, rightFootPos);
+            Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, leftFootPos, rightFootPos);
+
+            //**********************************************************
+            // TODO: determine which foot(feet) the robot is standing on
+            //**********************************************************
+
+            // Rotate Egoal so COM is within support polygon
+            Tuple<Vector3, Vector3> EgoalNew = RotateEgoal(Egoal, footProj, offset, 2, COM);
+            
+            // reproject feet onto rotated EgoalNew to get the final foot positions
+            Tuple<Vector3, Vector3> footProjNew = GetFootProj2(EgoalNew, leftFootPos, rightFootPos);
+
+            // determine if feet actually need to be moved
+            float leftlength = Vector3.Subtract(footProjNew.Item1, leftFootPos).Length();
+            float rightlength = Vector3.Subtract(footProjNew.Item2, rightFootPos).Length();
+
+            if ((leftlength > 0.005) || (rightlength > 0.005))
+            {
+                // move feet and ankles
+                footIK(footProjNew, leftFootPos, rightFootPos);
+                RotateAnkles(EgoalNew);
+            }
         }
 
+        // Calculate offset
+        // From paper Algorithm 6.2
         public float OffsetParameter(float offsetL, float offsetR)
         {
             if (offsetL < offsetR)
@@ -430,6 +469,227 @@ namespace KinectViewer
             {
                 return 0.5f;
             }
+        }
+
+        /* moved into foot class--NOT-- NEEDS INTIGRATION WORK */
+        // Calculate innerEdge and outerEdge for given foot
+        // From paper section 6.2.1
+        public void updateFoot(NaoFoot foot, Vector3 com)
+        {
+            Vector3 fr = proxy.GetPos(foot.name + "FsrFR"),
+                    rr = proxy.GetPos(foot.name + "FsrRR"),
+                    fl = proxy.GetPos(foot.name + "FsrFL"),
+                    rl = proxy.GetPos(foot.name + "FsrRL");
+ 
+            Vector3 leftSide = Vector3.Subtract(fl, rl);
+            Vector3 rightSide = Vector3.Subtract(fr, rr);
+
+            Vector3 COM = com; // proxy.GetCOM();
+
+            Plane footPlane = new Plane(fr, fl, rr);
+            Vector3 planeNormal = footPlane.Normal;
+
+            // BEST PROJECTION FOUND
+            float COMoffset = Vector3.Dot((fl - COM), planeNormal) / (Vector3.Dot(planeNormal, planeNormal));
+            Vector3 COMPROJ = COMoffset * planeNormal + COM;
+            // TEST PROJECTION
+            float zero = Vector3.Dot((COMPROJ - fl), planeNormal);
+
+
+            // ORIGINAL PROJECTION
+            //A || B = B x (A x B) / |B|^2 
+            //Vector3 COMproj = Vector3.Cross(planeNormal, (Vector3.Cross(COM, planeNormal))) / (planeNormal.LengthSquared());
+
+            //(AB x AC)/|AB|
+            // AB = leftSide, rightSide
+            // A = rl, rr
+            Vector3 tempL = Vector3.Subtract(COMPROJ, rl);
+            Vector3 tempR = Vector3.Subtract(COMPROJ, rr);
+
+            // use sine to get the distance from COMproj to the foot edges
+            double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
+            double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
+
+
+            float width = Vector3.Distance(fr, fl);
+
+            //if (distance1 < distance2)
+            if (foot.name == "R")
+            {
+                foot.innerEdge = (float) distance1;
+                foot.outerEdge = (float) distance2;
+            }
+            else
+            {
+                foot.innerEdge = (float) distance2;
+                foot.outerEdge = (float) distance1;
+            }
+            foot.width = width;
+        }
+
+        // Calculates the goal plane
+        // Equations from paper section 6.2.2
+        public Tuple<Vector3,Vector3> GetEgoal(float offset, Vector3 leftFootPos, Vector3 rightFootPos)
+        {
+            Vector3 LARpos = leftFootPos; // proxy.GetPos("LAnkleRoll");
+            Vector3 RARpos = rightFootPos; // proxy.GetPos("RAnkleRoll");
+
+            float LankleRoll = proxy.GetData("LAnkleRoll");
+            float RankleRoll = proxy.GetData("RAnkleRoll");
+
+            float Rgoal = ((1 - offset) * LankleRoll + (offset * RankleRoll)) / 2;
+            Vector3 normal = new Vector3(0, 0, Rgoal);
+            Vector3 position = LARpos + offset*(RARpos - LARpos);
+
+            return new Tuple<Vector3, Vector3>(normal, position);
+        }
+
+        // Vertical projection of feet onto Egoal plane
+        public Tuple<Vector3, Vector3> GetFootProj(Tuple<Vector3, Vector3> Egoal, Vector3 leftFootPos, Vector3 rightFootPos)
+        {
+            // TODO : what position do I need to use for this projection?
+            // switch to use average position from foot sensors???????????
+            Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
+            Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
+
+            // Vertical projection onto plane
+            // SHOULD I DO AN ACTUAL PROJECTION HERE?????????????????
+            Vector3 planePos = Egoal.Item2;
+            Vector3 leftFootProj, rightFootProj;
+            leftFootProj.X = leftFoot.X; leftFootProj.Y = leftFoot.Y; leftFootProj.Z = planePos.Z;
+            rightFootProj.X = rightFoot.X; rightFootProj.Y = rightFoot.Y; rightFootProj.Z = planePos.Z;
+
+            return new Tuple<Vector3, Vector3>(leftFootProj, rightFootProj);
+        }
+
+        // rotate Egoal plane so that robot COM is over the support polygon
+        // equations from paper section 6.3
+        public Tuple<Vector3, Vector3> RotateEgoal(Tuple<Vector3, Vector3> Egoal, Tuple<Vector3, Vector3> footProj, float offset, int support, Vector3 com)
+        {
+            Vector3 COMgoalProj;
+            Vector3 COM = com; // proxy.GetCOM();
+
+            if (support == 0)           // left foot - position vector center of left foot -- -- -- -- -- -- -- -- should this be the bottom of the foot?
+            {
+                COMgoalProj = footProj.Item1;
+            }
+            else if (support == 1)      // right foot - position vector center of right foot
+            {
+                COMgoalProj = footProj.Item2;
+            }
+            else                        // both feet
+            {       
+                COMgoalProj = footProj.Item1 + offset * (footProj.Item2 - footProj.Item1);
+            }
+
+            Vector3 normal = COM - COMgoalProj;
+
+            return new Tuple<Vector3, Vector3>(normal, COMgoalProj);
+        }
+
+        // Project the feet onto the rotated Egoal plane
+        public Tuple<Vector3, Vector3> GetFootProj2(Tuple<Vector3, Vector3> plane, Vector3 leftFootPos, Vector3 rightFootPos)
+        {
+            Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
+            Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
+
+            Vector3 normal = plane.Item1;
+            Vector3 position = plane.Item2;
+
+            // Project left foot onto rotated goal plane
+            float leftOffset = Vector3.Dot((position - leftFoot), normal) / (Vector3.Dot(normal, normal));
+            Vector3 leftProj = leftOffset * normal + leftFoot;
+            // TEST PROJECTION
+            float zero = Vector3.Dot((leftProj - position), normal);
+
+            // Project right foot onto rotated goal plane
+            float rightOffset = Vector3.Dot((position - rightFoot), normal) / (Vector3.Dot(normal, normal));
+            Vector3 rightProj = rightOffset * normal + rightFoot;
+            // TEST PROJECTION
+            float zero2 = Vector3.Dot((rightProj - position), normal);
+
+            return new Tuple<Vector3, Vector3>(leftProj, rightProj);
+        }
+
+        // Move feet to new positions using NAO's positionInterpolation
+        public void footIK(Tuple<Vector3,Vector3> feet, Vector3 leftFootPos, Vector3 rightFootPos)
+        {
+            Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
+            Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
+
+            Vector3 leftFootProj = feet.Item1;
+            Vector3 rightFootProj = feet.Item2;
+            // effector, space, path, axisMask, times, isAbsolute
+
+            string effector1 = "LLeg";
+            string effector2 = "RLeg";
+            int space = 0;                      // torso
+            int axisMask = 7;                   // x, y, z
+            float time = 2.0f;
+            bool isAblosute = false;
+
+            // move the difference between the two points
+            float[] path1 = { leftFootProj.X - leftFoot.X, leftFootProj.Y - leftFoot.Y, leftFootProj.Z - leftFoot.Z, 0.0f, 0.0f, 0.0f };
+            proxy.positionInterpolation(effector1, space, path1, axisMask, time, isAblosute);
+
+            float[] path2 = { rightFootProj.X - rightFoot.X, rightFootProj.Y - rightFoot.Y, rightFootProj.Z - rightFoot.Z, 0.0f, 0.0f, 0.0f };
+            proxy.positionInterpolation(effector2, space, path2, axisMask, time, isAblosute);
+        }
+
+        // Rotate ankles onto Egoal plane - equation from paper section 6.5
+        public void RotateAnkles(Tuple<Vector3, Vector3> Egoal)
+        {
+            Vector3 EgoalNorm = Egoal.Item1;
+
+            // left ankle calculations
+            float LAnklePitch = proxy.GetData("LAnklePitch");
+            float LAnkleRoll = proxy.GetData("LAnkleRoll");
+
+            Vector3 Leftlengthwise = new Vector3(LAnklePitch, 0, 0);
+            Vector3 normalLeftAnklePitch = new Vector3(0, LAnklePitch, 0);
+
+            Vector3 v_h = Vector3.Cross(normalLeftAnklePitch, EgoalNorm);
+            float d = Vector3.Dot(Leftlengthwise, v_h) / (Leftlengthwise.Length() * v_h.Length());
+            float LAnklePitchNew = (float) Math.Acos(d);
+
+            Vector3 normalLeftAnkleRoll = new Vector3(0, 0, LAnkleRoll);
+            float d2 = Vector3.Dot(normalLeftAnkleRoll, EgoalNorm) / (normalLeftAnkleRoll.Length() * EgoalNorm.Length());
+            float LAnkleRollNew = (float)Math.Acos(-d2);
+
+            // right ankle calculations
+            float RAnklePitch = proxy.GetData("RAnklePitch");
+            float RAnkleRoll = proxy.GetData("RAnkleRoll");
+
+            Vector3 Rightlengthwise = new Vector3(RAnklePitch, 0, 0);
+            Vector3 normalRightAnklePitch = new Vector3(0, RAnklePitch, 0);
+
+            Vector3 v_h_r = Vector3.Cross(normalRightAnklePitch, EgoalNorm);
+            float d_r = Vector3.Dot(Rightlengthwise, v_h_r) / (Rightlengthwise.Length() * v_h_r.Length());
+            float RAnklePitchNew = (float)Math.Acos(d_r);
+
+            Vector3 normalRightAnkleRoll = new Vector3(0, 0, RAnkleRoll);
+            float d2_r = Vector3.Dot(normalRightAnkleRoll, EgoalNorm) / (normalRightAnkleRoll.Length() * EgoalNorm.Length());
+            float RAnkleRollNew = (float)Math.Acos(-d2_r);
+
+            // set up own SetAngles call
+            ArrayList joints = new ArrayList(new String[] {
+                "RAnklePitch",
+                "RAnkleRoll",
+                "LAnklePitch",
+                "LAnkleRoll" });
+
+            double larn2 = (double)(LAnkleRoll + LAnkleRollNew) % Math.PI;
+            double lapn2 = (double)(LAnklePitch + LAnklePitchNew) % Math.PI; 
+            double rarn2 = (double)(RAnkleRoll + RAnkleRollNew) % Math.PI;
+            double rapn2 = (double)(RAnklePitch + RAnklePitchNew) % Math.PI;
+
+            ArrayList angles = new ArrayList(new float[] {
+                RAnklePitch + RAnklePitchNew,
+                RAnkleRoll - RAnkleRollNew,
+                LAnklePitch + LAnklePitchNew,
+                LAnkleRoll - LAnkleRollNew });
+
+            proxy.SetAngles(joints, angles, speed);
         }
     }
 }

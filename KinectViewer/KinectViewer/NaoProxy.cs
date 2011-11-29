@@ -72,8 +72,8 @@ namespace KinectViewer
             {
                 PollFoot(rightFoot, "R");
                 PollFoot(leftFoot, "L");
-                rightFoot.updateFoot(COM);
-                leftFoot.updateFoot(COM);
+                //rightFoot.updateFoot(COM);
+                //leftFoot.updateFoot(COM);
             }
 
             lock (objLock)
@@ -209,6 +209,29 @@ namespace KinectViewer
         public static Vector3 VectorFromList(List<float> fs)
         {
             return new Vector3(fs[0], fs[1], fs[2]);
+        }
+
+        public float GetData(string data)
+        {
+            lock (objLock)
+            {
+                List<float> pitch1 = _motion.getAngles("LAnkleRoll", false);
+                List<float> pitch2 = _motion.getAngles("LAnkleRoll", true);
+                return (float)_memory.getData("Device/SubDeviceList/" + data + "/Position/Sensor/Value");
+            }
+        }
+
+        public Vector3 GetPos(string part)
+        {
+            return VectorFromList(_motion.getPosition(part, 0, false));
+        }
+
+        public void positionInterpolation(string effector, int space, object path, int axisMask, object time, bool isAblosute)
+        {
+            lock (objLock)
+            {
+                _motion.positionInterpolation(effector, space, path, axisMask, time, isAblosute);
+            }
         }
     }
 }
