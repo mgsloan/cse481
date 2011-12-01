@@ -10,7 +10,7 @@ namespace KinectViewer
 {
     class NaoSimulator
     {
-        
+        private Dictionary<string, JointNode> jointToNode;
 
         /*setting up the joint nodes for the robot. */
         JointNode LShoulderP; 
@@ -68,6 +68,32 @@ namespace KinectViewer
             Torso = new JointNode("Torso", Vector3.Up);
             HeadYaw = new JointNode("HeadYaw", Vector3.Up);
             HeadPitch = new JointNode("HeadPitch", Vector3.Up);
+
+            jointToNode = new Dictionary<string, JointNode>();
+
+            jointToNode.Add("RShoulderPitch", RShoulderP);
+            jointToNode.Add("RShoulderRoll", RShoulderR);
+            jointToNode.Add("RElbowRoll", RElbowR);
+            jointToNode.Add("RElbowYaw", RElbowY);
+            jointToNode.Add("LShoulderPitch", LShoulderP);
+            jointToNode.Add("LShoulderRoll", LShoulderR);
+            jointToNode.Add("LElbowRoll", LElbowR);
+            jointToNode.Add("LElbowYaw", LElbowY);
+            jointToNode.Add("RHipRoll", RHipRoll);
+            jointToNode.Add("RHipPitch", RHipPitch);
+            jointToNode.Add("RKneePitch", RKneePitch);
+            jointToNode.Add("RAnklePitch", RAnklePitch);
+            jointToNode.Add("RAnkleRoll", RAnkleRoll);
+            jointToNode.Add("LHipRoll", LHipRoll);
+            jointToNode.Add("LHipPitch", LHipPitch);
+            jointToNode.Add("LKneePitch", LKneePitch);
+            jointToNode.Add("LAnklePitch", LAnklePitch);
+            jointToNode.Add("LAnkleRoll", LAnkleRoll);
+            jointToNode.Add("LWristYaw", LWristY);
+            jointToNode.Add("RWristYaw", RWristY);
+            jointToNode.Add("Torso", Torso);
+            jointToNode.Add("HeadYaw", HeadYaw);
+            jointToNode.Add("HeadPitch", HeadPitch);
 
 
             
@@ -155,6 +181,11 @@ namespace KinectViewer
                 prev = Matrix.Identity;
             }
         }
+
+        public Vector3 getPosition(string part)
+        {
+            return jointToNode[part].torsoSpacePosition.Translation;
+        }
             
             
 
@@ -186,7 +217,7 @@ namespace KinectViewer
         
         }
 
-    public static Vector3 VectorFromList(List<float> fs)
+        public static Vector3 VectorFromList(List<float> fs)
         {
             return new Vector3(fs[0], fs[1], fs[2]);
         }

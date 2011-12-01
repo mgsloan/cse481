@@ -67,8 +67,6 @@ namespace KinectViewer
             Vector3 leftSide = Vector3.Subtract(fl, rl);
             Vector3 rightSide = Vector3.Subtract(fr, rr);
 
-            //A || B = B Ã— (A Ã— B) / |B|Â² 
-
             Plane footPlane = new Plane(fr, fl, rr);
             Vector3 planeNormal = footPlane.Normal;
 
@@ -94,16 +92,9 @@ namespace KinectViewer
             double distance1 = Math.Sin(Math.Acos((double)(Vector3.Dot(leftSide, tempL) / (leftSide.Length() * tempL.Length())))) * tempL.Length();
             double distance2 = Math.Sin(Math.Acos((double)(Vector3.Dot(rightSide, tempR) / (rightSide.Length() * tempR.Length())))) * tempR.Length();
 
-            //float d1 = Vector3.Distance(leftSide, COMPROJ);
-            //float d2 = Vector3.Distance(rightSide, COMPROJ);
-
-            double rise = (fl.Y - fr.Y);
-            double run = (fl.X - fr.X);
-            double width2D = Math.Sqrt(rise * rise + run * run);
             float width = Vector3.Distance(fr, fl);
             // width front = 0.053
 
-            //if (distance1 < distance2)
             if (name == "R")
             {
                 innerEdge = (float)distance1;

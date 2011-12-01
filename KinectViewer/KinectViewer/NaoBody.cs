@@ -407,20 +407,28 @@ namespace KinectViewer
             }
         }
 
-        public void doEveryting()
+        public void doEveryting(NaoSimulator sim)
         {
             // Get foot objects
             NaoFoot leftFoot = proxy.getLeftFoot();
             NaoFoot rightFoot = proxy.getRightFoot();
 
             // Get foot and COM locations
-            Vector3 leftFootPos = proxy.GetPos("LAnkleRoll");
-            Vector3 rightFootPos = proxy.GetPos("RAnkleRoll");
-            Vector3 COM = proxy.GetCOM();
+            Vector3 LFPsim = sim.getPosition("LAnkleRoll");
+            Vector3 RFPsim = sim.getPosition("RAnkleRoll");
+            Vector3 LFP = proxy.GetPosition("LAnkleRoll").position;
+            Vector3 RFP = proxy.GetPosition("RAnkleRoll").position;
+            Vector3 COM = NaoPos.Convert(proxy.GetCOM());
+            Vector3 COMsim = sim.getCOM();
+            //Vector3 leftFootPos = proxy.GetPos("LAnkleRoll");
+            //Vector3 rightFootPos = proxy.GetPos("RAnkleRoll");
+            //Vector3 COM2 = proxy.GetCOM();
 
             // Update feet for offset calculations
-            updateFoot(leftFoot, COM);
-            updateFoot(rightFoot, COM);
+            leftFoot.updateFoot(COM);
+            rightFoot.updateFoot(COM);
+            //updateFoot(leftFoot, COM2);
+            //updateFoot(rightFoot, COM2);
 
             // Obtain the offset parameter
             float offsetL = leftFoot.GetOffset();
@@ -428,30 +436,34 @@ namespace KinectViewer
             float offset = OffsetParameter(offsetL, offsetR);
 
             // Get Egoal, project feet onto Egoal plane
-            Tuple<Vector3,Vector3> Egoal = GetEgoal(offset, leftFootPos, rightFootPos);
-            Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, leftFootPos, rightFootPos);
+            Tuple<Vector3, Vector3> Egoal = GetEgoal(offset, LFP, RFP);
+            Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, LFP, RFP);
+            //Tuple<Vector3,Vector3> Egoal = GetEgoal(offset, leftFootPos, rightFootPos);
+            //Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, leftFootPos, rightFootPos);
 
             //**********************************************************
             // TODO: determine which foot(feet) the robot is standing on
             //**********************************************************
-            float leftDiff = footProj.Item1.Z - leftFootPos.Z;
-            float rightDiff = footProj.Item2.Z - rightFootPos.Z;
+            //float leftDiff = footProj.Item1.Z - leftFootPos.Z;
+            //float rightDiff = footProj.Item2.Z - rightFootPos.Z;
+            float leftDiff = footProj.Item1.Y - LFP.Y;
+            float rightDiff = footProj.Item2.Y - RFP.Y;
 
 
             // Rotate Egoal so COM is within support polygon
             Tuple<Vector3, Vector3> EgoalNew = RotateEgoal(Egoal, footProj, offset, 2, COM);
             
             // reproject feet onto rotated EgoalNew to get the final foot positions
-            Tuple<Vector3, Vector3> footProjNew = GetFootProj2(EgoalNew, leftFootPos, rightFootPos);
+            Tuple<Vector3, Vector3> footProjNew = GetFootProj2(EgoalNew, LFP, RFP);
 
             // determine if feet actually need to be moved
-            float leftlength = Vector3.Subtract(footProjNew.Item1, leftFootPos).Length();
-            float rightlength = Vector3.Subtract(footProjNew.Item2, rightFootPos).Length();
+            float leftlength = Vector3.Subtract(footProjNew.Item1, LFP).Length();
+            float rightlength = Vector3.Subtract(footProjNew.Item2, RFP).Length();
 
             if ((leftlength > 0.005) || (rightlength > 0.005))
             {
                 // move feet and ankles
-                footIK(footProjNew, leftFootPos, rightFootPos);
+                //footIK(footProjNew, LFP, RFP);
                 //RotateAnkles(EgoalNew);
             }
         }
@@ -474,9 +486,11 @@ namespace KinectViewer
             }
         }
 
+        /*UPDATE INITGRATING */
         /* moved into foot class--NOT-- NEEDS INTIGRATION WORK */
         // Calculate innerEdge and outerEdge for given foot
         // From paper section 6.2.1
+        /*
         public void updateFoot(NaoFoot foot, Vector3 com)
         {
             Vector3 fr = proxy.GetPos(foot.name + "FsrFR"),
@@ -529,49 +543,49 @@ namespace KinectViewer
             }
             foot.width = width;
         }
+        */
 
         // Calculates the goal plane
         // Equations from paper section 6.2.2
-        public Tuple<Vector3,Vector3> GetEgoal(float offset, Vector3 leftFootPos, Vector3 rightFootPos)
+        public Tuple<Vector3,Vector3> GetEgoal(float offset, Vector3 LARpos, Vector3 RARpos)
         {
-            Vector3 LARpos = leftFootPos; // proxy.GetPos("LAnkleRoll");
-            Vector3 RARpos = rightFootPos; // proxy.GetPos("RAnkleRoll");
+            float LAnkleRoll = proxy.GetData("LAnkleRoll");
+            float RAnkleRoll = proxy.GetData("RAnkleRoll");
 
-            float LankleRoll = proxy.GetData("LAnkleRoll");
-            float RankleRoll = proxy.GetData("RAnkleRoll");
-
-            float Rgoal = ((1 - offset) * LankleRoll + (offset * RankleRoll)) / 2;
-            Vector3 normal = new Vector3(0, 0, Rgoal);
+            float Rgoal = ((1 - offset) * LAnkleRoll + (offset * RAnkleRoll)) / 2;
+            Vector3 normal = new Vector3(0, Rgoal, 0);
+            //Vector3 normal = new Vector3(0, 0, Rgoal);                               // Z was up/down - now its Y
             Vector3 position = LARpos + offset*(RARpos - LARpos);
 
             return new Tuple<Vector3, Vector3>(normal, position);
         }
 
         // Vertical projection of feet onto Egoal plane
-        public Tuple<Vector3, Vector3> GetFootProj(Tuple<Vector3, Vector3> Egoal, Vector3 leftFootPos, Vector3 rightFootPos)
+        public Tuple<Vector3, Vector3> GetFootProj(Tuple<Vector3, Vector3> Egoal, Vector3 leftFoot, Vector3 rightFoot)
         {
             // TODO : what position do I need to use for this projection?
             // switch to use average position from foot sensors???????????
-            Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
-            Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
+            //Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
+            //Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
 
             // Vertical projection onto plane
             // SHOULD I DO AN ACTUAL PROJECTION HERE?????????????????
             Vector3 planePos = Egoal.Item2;
             Vector3 leftFootProj, rightFootProj;
-            leftFootProj.X = leftFoot.X; leftFootProj.Y = leftFoot.Y; leftFootProj.Z = planePos.Z;
-            rightFootProj.X = rightFoot.X; rightFootProj.Y = rightFoot.Y; rightFootProj.Z = planePos.Z;
+            leftFootProj.X = leftFoot.X; leftFootProj.Y = planePos.Y; leftFootProj.Z = leftFoot.Z;          // now using planePos.Y
+            rightFootProj.X = rightFoot.X; rightFootProj.Y = planePos.Y; rightFootProj.Z = rightFoot.Z;
+            //leftFootProj.X = leftFoot.X; leftFootProj.Y = leftFoot.Y; leftFootProj.Z = planePos.Z;        // used planPos.Z
+            //rightFootProj.X = rightFoot.X; rightFootProj.Y = rightFoot.Y; rightFootProj.Z = planePos.Z;
 
             return new Tuple<Vector3, Vector3>(leftFootProj, rightFootProj);
         }
 
         // rotate Egoal plane so that robot COM is over the support polygon
         // equations from paper section 6.3
-        public Tuple<Vector3, Vector3> RotateEgoal(Tuple<Vector3, Vector3> Egoal, Tuple<Vector3, Vector3> footProj, float offset, int support, Vector3 com)
+        public Tuple<Vector3, Vector3> RotateEgoal(Tuple<Vector3, Vector3> Egoal, Tuple<Vector3, Vector3> footProj, float offset, int support, Vector3 COM)
         {
             Vector3 COMgoalProj;
-            Vector3 COM = com; // proxy.GetCOM();
-
+            /*
             if (support == 0)           // left foot - position vector center of left foot -- -- -- -- -- -- -- -- should this be the bottom of the foot?
             {
                 COMgoalProj = footProj.Item1;
@@ -581,7 +595,8 @@ namespace KinectViewer
                 COMgoalProj = footProj.Item2;
             }
             else                        // both feet
-            {       
+            */
+            {
                 COMgoalProj = footProj.Item1 + offset * (footProj.Item2 - footProj.Item1);
             }
 
@@ -591,35 +606,31 @@ namespace KinectViewer
         }
 
         // Project the feet onto the rotated Egoal plane
-        public Tuple<Vector3, Vector3> GetFootProj2(Tuple<Vector3, Vector3> plane, Vector3 leftFootPos, Vector3 rightFootPos)
+        public Tuple<Vector3, Vector3> GetFootProj2(Tuple<Vector3, Vector3> plane, Vector3 LARpos, Vector3 RARpos)
         {
-            Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
-            Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
-
             Vector3 normal = plane.Item1;
             Vector3 position = plane.Item2;
 
             // Project left foot onto rotated goal plane
-            float leftOffset = Vector3.Dot((position - leftFoot), normal) / (Vector3.Dot(normal, normal));
-            Vector3 leftProj = leftOffset * normal + leftFoot;
+            float leftOffset = Vector3.Dot((position - LARpos), normal) / (Vector3.Dot(normal, normal));
+            Vector3 leftProj = leftOffset * normal + LARpos;
             // TEST PROJECTION
             float zero = Vector3.Dot((leftProj - position), normal);
 
             // Project right foot onto rotated goal plane
-            float rightOffset = Vector3.Dot((position - rightFoot), normal) / (Vector3.Dot(normal, normal));
-            Vector3 rightProj = rightOffset * normal + rightFoot;
+            float rightOffset = Vector3.Dot((position - RARpos), normal) / (Vector3.Dot(normal, normal));
+            Vector3 rightProj = rightOffset * normal + RARpos;
             // TEST PROJECTION
             float zero2 = Vector3.Dot((rightProj - position), normal);
 
             return new Tuple<Vector3, Vector3>(leftProj, rightProj);
         }
 
+        // WARNING
+        // ROTATE ANKLES HAS NOT BEEN UPDATED TO USE KINECT COORDINATES -- STILL USING UNCONVERTED NAO COORDINATES
         // Move feet to new positions using NAO's positionInterpolation
-        public void footIK(Tuple<Vector3,Vector3> feet, Vector3 leftFootPos, Vector3 rightFootPos)
+        public void footIK(Tuple<Vector3,Vector3> feet, Vector3 LARpos, Vector3 RARpos)
         {
-            Vector3 leftFoot = leftFootPos; // proxy.GetPos("LAnkleRoll");
-            Vector3 rightFoot = rightFootPos; // proxy.GetPos("RAnkleRoll");
-
             Vector3 leftFootProj = feet.Item1;
             Vector3 rightFootProj = feet.Item2;
             // effector, space, path, axisMask, times, isAbsolute
@@ -632,13 +643,15 @@ namespace KinectViewer
             bool isAblosute = false;
 
             // move the difference between the two points
-            float[] path1 = { leftFootProj.X - leftFoot.X, leftFootProj.Y - leftFoot.Y, leftFootProj.Z - leftFoot.Z, 0.0f, 0.0f, 0.0f };
+            float[] path1 = { leftFootProj.X - LARpos.X, leftFootProj.Y - LARpos.Y, leftFootProj.Z - LARpos.Z, 0.0f, 0.0f, 0.0f };
             proxy.positionInterpolation(effector1, space, path1, axisMask, time, isAblosute);
 
-            float[] path2 = { rightFootProj.X - rightFoot.X, rightFootProj.Y - rightFoot.Y, rightFootProj.Z - rightFoot.Z, 0.0f, 0.0f, 0.0f };
+            float[] path2 = { rightFootProj.X - RARpos.X, rightFootProj.Y - RARpos.Y, rightFootProj.Z - RARpos.Z, 0.0f, 0.0f, 0.0f };
             proxy.positionInterpolation(effector2, space, path2, axisMask, time, isAblosute);
         }
 
+        // WARNING
+        // ROTATE ANKLES HAS NOT BEEN UPDATED TO USE KINECT COORDINATES -- STILL USING UNCONVERTED NAO COORDINATES
         // Rotate ankles onto Egoal plane - equation from paper section 6.5
         public void RotateAnkles(Tuple<Vector3, Vector3> Egoal)
         {
