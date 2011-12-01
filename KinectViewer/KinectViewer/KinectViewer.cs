@@ -21,7 +21,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
         protected SpeechRecognition sr = new SpeechRecognition();
-        const string IP = /*"127.0.0.1"; */ "128.208.4.225";
+        const string IP = "127.0.0.1"; // "128.208.4.225";
         protected SoundController sc = new SoundController();
 
         bool trap_mouse = true;
@@ -39,6 +39,8 @@ namespace KinectViewer
         Vector3 leftFootInitial;
         Vector3 rightFootInitial;
 
+        // Torso reference (manipulated in subclasses)
+        protected Matrix srRef { get; set; }
 
         protected List<LabelledVector> lines = new List<LabelledVector>();
         Matrix projection;
@@ -337,26 +339,38 @@ namespace KinectViewer
             RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prr.position)),
                                     viewMatrix, projection, Color.Black);
 
+            Vector3 COM = sim.GetCOM();
+            drawPrimitive(COMsphere, COM, Color.Green);
+            Vector3 Rdisplace = Vector3.Transform((sim.getFootTarget(srRef) - COM), Matrix.Invert(srRef));
+            lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
+
+            double[] legRAngles = sim.readjustLegs(srRef);
+            /*
+            var legRUpdate = new Dictionary<string, float>();
+            legRUpdate.Add("RHipRoll", (float)(legRAngles[1]));
+            legRUpdate.Add("RHipPitch", (float)(legRAngles[0] - Math.PI / 2));
+            legRUpdate.Add("RKneePitch", (float)(legRAngles[2]));
+            sim.UpdatePositions(legRUpdate); 
+            */
 
             foreach (JointNode chain in robot)
             {
                 JointNode cur = chain.next;
                 while (cur != null)
                 {
-                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation)), viewMatrix, projection, Color.Red);
-                    //drawPrimitive(RobotSimSphere, cur.torsoSpacePosition.Translation, Color.White);
-                    //if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll") 
-                        //debugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
+                    Matrix w1 = Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation));
+                    //if (srRef != null) w1 = Matrix.Multiply(w1, Matrix.Invert(srRef));
+                    RobotSimSphere.Draw(w1, viewMatrix, projection, Color.Red);
+                   
                     float sc = (float)cur.mass * 2;
-                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(sc, sc * 2, sc), Matrix.Multiply(Matrix.CreateTranslation(cur.com), cur.torsoSpacePosition)),
-                                            viewMatrix, projection, Color.White);
+                    Matrix w2 = Matrix.Multiply(Matrix.CreateScale(sc, sc * 2, sc), Matrix.Multiply(Matrix.CreateTranslation(cur.com), cur.torsoSpacePosition));
+                    //if (srRef != null) w2 = Matrix.Multiply(w2, Matrix.Invert(srRef));
+                    RobotSimSphere.Draw(w2, viewMatrix, projection, Color.White);
                     cur = cur.next;
                 }
             }
 
            
-            
-            drawPrimitive(COMsphere, sim.GetCOM(), Color.Green);
             //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
             /*
             foreach (String part in nao.parts) {

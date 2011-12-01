@@ -444,7 +444,7 @@ namespace KinectViewer
             Vector3 LFP = proxy.GetPosition("LAnkleRoll").position;
             Vector3 RFP = proxy.GetPosition("RAnkleRoll").position;
             Vector3 COM = NaoPos.Convert(proxy.GetCOM());
-            Vector3 COMsim = sim.getCOM();
+            Vector3 COMsim = sim.GetCOM();
             //Vector3 leftFootPos = proxy.GetPos("LAnkleRoll");
             //Vector3 rightFootPos = proxy.GetPos("RAnkleRoll");
             //Vector3 COM2 = proxy.GetCOM();
