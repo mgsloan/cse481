@@ -49,6 +49,7 @@ namespace KinectViewer
             jointToAngle.Add("LKneePitch", 0);
             jointToAngle.Add("LAnklePitch", 0);
             jointToAngle.Add("LAnkleRoll", 0);
+           
 
 
            
@@ -56,9 +57,16 @@ namespace KinectViewer
                 "Torso",
                 "RShoulderPitch",
                 "LShoulderPitch",
+                "RShoulderRoll",
+                "LShoulderRoll",
+                "LElbowYaw",
+                "RElbowYaw",
+                "LElbowRoll",
+                "RElbowRoll",
                 "RWristYaw",
                 "LWristYaw",
                 "HeadYaw",
+                "HeadPitch",
                 "LKneePitch",
                 "RKneePitch",
                 "LAnklePitch",
@@ -67,7 +75,8 @@ namespace KinectViewer
                 "RAnkleRoll",
                 "LHipPitch",
                 "RHipPitch",
-                "LAnklePitch" });
+                "RHipRoll",
+                "LHipRoll"});
 
 
             
@@ -86,6 +95,7 @@ namespace KinectViewer
                 motion.setStiffnesses("Body", 1.0f);
 
                 proxy = new NaoProxy(memory, motion, parts, 100);
+                proxy.InitialPoll();
                 Thread thread = new Thread(new ThreadStart(proxy.PollLoop));
                 thread.Start();
             }
@@ -103,12 +113,12 @@ namespace KinectViewer
 
         public NaoFoot GetRightFoot()
         {
-            return proxy.getRightFoot();
+            return proxy.GetRightFoot();
         }
 
         public NaoFoot GetLeftFoot()
         {
-            return proxy.getRightFoot();
+            return proxy.GetLeftFoot();
         }
 
         public Matrix GetGyrot()
@@ -136,6 +146,15 @@ namespace KinectViewer
 
         }
 
+        public float GetAngles(string part)
+        {
+            return proxy.GetAngles(part);
+        }
+
+        public Vector3 GetCOM(string part)
+        {
+            return proxy.GetCOM(part);
+        }
 
         public void RSSendBlocking()
         {
@@ -349,9 +368,15 @@ namespace KinectViewer
             return Vector3.Transform(NaoPos.Convert(proxy.GetCOM()), Matrix.Identity);
         }
 
+
         public NaoPos GetPosition(string part)
         {
             return proxy.GetPosition(part);
+        }
+
+        public float GetMass(string part)
+        {
+            return proxy.GetMass(part);
         }
 
         public float Average(params float[] xs) {
@@ -365,7 +390,7 @@ namespace KinectViewer
 
         public void Balance(int feet, List<LabelledVector> ls)
         {
-            NaoFoot targetFoot = feet == 2 ? proxy.getRightFoot() : proxy.getLeftFoot();
+            NaoFoot targetFoot = feet == 2 ? proxy.GetRightFoot() : proxy.GetLeftFoot();
 
             // Center of mass, and center of target, both in torso space.
             Vector3 com = GetCOM();
@@ -410,8 +435,8 @@ namespace KinectViewer
         public void doEveryting()
         {
             // Get foot objects
-            NaoFoot leftFoot = proxy.getLeftFoot();
-            NaoFoot rightFoot = proxy.getRightFoot();
+            NaoFoot leftFoot = proxy.GetLeftFoot();
+            NaoFoot rightFoot = proxy.GetRightFoot();
 
             // Get foot and COM locations
             Vector3 leftFootPos = proxy.GetPos("LAnkleRoll");

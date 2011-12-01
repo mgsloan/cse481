@@ -16,6 +16,9 @@ namespace KinectViewer
         private float gy;
         private Matrix gyrot;
         private Vector3 COM;
+        private Dictionary<string, float> angles = new Dictionary<string, float>();
+        private Dictionary<string, float> masses = new Dictionary<string,float>();
+        private Dictionary<string, Vector3> com = new Dictionary<string, Vector3>();
 
         private NaoFoot leftFoot;
         private NaoFoot rightFoot;
@@ -54,6 +57,19 @@ namespace KinectViewer
             }
         }
 
+        public void InitialPoll()
+        {
+            foreach (String part in this.parts)
+            {
+                if (part != "Torso") angles.Add(part, _motion.getAngles(part, false)[0]);
+                com.Add(part, NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false))));
+                positions.Add(part, PollPosition(part));
+                masses.Add(part, _motion.getMass(part));
+            }
+        }
+
+
+
         private void Poll()
         {
             lock (objLock)
@@ -72,13 +88,34 @@ namespace KinectViewer
             {
                 PollFoot(rightFoot, "R");
                 PollFoot(leftFoot, "L");
-                //rightFoot.updateFoot(COM);
-                //leftFoot.updateFoot(COM);
-            }   
+                rightFoot.updateFoot(COM);
+                leftFoot.updateFoot(COM);
+            }
+
 
             lock (objLock)
             {
+                foreach (String part in this.parts)
+                {
+                    if (part != "Torso") angles[part] = _motion.getAngles(part, false)[0];
+                }
+            }
+
+
+            lock (objLock)
+            {
+                foreach (String part in this.parts) com[part] = NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false)));
+            }
+
+            
+            lock (objLock)
+            {
                 foreach (String part in this.parts) positions[part] = PollPosition(part);
+            }
+
+            lock (objLock)
+            {
+                foreach (String part in this.parts) masses[part] = _motion.getMass(part);
             }
         }
 
@@ -101,6 +138,17 @@ namespace KinectViewer
             return new NaoPos(_motion.getPosition(part, 0, false));
         }
 
+
+        public float GetAngles(string part) 
+        {
+            return angles[part];
+        
+        }
+
+        public float GetMass(string part)
+        {
+            return masses[part];
+        }
         // setter methods for motion
 
         public void Relax(String part)
@@ -118,6 +166,8 @@ namespace KinectViewer
                 _motion.setStiffnesses(part, 1.0f);
             }
         }
+
+        
 
         public void SetAngles(ArrayList joints, ArrayList values, float speed)
         {
@@ -159,7 +209,6 @@ namespace KinectViewer
         }
 
         // getter methods for getting data
-
         public NaoPos GetPosition(string part)
         {
             lock (objLock)
@@ -168,20 +217,26 @@ namespace KinectViewer
             }
         }
 
-        public NaoFoot getLeftFoot()
+        public Vector3 GetCOM(string part)
+        {
+            return com[part];
+        }
+
+        public NaoFoot GetLeftFoot()
         {
             NaoFoot copyLeft;
             lock (objLock) { copyLeft = new NaoFoot(leftFoot); }
             return copyLeft;
         }
 
-        public NaoFoot getRightFoot()
+        public NaoFoot GetRightFoot()
         {
             NaoFoot copyRight;
             lock (objLock) { copyRight = new NaoFoot(rightFoot); }
             return copyRight;
         }
 
+        //returns the overal com for the body
         public Vector3 GetCOM()
         {
             Vector3 comCopy = new Vector3();

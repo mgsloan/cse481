@@ -21,7 +21,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
         protected SpeechRecognition sr = new SpeechRecognition();
-        const string IP = "127.0.0.1"; 
+        const string IP = /*"127.0.0.1"; */ "128.208.4.225";
         protected SoundController sc = new SoundController();
 
         bool trap_mouse = true;
@@ -98,8 +98,8 @@ namespace KinectViewer
             nao = new NaoBody();
             //naoSpeech.Connect("128.208.4.225");
             nao.Connect(IP);
-            //nao.Connect("128.208.4.225");
-            sim = new NaoSimulator(IP);
+        
+            sim = new NaoSimulator(IP, nao);
             
         }
 
@@ -245,6 +245,7 @@ namespace KinectViewer
                 frame++;
                 //display COM (indicated by a green ball.
                 int foot = 1; 
+                /*
                 nao.Balance(foot, lines);
                 if (foot == 2)
                 {
@@ -274,6 +275,7 @@ namespace KinectViewer
                     //nao.RHUpdatePitch(-0.5f);
                     nao.GetLeftFoot().FootLines(lines);
                 }
+                */
                 nao.RSSend();
                 debugReferenceFrame("", nao.GetGyrot(), 3.0f);
                 drawRobot();
@@ -315,13 +317,33 @@ namespace KinectViewer
         private void drawRobot()
         {
             var robot = sim.getRobot();
+            var rightF = sim.GetRightFoot();
+            var leftF = sim.GetLeftFoot();
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfl.position)), 
+                                    viewMatrix, projection, Color.Black);
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfr.position)),
+                                    viewMatrix, projection, Color.Black);
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.prl.position)),
+                                    viewMatrix, projection, Color.Black);
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.prr.position)),
+                                    viewMatrix, projection, Color.Black);
+
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.pfl.position)),
+                                    viewMatrix, projection, Color.Black);
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.pfr.position)),
+                                    viewMatrix, projection, Color.Black);
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prl.position)),
+                                    viewMatrix, projection, Color.Black);
+            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prr.position)),
+                                    viewMatrix, projection, Color.Black);
+
 
             foreach (JointNode chain in robot)
             {
                 JointNode cur = chain.next;
                 while (cur != null)
                 {
-                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation)), viewMatrix, projection, Color.Red);
+                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation)), viewMatrix, projection, Color.Red);
                     //drawPrimitive(RobotSimSphere, cur.torsoSpacePosition.Translation, Color.White);
                     //if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll") 
                         //debugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
@@ -334,7 +356,7 @@ namespace KinectViewer
 
            
             
-            drawPrimitive(COMsphere, sim.getCOM(), Color.Green);
+            drawPrimitive(COMsphere, sim.GetCOM(), Color.Green);
             //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
             /*
             foreach (String part in nao.parts) {
