@@ -13,36 +13,21 @@ namespace KinectViewer
         private Dictionary<string, JointNode> jointToNode;
 
         /*setting up the joint nodes for the robot. */
-        JointNode LShoulderP; 
-        JointNode RShoulderP;
-        JointNode RShoulderR;
-        JointNode LShoulderR;
-        JointNode LElbowY;
-        JointNode RElbowY;
-        JointNode LElbowR;
-        JointNode RElbowR;
-        JointNode LWristY;
-        JointNode RWristY;
-        JointNode LHipPitch;
-        JointNode RHipPitch;
-        JointNode LHipRoll;
-        JointNode RHipRoll;
-        JointNode LKneePitch;
-        JointNode RKneePitch;
-        JointNode LAnklePitch;
-        JointNode RAnklePitch;
-        JointNode LAnkleRoll;
-        JointNode RAnkleRoll;
-        JointNode Torso;
-        JointNode HeadYaw;
-        JointNode HeadPitch;
+        JointNode LShoulderP, RShoulderP, RShoulderR, LShoulderR, LElbowY, RElbowY, LElbowR, RElbowR, LWristY,
+                RWristY, LHipPitch, RHipPitch, LHipRoll, RHipRoll, LKneePitch, RKneePitch, LAnklePitch, RAnklePitch,
+                LAnkleRoll, RAnkleRoll, Torso, HeadYaw, HeadPitch;
+
+        NaoFoot rightF, leftF;
+        Vector3[] rightFLocal;
+        Vector3[] leftFLocal;
+
 
 
         LinkedList<JointNode> Robot;
         /*this constructs a NAO object. Will initial the NAO parts 
         /to their corresponding position vector. 
         */
-        public NaoSimulator(string ip)
+        public NaoSimulator(string ip, NaoBody nao)
             /********create the kinematic chains*****/
         {
             LShoulderP = new JointNode("LShoulderPitch", Vector3.Left);
@@ -95,7 +80,8 @@ namespace KinectViewer
             jointToNode.Add("HeadYaw", HeadYaw);
             jointToNode.Add("HeadPitch", HeadPitch);
 
-
+            leftF = new NaoFoot("L");
+            rightF = new NaoFoot("R");
             
             JointNode LeftArm = CreateChain(new JointNode[] { LShoulderP, LShoulderR, LElbowY, LElbowR, LWristY });
             JointNode RightArm = CreateChain(new JointNode[] { RShoulderP, RShoulderR, RElbowY, RElbowR, RWristY });
@@ -103,14 +89,14 @@ namespace KinectViewer
             JointNode RightLeg = CreateChain(new JointNode[] { RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll });
             JointNode Head =    CreateChain(new JointNode[] { HeadYaw, HeadPitch });
             JointNode Body = CreateChain(new JointNode[] { Torso });
-            MotionProxy proxy = new MotionProxy(ip, 9559);
+            //MotionProxy proxy = new MotionProxy(ip, 9559);
 
 
             Robot = new LinkedList<JointNode>(new JointNode[] { LeftArm, RightArm, LeftLeg, RightLeg, Head, Body });
 
            
             //initialize the positions of the robot.
-            InitializePositions(Robot, proxy);
+            InitializePositions(Robot, nao);
 
                       
         }
@@ -128,22 +114,48 @@ namespace KinectViewer
 
         
 
-        private void InitializePositions(LinkedList<JointNode> chains, MotionProxy proxy)
+        private void InitializePositions(LinkedList<JointNode> chains, NaoBody nao)
         {
             Matrix prev = Matrix.Identity;
             foreach (JointNode chain in chains) {
                 JointNode cur = chain.next;
                 while (cur != null) {
-                    cur.localPosition = new NaoPos(proxy.getPosition(cur.name, 0, false)).transform;
+                    cur.localPosition = nao.GetPosition(cur.name).transform;
                     cur.torsoSpacePosition = cur.localPosition;
                     var temp = cur.localPosition;
                     cur.localPosition = Matrix.Multiply(cur.torsoSpacePosition, Matrix.Invert(prev));
                     
-                    cur.mass = proxy.getMass(cur.name);
-                    if (cur.name != "Torso") cur.initialAngle = proxy.getAngles(cur.name, false)[0];
-                    Vector3 torsoCom = NaoPos.Convert(VectorFromList(proxy.getCOM(cur.name, 0, false)));
-                    cur.com = Vector3.Transform(torsoCom, Matrix.Invert(cur.torsoSpacePosition));
-                    Console.WriteLine(torsoCom.ToString() + ", transformed: " + cur.com.ToString()); 
+                    Matrix toLocal = Matrix.Invert(cur.torsoSpacePosition);
+
+                    cur.mass = nao.GetMass(cur.name);
+                    if (cur.name != "Torso") cur.initialAngle = nao.GetAngles(cur.name);
+                    Vector3 torsoCom = nao.GetCOM(cur.name);
+                    cur.com = Vector3.Transform(torsoCom, toLocal);
+                    //Console.WriteLine(torsoCom.ToString() + ", transformed: " + cur.com.ToString()); 
+                    
+                    //set the foot sensors in ankleroll reference frame
+                    if (cur.name == "RAnkleRoll")
+                    {
+                        //set the rankleroll angles 
+                        var rightFoot = nao.GetRightFoot();
+                        rightFLocal = new Vector3[4];
+                        rightFLocal[0] = Vector3.Transform(rightFoot.pfl.position, toLocal);
+                        rightFLocal[1] = Vector3.Transform(rightFoot.pfr.position, toLocal);
+                        rightFLocal[2] = Vector3.Transform(rightFoot.prl.position, toLocal);
+                        rightFLocal[3] = Vector3.Transform(rightFoot.prr.position, toLocal);
+                    }
+                    else if (cur.name == "LAnkleRoll")
+                    {
+                        var leftFoot = nao.GetLeftFoot();
+                        leftFLocal = new Vector3[4];
+                        leftFLocal[0] = Vector3.Transform(leftFoot.pfl.position, toLocal);
+                        leftFLocal[1] = Vector3.Transform(leftFoot.pfr.position, toLocal);
+                        leftFLocal[2] = Vector3.Transform(leftFoot.prl.position, toLocal);
+                        leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
+                    }
+
+                        
+
                     cur = cur.next;
                     prev = temp;
                 }
@@ -186,11 +198,31 @@ namespace KinectViewer
         {
             return jointToNode[part].torsoSpacePosition.Translation;
         }
-            
-            
+
+        public NaoFoot GetRightFoot()
+        {
+            var ankleRef = RAnkleRoll.torsoSpacePosition;
+            rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
+            rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
+            rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
+            rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
+
+            return rightF;
+        }
+
+        public NaoFoot GetLeftFoot()
+        {
+            var ankleRef = LAnkleRoll.torsoSpacePosition;
+            leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
+            leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
+            leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
+            leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
+
+            return leftF;
+        }
 
         //returns the current COM based off the current positions of the parts and their masses
-        public Vector3 getCOM()
+        public Vector3 GetCOM()
         {
             //multiply each mass w/ position and divde by total mass
             double totalMass = 0;

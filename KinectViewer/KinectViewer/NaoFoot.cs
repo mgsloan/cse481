@@ -16,6 +16,12 @@ namespace KinectViewer
         public NaoFoot(string side)
         {
             this.name = side;
+            pfl = new NaoPos(Vector3.Zero);
+            pfr = new NaoPos(Vector3.Zero);
+            prr = new NaoPos(Vector3.Zero);
+            prl = new NaoPos(Vector3.Zero); 
+            
+
         }
 
         public NaoFoot(NaoFoot other)
