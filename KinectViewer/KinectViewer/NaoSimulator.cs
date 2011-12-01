@@ -21,7 +21,7 @@ namespace KinectViewer
         Vector3[] rightFLocal;
         Vector3[] leftFLocal;
 
-
+        double UL_len, LL_len; //upper/lower leg length
 
         LinkedList<JointNode> Robot;
         /*this constructs a NAO object. Will initial the NAO parts 
@@ -162,6 +162,9 @@ namespace KinectViewer
                 prev = Matrix.Identity;
       
             }
+
+            UL_len = (getPosition("RKneePitch") - getPosition("RHipPitch")).Length();
+            LL_len = (getPosition("RAnklePitch") - getPosition("RKneePitch")).Length();
         }   
        
 
@@ -262,8 +265,92 @@ namespace KinectViewer
         }   
 
 
+        public Vector3 getFootTarget(Matrix BodyTxform)
+        {
+            Vector3 COM = GetCOM();
 
+            Vector3 RFoot = getPosition("RAnklePitch");
 
-    
+            //use COM as origin 
+            Vector3 RFoot_tr = RFoot - COM;
+
+            //tx to world space
+            Vector3 RFoot_tx = Vector3.Transform(RFoot_tr, Matrix.Invert(BodyTxform));
+
+            //project onto y=foot_tx.Y plane in world space
+            Vector3 RTarget_tx = new Vector3(0, RFoot_tx.Y * .9f, 0);
+
+            //transform target point from world to torso space
+            Vector3 RTarget_torso = Vector3.Transform(RTarget_tx, BodyTxform);
+
+            //reset the origin
+            RTarget_torso += COM;
+
+            return RTarget_torso;     
+        }
+
+        //limb lengths: check
+        public double[] readjustLegs(Matrix BodyTxform)
+        {
+            Vector3 RTarget_torso = getFootTarget(BodyTxform);
+
+            double[] newRAngles = LegIK(Matrix.Identity, getPosition("RHipPitch"), RTarget_torso, UL_len, LL_len);
+
+            Console.WriteLine("hr: " + newRAngles[1] + ", hp: " + newRAngles[0] + ", kp: " + newRAngles[2]); 
+        
+            return newRAngles;
+        }
+
+        private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
+        {
+            // (1) find hip roll 
+            // from 0 (X-axis) to -pi (negative X-axis) where X-axis is model's right-to-left vector
+            // get hip to foot vector in world space
+            Vector3 hip_to_foot = foot - hip;
+            // txform to torso space
+            Vector3 hip_to_foot_tx = Vector3.Transform(hip_to_foot, BodyTxform);
+
+            // project onto XY plane in torso space
+            double hiproll = -Math.Atan2(hip_to_foot_tx.Y, hip_to_foot_tx.X) - Math.PI;
+
+            // now do other two angles, will need distance from hip to foot for this
+            float hip_to_foot_len;
+            Vector3.Distance(ref hip, ref foot, out hip_to_foot_len);
+
+            // (2) find knee pitch (easy, use law of cosines)
+            double a2 = UL_len;
+            double b2 = LL_len;
+            double c2 = hip_to_foot_len;
+            double kneepitch;
+            if (c2 > a2 + b2) kneepitch = Math.PI;
+            else kneepitch = Math.Acos((a2 * a2 + b2 * b2 - c2 * c2) / (2 * a2 * b2));
+
+            // (3) find hip pitch (there are two parts to this) 
+            // from 0 (Z-axis) to -pi (negative Z-axis) where Z-axis is vector out of model's torso
+
+            // part 1: use law of cosines
+            double a1 = hip_to_foot_len;
+            double b1 = UL_len;
+            double c1 = LL_len;
+            double p2 = Math.Acos((a1 * a1 + b1 * b1 - c1 * c1) / (2 * a1 * b1));
+
+            // part 2: rotate hip-to-foot vector into YZ plane, and then project it onto YZ plane in torso space
+            // rotate
+            float theta = (float)(-hiproll - Math.PI / 2);
+            Matrix YZfix = Matrix.CreateRotationZ(-theta);
+            var hip_to_foot_yz = Vector3.Transform(hip_to_foot_tx, YZfix);
+
+            // project
+            double p1 = Math.Atan2(hip_to_foot_yz.Y, hip_to_foot_yz.Z);
+
+            // now combine part 1 and 2
+            double hippitch = p2 + p1;
+
+            // return three angles in a double[]
+            double[] angles = new double[3];
+            angles[0] = hippitch; angles[1] = hiproll; angles[2] = kneepitch;
+
+            return angles;
+        }
     }
 }

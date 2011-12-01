@@ -62,7 +62,7 @@ namespace KinectViewer
             X.Normalize(); Y.Normalize();
             Vector3 dz = Vector3.Cross(X, Y);
             Vector3 dy2 = Vector3.Cross(dz, X);
-            Matrix srRef = Matrix.CreateWorld(Vector3.Zero, dz, dy2);
+            this.srRef = Matrix.CreateWorld(Vector3.Zero, dz, dy2);
             Matrix srRefInv = Matrix.Invert(srRef);
 
             // right arm
@@ -86,7 +86,7 @@ namespace KinectViewer
             nao.RSSend();
 
             // IK DEBUG
-
+            /*
             //float UL_len, LL_len;
             //Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
             //Vector3.Distance(ref kneeLeft, ref footLeft, out LL_len);
@@ -95,8 +95,6 @@ namespace KinectViewer
             //nao.LHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
             //nao.LHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
             //nao.LKUpdatePitch((float) (Math.PI - legAngles[2]));
-
-            double[] legAngles = calculateLegAngles(srRefInv, hipRight, kneeRight, footRight);
 
             Vector3 origin = new Vector3(4, 0, 0);
             Vector3 displayHipRoll = new Vector3(-2, 10, 0);
@@ -112,7 +110,7 @@ namespace KinectViewer
             //nao.RHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
             //nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
             //nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
-
+            */
             // END IK DEBUG
         }
 
@@ -266,7 +264,7 @@ namespace KinectViewer
 
                         nao.UpdateAngle("LHipRoll", roll);
                         nao.UpdateAngle("LHipPitch", pitch - (float)Math.PI / 2);
-                        nao.UpdateAngle("LKneePitch", knee / 2);
+                        nao.UpdateAngle("LKneePitch", knee);
                         
                         //nao.LHUpdateRoll(roll);
                         //nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
@@ -301,26 +299,6 @@ namespace KinectViewer
             //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
         }
 
-        //inputs: [h]ip, [k]nee, [f]oot
-        public double[] calculateLegAngles(Matrix BodyTxform, Vector3 h, Vector3 k, Vector3 f)
-        {
-            Vector3 UL = k - h;
-
-            Vector3 UL_tx = Vector3.Transform(UL, BodyTxform);
-
-            double hiproll = Math.Atan2(UL_tx.Y, UL_tx.X);
-
-            double hippitch = Math.Atan2(UL_tx.Y, UL_tx.Z);
-
-            double kneepitch = Math.Acos(Vector3.Dot((f - k), (h - k))/ ((f - k).Length() * (h - k).Length()));
-
-            double[] angles = new double[3];
-
-            angles[0] = hippitch; angles[1] = hiproll; angles[2] = kneepitch;
-
-            return angles;
-        }
-
         public Vector toNuiVec(Vector3 vec)
         {
             Vector result = new Vector();
@@ -337,84 +315,5 @@ namespace KinectViewer
             short val;
             nui.SkeletonEngine.SkeletonToDepthImage(R3b, out x, out y, out val);
         }*/
-
-        private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
-        {
-            // (1) find hip roll 
-            // from 0 (X-axis) to -pi (negative X-axis) where X-axis is model's right-to-left vector
-            // get hip to foot vector in world space
-            Vector3 hip_to_foot = foot - hip;
-            // txform to torso space
-            Vector3 hip_to_foot_tx = Vector3.Transform(hip_to_foot, BodyTxform);
-            lines.Add(new LabelledVector(new Vector3(0, 0, 0), hip_to_foot_tx, Color.Black, "HF_tx"));
-
-            // project onto XY plane in torso space
-            double hiproll = -Math.Atan2(hip_to_foot_tx.Y, hip_to_foot_tx.X) - Math.PI;
-
-            // now do other two angles, will need distance from hip to foot for this
-            float hip_to_foot_len;
-            Vector3.Distance(ref hip, ref foot, out hip_to_foot_len);
-
-            // (2) find knee pitch (easy, use law of cosines)
-            double a2 = UL_len;
-            double b2 = LL_len;
-            double c2 = hip_to_foot_len;
-            double kneepitch;
-            if (c2 > a2 + b2) kneepitch = Math.PI;
-            else kneepitch = Math.Acos((a2 * a2 + b2 * b2 - c2 * c2) / (2 * a2 * b2));
-
-            // (3) find hip pitch (there are two parts to this) 
-            // from 0 (Z-axis) to -pi (negative Z-axis) where Z-axis is vector out of model's torso
-
-            // part 1: use law of cosines
-            double a1 = hip_to_foot_len;
-            double b1 = UL_len;
-            double c1 = LL_len;
-            double p2 = Math.Acos((a1 * a1 + b1 * b1 - c1 * c1) / (2 * a1 * b1));
-
-            // part 2: rotate hip-to-foot vector into YZ plane, and then project it onto YZ plane in torso space
-            // rotate
-            float theta = (float) (-hiproll - Math.PI / 2);
-            Matrix YZfix = Matrix.CreateRotationZ(-theta);
-            var hip_to_foot_yz = Vector3.Transform(hip_to_foot_tx, YZfix);
-
-            // project
-            double p1 = Math.Atan2(hip_to_foot_yz.Y, hip_to_foot_yz.Z);
-
-            // now combine part 1 and 2
-            double hippitch = p2 + p1;
-
-            // return three angles in a double[]
-            double[] angles = new double[3];
-            angles[0] = hippitch; angles[1] = hiproll; angles[2] = kneepitch;
-
-            // DISPLAY DEBUG
-
-            /*
-            Vector3 Zvec = new Vector3(0, 0, (float) UL_len);
-            Zvec = Vector3.Transform(Zvec, BodyTxform);
-            Matrix hippitch_rot = Matrix.CreateRotationX((float) hippitch);
-            Matrix hiproll_rot = Matrix.CreateRotationZ((float) (Math.PI / 2 + hiproll));
-            Vector3 Z_txform = Vector3.Transform(Zvec, hippitch_rot);
-            Z_txform = Vector3.Transform(Z_txform, -hiproll_rot);
-
-            lines.Add(new LabelledVector(origin, origin + Z_txform, Color.Black, "UL " + UL_len));
-            lines.Add(new LabelledVector(origin, origin + hip_to_foot_tx, Color.Black, "H_F " + LL_len));
-            */
-
-            /*
-            float knee_foot_dist;
-            Vector3.Distance(ref Z_txform, ref hip_to_foot_tx, out knee_foot_dist);
-            Vector3 displayDist = new Vector3(-2, 16, 0);
-            lines.Add(new LabelledVector(origin + displayDist, origin + displayDist, Color.Black, "Knee_Foot: " + knee_foot_dist));
-
-            lines.Add(new LabelledVector(origin, origin + BodyTxform.Up, Color.GreenYellow, "Y"));
-            lines.Add(new LabelledVector(origin, origin + BodyTxform.Right, Color.GreenYellow, "X"));
-            lines.Add(new LabelledVector(origin, origin + BodyTxform.Forward, Color.GreenYellow, "Z"));
-            */
-            // END DISPLAY DEBUG
-
-            return angles;
-        }
     }
 }
