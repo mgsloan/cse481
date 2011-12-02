@@ -20,6 +20,8 @@ namespace KinectViewer
         private Dictionary<string, float> angles = new Dictionary<string, float>();
         private Dictionary<string, float> masses = new Dictionary<string,float>();
         private Dictionary<string, Vector3> com = new Dictionary<string, Vector3>();
+        private Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
+
         private List<float> vel;
 
         private NaoFoot leftFoot;
@@ -30,7 +32,7 @@ namespace KinectViewer
 
         private Dictionary<String, NaoPos> positions = new Dictionary<string, NaoPos>();
 
-        private ArrayList parts;
+        private List<string> parts;
         private int msBetweenPolls;
 
         public int sleepTime { get; set; }
@@ -41,25 +43,31 @@ namespace KinectViewer
         List<Action> listeners;
 
         //parts should include every part you'd be interested in asking about at any time in the future
-        public NaoProxy(MemoryProxy memory, MotionProxy motion, ArrayList parts, int msBetweenPolls)
+        public NaoProxy(string ip, List<string> parts, int msBetweenPolls)
         {
-            _memory = memory;
-            _motion = motion;
+
+            _memory = new MemoryProxy(ip, 9559);
+            _motion =  new MotionProxy(ip, 9559);
             this.parts = parts;
             leftFoot = new NaoFoot("L");
             rightFoot = new NaoFoot("R");
             this.msBetweenPolls = msBetweenPolls;
+
             listeners = new List<Action>();
+
+            // give the joints some stiffness   
+            _motion.setStiffnesses("Body", 1.0f);
         }
 
         // method that runs in a loop updating the fields
-
         public void PollLoop()
         {
             while (true)
             {
                 DateTime from = DateTime.Now;
                 Poll();
+                foreach (Action a in this.listeners)
+                    a.Invoke();
                 sleepTime = this.msBetweenPolls - DateTime.Now.Subtract(from).Milliseconds;
                 if (sleepTime > 0) Thread.Sleep(sleepTime);
             }
@@ -69,10 +77,15 @@ namespace KinectViewer
         {
             foreach (String part in this.parts)
             {
-                if (part != "Torso") angles.Add(part, _motion.getAngles(part, false)[0]);
+                if (part != "Torso")
+                {
+                    limits.Add(part, (ArrayList)_motion.getLimits(part));
+                    angles.Add(part, _motion.getAngles(part, false)[0]);
+                }
                 com.Add(part, NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false))));
                 positions.Add(part, PollPosition(part));
                 masses.Add(part, _motion.getMass(part));
+                
             }
         }
 
@@ -109,9 +122,6 @@ namespace KinectViewer
             
                 vel = _motion.getRobotVelocity();
             }
-
-            foreach (Action a in this.listeners)
-                a.Invoke();
         }
 
         // not thread safe - lock before calling this
@@ -138,6 +148,11 @@ namespace KinectViewer
         {
             return angles[part];
         
+        }
+
+        public Dictionary<string, ArrayList> GetLimits()
+        {
+            return limits;
         }
 
         public float GetMass(string part)

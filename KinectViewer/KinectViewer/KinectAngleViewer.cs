@@ -81,13 +81,11 @@ namespace KinectViewer
             LLA.Normalize(); LUA.Normalize(); LH.Normalize();
 
             calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
-            nao.NaoSimUpdate(sim);
-
+            
             base.updateSkeleton(skeleton);
-            nao.RSSend();
 
             // DEBUG
-            ParallelFoot(srReflegs, RUAlegs, RLAlegs);
+            //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
@@ -176,7 +174,6 @@ namespace KinectViewer
                         angles["RHipRoll"] = roll;
                         angles["RHipPitch"] = pitch - (float)Math.PI / 2;
                         angles["RKneePitch"] = knee;
-                        
                         break;
                     }
                 case "ll":
@@ -186,7 +183,6 @@ namespace KinectViewer
                         angles["LHipRoll"] = roll;
                         angles["LHipPitch"] = pitch - (float)Math.PI / 2;
                         angles["LKneePitch"] = knee;
-
                         break;
                     }
             }

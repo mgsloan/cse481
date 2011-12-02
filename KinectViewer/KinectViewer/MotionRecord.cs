@@ -16,7 +16,7 @@ class MotionRecord
         get { return data.Count == 0 ? 0 : data.ElementAt(0).Item2.Count();  }
     }
 
-    public void TakeAngleSample(NaoBody nao, int limit = -1)
+    public void TakeAngleSample(Balancer nao, int limit = -1)
     {
         Type typ = nao.jointToAngle["LShoulderPitch"].GetType();
         if (typ == typeof(float))
