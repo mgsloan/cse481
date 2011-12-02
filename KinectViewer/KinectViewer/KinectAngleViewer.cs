@@ -79,11 +79,12 @@ namespace KinectViewer
             LLA.Normalize(); LUA.Normalize(); LH.Normalize();
 
             calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
-            nao.NaoSimUpdate(sim);
-
-
+            
+            
+            //TODO: send the information to the NAO 
+            naoSim.UpdatePositions();
             base.updateSkeleton(skeleton);
-            nao.RSSend();
+
 
             // DEBUG
 
@@ -209,53 +210,42 @@ namespace KinectViewer
                         //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
                         //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
                         //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
-                        nao.UpdateAngle("RShoulderPitch", pitch);
-                        nao.UpdateAngle("RShoulderRoll", roll - (float)Math.PI);
-                        nao.UpdateAngle("RElbowYaw", eyaw + (float)(Math.PI / 2));
-                        nao.UpdateAngle("RElbowRoll", eroll + (float)Math.PI);
-                        //nao.RSUpdatePitch(pitch);
-                        //nao.RSUpdateRoll(roll - (float)Math.PI);
-                        //nao.REUpdateYaw(eyaw + (float)(Math.PI / 2));
-                        //nao.REUpdateRoll(eroll + (float)Math.PI);
+                        naoSim.UpdateAngle("RShoulderPitch", pitch);
+                        naoSim.UpdateAngle("RShoulderRoll", roll - (float)Math.PI);
+                        naoSim.UpdateAngle("RElbowYaw", eyaw + (float)(Math.PI / 2));
+                        naoSim.UpdateAngle("RElbowRoll", eroll + (float)Math.PI);
+                        
                         break;
                     }
                 case "la":
                     {
                         //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
                         //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
-                        nao.UpdateAngle("LShoulderPitch", pitch);
-                        nao.UpdateAngle("LShoulderRoll", -(roll - (float)Math.PI));
-                        nao.UpdateAngle("LElbowYaw", -(eyaw + (float)(Math.PI / 2)));
-                        nao.UpdateAngle("LElbowRoll", -(eroll + (float)Math.PI));
+                        naoSim.UpdateAngle("LShoulderPitch", pitch);
+                        naoSim.UpdateAngle("LShoulderRoll", -(roll - (float)Math.PI));
+                        naoSim.UpdateAngle("LElbowYaw", -(eyaw + (float)(Math.PI / 2)));
+                        naoSim.UpdateAngle("LElbowRoll", -(eroll + (float)Math.PI));
 
                         //Console.WriteLine("elbowyaw: " + (-(eyaw + (float)(Math.PI / 2))));
                         //Console.WriteLine("elbowroll: " + (-(eroll + (float)Math.PI)));
-                        //nao.LSUpdatePitch(pitch);
-                        //nao.LSUpdateRoll(-(roll - (float)Math.PI));
-                        //nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
-                        //nao.LEUpdateRoll(-(eroll + (float)Math.PI));
+                     
                         break;
                     }
                 case "rl":
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        nao.UpdateAngle("RHipRoll", roll);
-                        nao.UpdateAngle("RHipPitch", pitch - (float)Math.PI / 2);
-                        nao.UpdateAngle("RKneePitch", knee);
+                        naoSim.UpdateAngle("RHipRoll", roll);
+                        naoSim.UpdateAngle("RHipPitch", pitch - (float)Math.PI / 2);
+                        naoSim.UpdateAngle("RKneePitch", knee);
                         
                         
-                        //nao.RHUpdateRoll(roll);
-                        //nao.RHUpdatePitch(pitch - (float)Math.PI / 2);
-                        //nao.RKUpdatePitch(knee);
                         /*
                         if (skeleton.Joints[JointID.FootRight].TrackingState == JointTrackingState.Tracked)
                         {
                             
-                            nao.UpdateAngle("RAnklePitch", anklePitch, 0.5f);
-                            nao.UpdateAngle("RAnkleRoll", ankleRoll,0.5f);
-                            //nao.RAUpdatePitch(anklePitch);
-                            //nao.RAUpdateRoll(ankleRoll);
+                            naoSim.UpdateAngle("RAnklePitch", anklePitch, 0.5f);
+                            naoSim.UpdateAngle("RAnkleRoll", ankleRoll,0.5f);
                         }
                         */
                         break;
@@ -265,25 +255,21 @@ namespace KinectViewer
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
 
-                        nao.UpdateAngle("LHipRoll", roll);
-                        nao.UpdateAngle("LHipPitch", pitch - (float)Math.PI / 2);
-                        nao.UpdateAngle("LKneePitch", knee);
-                        
-                        //nao.LHUpdateRoll(roll);
-                        //nao.LHUpdatePitch(pitch - (float)Math.PI / 2);
-                        //nao.LKUpdatePitch(knee / 2);
+                        naoSim.UpdateAngle("LHipRoll", roll);
+                        naoSim.UpdateAngle("LHipPitch", pitch - (float)Math.PI / 2);
+                        naoSim.UpdateAngle("LKneePitch", knee);
+                       
                         
                         
-                        //nao.RKUpdatePitch(knee / 2);
+                        //naoSim.RKUpdatePitch(knee / 2);
 
                         /*
                         if (skeleton.Joints[JointID.FootLeft].TrackingState == JointTrackingState.Tracked) {
                             
-                            nao.UpdateAngle("LAnklePitch", anklePitch, 0.5f);
-                            nao.UpdateAngle("LAnkleRoll", ankleRoll, 0.5f);
+                            naoSim.UpdateAngle("LAnklePitch", anklePitch, 0.5f);
+                            naoSim.UpdateAngle("LAnkleRoll", ankleRoll, 0.5f);
                          
-                            //nao.LAUpdatePitch(anklePitch);
-                            //nao.LAUpdateRoll(ankleRoll);
+                       
                         }
                         */
                         break;
