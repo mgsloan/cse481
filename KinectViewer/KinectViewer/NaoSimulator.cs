@@ -94,11 +94,8 @@ namespace KinectViewer
 
             Robot = new LinkedList<JointNode>(new JointNode[] { LeftArm, RightArm, LeftLeg, RightLeg, Head, Body });
 
-           
             //initialize the positions of the robot.
             InitializePositions(Robot, nao);
-
-                      
         }
 
         private JointNode CreateChain(JointNode[] chain) { 
@@ -111,8 +108,6 @@ namespace KinectViewer
             head.next = chainlst[0];
             return head;
         }
-
-        
 
         private void InitializePositions(LinkedList<JointNode> chains, NaoBody nao)
         {

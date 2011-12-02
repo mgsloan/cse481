@@ -66,7 +66,6 @@ namespace KinectViewer
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();
 
-
             grid = new SampleGrid();
             grid.GridSize = 16;
             grid.GridScale = 1.0f;
@@ -100,9 +99,9 @@ namespace KinectViewer
             nao = new NaoBody();
             //naoSpeech.Connect("128.208.4.225");
             nao.Connect(IP);
-        
+            while (!nao.connected) { }
+            Console.WriteLine("connected!");
             sim = new NaoSimulator(IP, nao);
-            
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -247,7 +246,6 @@ namespace KinectViewer
                 frame++;
                 //display COM (indicated by a green ball.
                 int foot = 1; 
-                /*
                 nao.Balance(foot, lines);
                 if (foot == 2)
                 {
@@ -277,7 +275,6 @@ namespace KinectViewer
                     //nao.RHUpdatePitch(-0.5f);
                     nao.GetLeftFoot().FootLines(lines);
                 }
-                */
                 nao.RSSend();
                 debugReferenceFrame("", nao.GetGyrot(), 3.0f);
                 drawRobot();

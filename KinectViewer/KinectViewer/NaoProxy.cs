@@ -15,24 +15,30 @@ namespace KinectViewer
         private float gx;
         private float gy;
         private Matrix gyrot;
+        //private float grx, gry; // raw gyro
         private Vector3 COM;
         private Dictionary<string, float> angles = new Dictionary<string, float>();
         private Dictionary<string, float> masses = new Dictionary<string,float>();
         private Dictionary<string, Vector3> com = new Dictionary<string, Vector3>();
+        private List<float> vel;
 
         private NaoFoot leftFoot;
         private NaoFoot rightFoot;
 
-        private MemoryProxy _memory = null;
-        private MotionProxy _motion = null;
+        public  MemoryProxy _memory = null;
+        public  MotionProxy _motion = null;
 
         private Dictionary<String, NaoPos> positions = new Dictionary<string, NaoPos>();
 
         private ArrayList parts;
         private int msBetweenPolls;
 
+        public int sleepTime { get; set; }
+
         //locks
         Object objLock = new Object();
+
+        List<Action> listeners;
 
         //parts should include every part you'd be interested in asking about at any time in the future
         public NaoProxy(MemoryProxy memory, MotionProxy motion, ArrayList parts, int msBetweenPolls)
@@ -43,6 +49,7 @@ namespace KinectViewer
             leftFoot = new NaoFoot("L");
             rightFoot = new NaoFoot("R");
             this.msBetweenPolls = msBetweenPolls;
+            listeners = new List<Action>();
         }
 
         // method that runs in a loop updating the fields
@@ -51,9 +58,10 @@ namespace KinectViewer
         {
             while (true)
             {
+                DateTime from = DateTime.Now;
                 Poll();
-
-                Thread.Sleep(this.msBetweenPolls);
+                sleepTime = this.msBetweenPolls - DateTime.Now.Subtract(from).Milliseconds;
+                if (sleepTime > 0) Thread.Sleep(sleepTime);
             }
         }
 
@@ -68,8 +76,6 @@ namespace KinectViewer
             }
         }
 
-
-
         private void Poll()
         {
             lock (objLock)
@@ -77,46 +83,35 @@ namespace KinectViewer
                 gx = (float)_memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
                 gy = (float)_memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
                 gyrot = NaoPos.ConvertRotation(gx, gy, 0);
-            }
+ 
+                /* grx = (float)_memory.getData("Device/SubDeviceList/InertialSensor/GyrX/Sensor/Value");
+                gry = (float)_memory.getData("Device/SubDeviceList/InertialSensor/GyrY/Sensor/Value");
+                Console.WriteLine("grx: " + grx.ToString() + " gry: " + gry.ToString());
+                */
 
-            lock (objLock)
-            {
                 COM = VectorFromList(_motion.getCOM("Body", 0, false));
-            }
-
-            lock (objLock)
-            {
+            
                 PollFoot(rightFoot, "R");
                 PollFoot(leftFoot, "L");
                 rightFoot.updateFoot(COM);
                 leftFoot.updateFoot(COM);
-            }
 
-
-            lock (objLock)
-            {
                 foreach (String part in this.parts)
                 {
                     if (part != "Torso") angles[part] = _motion.getAngles(part, false)[0];
                 }
-            }
-
-
-            lock (objLock)
-            {
-                foreach (String part in this.parts) com[part] = NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false)));
-            }
-
             
-            lock (objLock)
-            {
+                foreach (String part in this.parts) com[part] = NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false)));
+            
                 foreach (String part in this.parts) positions[part] = PollPosition(part);
+           
+                foreach (String part in this.parts) masses[part] = _motion.getMass(part);
+            
+                vel = _motion.getRobotVelocity();
             }
 
-            lock (objLock)
-            {
-                foreach (String part in this.parts) masses[part] = _motion.getMass(part);
-            }
+            foreach (Action a in this.listeners)
+                a.Invoke();
         }
 
         // not thread safe - lock before calling this
@@ -166,8 +161,6 @@ namespace KinectViewer
                 _motion.setStiffnesses(part, 1.0f);
             }
         }
-
-        
 
         public void SetAngles(ArrayList joints, ArrayList values, float speed)
         {
@@ -259,6 +252,18 @@ namespace KinectViewer
                 copy.Forward = gyrot.Forward;
             }
             return copy;
+        }
+
+        public Vector3 GetVelocity()
+        {
+            Vector3 result;
+            lock (objLock)
+            {
+                result.X = vel[0];
+                result.Y = vel[1];
+                result.Z = vel[2];
+            }
+            return result;
         }
 
         public static Vector3 VectorFromList(List<float> fs)

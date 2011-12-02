@@ -15,7 +15,7 @@ namespace KinectViewer
         {
             get
             {
-                return proxy != null;
+                return proxy._motion != null;
             }
         }
 
@@ -25,6 +25,8 @@ namespace KinectViewer
         public Dictionary<string, float> jointToAngle;
         public Dictionary<string, ArrayList> limits;
         private NaoProxy proxy;
+
+       // PID rollPID, pitchPID;
 
         public void Connect(string ip)
         {
@@ -49,8 +51,8 @@ namespace KinectViewer
             jointToAngle.Add("LKneePitch", 0);
             jointToAngle.Add("LAnklePitch", 0);
             jointToAngle.Add("LAnkleRoll", 0);
-           
 
+            //rollPID = new PID(0.5, 0.5, 0.5, );
 
            
             parts = new ArrayList(new String[] {
@@ -78,9 +80,6 @@ namespace KinectViewer
                 "RHipRoll",
                 "LHipRoll"});
 
-
-            
-
             try
             {
                 MemoryProxy memory = new MemoryProxy(ip, 9559);
@@ -88,7 +87,6 @@ namespace KinectViewer
 
                 foreach (string joint in jointToAngle.Keys)
                 {
-                   
                     limits.Add(joint, (ArrayList)motion.getLimits(joint));
                 }
                 // give the joints some stiffness
@@ -368,7 +366,6 @@ namespace KinectViewer
             return Vector3.Transform(NaoPos.Convert(proxy.GetCOM()), Matrix.Identity);
         }
 
-
         public NaoPos GetPosition(string part)
         {
             return proxy.GetPosition(part);
@@ -398,7 +395,7 @@ namespace KinectViewer
 
             // Balance vector.  We need it to be vertical.
             Vector3 delta = Vector3.Subtract(com, target);
-
+            
             // Transform into lower leg local space.
             Matrix mat = Matrix.Invert(GetPosition((feet == 2 ? "R" : "L") + "KneePitch").transform);
             Vector3 local = Vector3.Transform(delta, mat);

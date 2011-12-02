@@ -32,7 +32,4 @@ namespace KinectViewer
             return Matrix.CreateFromAxisAngle(orientation, initialAngle - angle);
         }
     }
-
-    
-    
 }
