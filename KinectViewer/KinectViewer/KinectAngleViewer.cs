@@ -85,7 +85,10 @@ namespace KinectViewer
             base.updateSkeleton(skeleton);
             nao.RSSend();
 
-            // IK DEBUG
+            // DEBUG
+
+            ParallelFoot(srReflegs, RUAlegs, RLAlegs);
+
             /*
             //float UL_len, LL_len;
             //Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
@@ -111,7 +114,7 @@ namespace KinectViewer
             //nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
             //nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
             */
-            // END IK DEBUG
+            // END DEBUG
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
@@ -225,8 +228,8 @@ namespace KinectViewer
                         nao.UpdateAngle("LElbowYaw", -(eyaw + (float)(Math.PI / 2)));
                         nao.UpdateAngle("LElbowRoll", -(eroll + (float)Math.PI));
 
-                        Console.WriteLine("elbowyaw: " + (-(eyaw + (float)(Math.PI / 2))));
-                        Console.WriteLine("elbowroll: " + (-(eroll + (float)Math.PI)));
+                        //Console.WriteLine("elbowyaw: " + (-(eyaw + (float)(Math.PI / 2))));
+                        //Console.WriteLine("elbowroll: " + (-(eroll + (float)Math.PI)));
                         //nao.LSUpdatePitch(pitch);
                         //nao.LSUpdateRoll(-(roll - (float)Math.PI));
                         //nao.LEUpdateYaw(-(eyaw + (float)(Math.PI / 2)));
@@ -315,5 +318,45 @@ namespace KinectViewer
             short val;
             nui.SkeletonEngine.SkeletonToDepthImage(R3b, out x, out y, out val);
         }*/
+
+        //find angles that would make the flat of the foot parallel with the ground
+        //UL = upper leg vector, LL = lower leg vector
+        public void ParallelFoot(Matrix BodyTxform, Vector3 UL, Vector3 LL) 
+        {
+            Vector3 X = BodyTxform.Left;
+            Vector3 X_ref = new Vector3(X.X, 0, X.Z);
+            Vector3 Y_ref = new Vector3(0, 1, 0);
+            Vector3 Z_ref = Vector3.Cross(X_ref, Y_ref);
+            Matrix AnkleRef = Matrix.CreateWorld(new Vector3(0), Z_ref, Y_ref);            
+
+            Vector3 origin = new Vector3(4, 0, 0);
+            /*
+            lines.Add(new LabelledVector(origin, origin + X_ref * 2, Color.BlanchedAlmond, "XR"));
+            lines.Add(new LabelledVector(origin, origin + Y_ref * 2, Color.BurlyWood, "YR"));
+            lines.Add(new LabelledVector(origin, origin + Z_ref * 2, Color.Chartreuse, "ZR"));
+            */
+            Vector3 Xw = new Vector3(1, 0, 0);
+            Vector3 Yw = new Vector3(0, 1, 0);
+            Vector3 Zw = new Vector3(0, 0, 1);
+            lines.Add(new LabelledVector(origin, origin + Xw * 2, Color.BlanchedAlmond, "XR"));
+            lines.Add(new LabelledVector(origin, origin + Yw * 2, Color.BurlyWood, "YR"));
+            lines.Add(new LabelledVector(origin, origin + Zw * 2, Color.Chartreuse, "ZR"));
+
+            Matrix b2W = Matrix.Invert(BodyTxform); //body 2 world transform
+            Vector3 UL_tx = UL; // Vector3.Transform(UL, b2W);
+            Vector3 LL_tx = LL; // Vector3.Transform(LL, b2W);
+
+            Vector3 UL_ref = Vector3.Transform(UL_tx, AnkleRef);
+            Vector3 LL_ref = Vector3.Transform(LL_tx, AnkleRef);
+
+            lines.Add(new LabelledVector(origin, origin + UL_ref * 2, Color.DarkMagenta, "UL"));
+            lines.Add(new LabelledVector(origin, origin + LL_ref * 2, Color.DarkMagenta, "LL"));
+
+            float ankleRoll = (float) Math.Atan2(UL_ref.X, UL_ref.Y);
+            float anklePitch = (float) Math.Atan2(LL_ref.Z, LL_ref.Y);
+
+            Console.WriteLine("p: " + anklePitch);
+            Console.WriteLine("r: " + ankleRoll);
+        }
     }
 }

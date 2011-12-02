@@ -184,8 +184,8 @@ namespace KinectViewer
                     cur.torsoSpacePosition.Translation = Vector3.Zero;
                     if (angles.ContainsKey(cur.name))
                     {
-                        if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll")
-                            Console.WriteLine(cur.name + angles[cur.name]);
+                        //if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll")
+                        //    Console.WriteLine(cur.name + angles[cur.name]);
                         cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, Matrix.CreateFromAxisAngle(cur.orientation, cur.initialAngle - angles[cur.name]));
                     }
                     cur.torsoSpacePosition.Translation = trans;
@@ -247,7 +247,7 @@ namespace KinectViewer
 
             Vector3 com = Vector3.Multiply(numerator, (float) 1/ (float) totalMass);
             
-            Console.WriteLine(com);
+            //Console.WriteLine(com);
             return com;
         
         }
@@ -296,7 +296,7 @@ namespace KinectViewer
 
             double[] newRAngles = LegIK(Matrix.Identity, getPosition("RHipPitch"), RTarget_torso, UL_len, LL_len);
 
-            Console.WriteLine("hr: " + newRAngles[1] + ", hp: " + newRAngles[0] + ", kp: " + newRAngles[2]); 
+            //Console.WriteLine("hr: " + newRAngles[1] + ", hp: " + newRAngles[0] + ", kp: " + newRAngles[2]); 
         
             return newRAngles;
         }

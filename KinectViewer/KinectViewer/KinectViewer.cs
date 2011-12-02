@@ -169,10 +169,10 @@ namespace KinectViewer
             //sets the threshold at .4
             if (leftjoint.TrackingState == JointTrackingState.Tracked && rightjoint.TrackingState == JointTrackingState.Tracked)
             {
-                Console.WriteLine("init_left: " + leftFootInitial.Y);
-                Console.WriteLine("init_right: " + rightFootInitial.Y);
-                Console.WriteLine("cur_left: " + cur_left.Y);
-                Console.WriteLine("cur_right: " + cur_right.Y);
+                //Console.WriteLine("init_left: " + leftFootInitial.Y);
+                //Console.WriteLine("init_right: " + rightFootInitial.Y);
+                //Console.WriteLine("cur_left: " + cur_left.Y);
+                //Console.WriteLine("cur_right: " + cur_right.Y);
                 if (cur_left.Y - cur_right.Y > .3)
                 {
                     //Console.WriteLine("your left foot is up");
@@ -380,7 +380,7 @@ namespace KinectViewer
                     debugReferenceFrame("", p.transform, 3.0f);
                 drawPrimitive(BodySphere, p.position, Color.Blue);
             }
-             */
+            */
         }
 
         public void drawPrimitive(GeometricPrimitive p, Vector3 pos, Color c)
