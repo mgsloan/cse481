@@ -30,8 +30,9 @@ namespace KinectViewer
 
         }
         
-
-
+        public Matrix MakeRotation(float angle) {
+            return Matrix.CreateFromAxisAngle(orientation, initialAngle - angle);
+        }
     }
 
     

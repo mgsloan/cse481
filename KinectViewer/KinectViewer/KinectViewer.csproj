@@ -152,6 +152,7 @@
     <Compile Include="Util\KalmanFilter.cs" />
     <Compile Include="Util\LabelledVector.cs" />
     <Compile Include="Util\LUDecomposition.cs" />
+    <Compile Include="Util\PID.cs" />
     <Compile Include="Util\QRDecomposition.cs" />
     <Compile Include="Util\SampleGrid.cs" />
     <Compile Include="Util\SpherePrimitive.cs" />

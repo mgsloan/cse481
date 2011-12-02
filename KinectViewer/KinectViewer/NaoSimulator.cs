@@ -167,7 +167,7 @@ namespace KinectViewer
             LL_len = (getPosition("RAnklePitch") - getPosition("RKneePitch")).Length();
         }   
        
-
+        //TODO: limits?
         public void UpdatePositions(Dictionary<string, float> angles)
         {
             //iterate through the chains 
@@ -184,9 +184,10 @@ namespace KinectViewer
                     cur.torsoSpacePosition.Translation = Vector3.Zero;
                     if (angles.ContainsKey(cur.name))
                     {
+                        float angle = angles[cur.name];
                         if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll")
-                            Console.WriteLine(cur.name + angles[cur.name]);
-                        cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, Matrix.CreateFromAxisAngle(cur.orientation, cur.initialAngle - angles[cur.name]));
+                            Console.WriteLine(cur.name + angle);
+                        cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
                     }
                     cur.torsoSpacePosition.Translation = trans;
 
@@ -200,6 +201,29 @@ namespace KinectViewer
         public Vector3 getPosition(string part)
         {
             return jointToNode[part].torsoSpacePosition.Translation;
+        }
+
+        // Gets axis angle, given an axis of rotation
+        // UGLY
+        public float GetAxisAngle(Vector3 v, Vector3 axis)
+        {
+            if (axis.X ==  1f) return (float)Math.Atan2(axis.Y, axis.Z);
+            if (axis.X == -1f) return (float)Math.Atan2(axis.Z, axis.Y);
+            if (axis.Y ==  1f) return (float)Math.Atan2(axis.X, axis.Z);
+            if (axis.Y == -1f) return (float)Math.Atan2(axis.Z, axis.X);
+            if (axis.Z ==  1f) return (float)Math.Atan2(axis.X, axis.Y);
+            if (axis.Z == -1f) return (float)Math.Atan2(axis.Y, axis.X);
+            throw new Exception("Cannot get angle for non axial rotation.");
+        }
+
+        public Tuple<float, float> GetAngleRequired(string a, string b, Vector3 vec)
+        {
+            JointNode ja = jointToNode[a], jb = jointToNode[b];
+            Vector3 local = Vector3.Transform(vec, Matrix.Invert(ja.torsoSpacePosition));
+            float angle = GetAxisAngle(local, ja.orientation);
+            Matrix trans = Matrix.Multiply(Matrix.Multiply(ja.torsoSpacePosition, ja.MakeRotation(angle)), jb.localPosition);
+            Vector3 local2 = Vector3.Transform(vec, Matrix.Invert(trans));
+            return new Tuple<float, float>(angle, GetAxisAngle(local2, jb.orientation));
         }
 
         public NaoFoot GetRightFoot()
