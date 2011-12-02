@@ -10,6 +10,8 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
+        Vector3 center { get; set; }
+
         protected override void updateSkeleton(SkeletonData skeleton)
         {
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight    ]),
@@ -30,6 +32,9 @@ namespace KinectViewer
                     ankleRight     = getLoc(skeleton.Joints[JointID.AnkleRight    ]),
                     footLeft       = getLoc(skeleton.Joints[JointID.FootLeft      ]),
                     footRight      = getLoc(skeleton.Joints[JointID.FootRight     ]);
+
+            center = getLoc(skeleton.Joints[JointID.HipCenter]);
+            sim.AdjustFeet(center);
 
             // legs
             Vector3 Xlegs = Vector3.Subtract(hipLeft, hipRight);
@@ -309,6 +314,11 @@ namespace KinectViewer
             result.Y = vec.Y;
             result.Z = vec.Z;
             return result;
+        }
+
+        protected override void InitializeTwoLegStance()
+        {
+            sim.InitializeTwoLegStance(center);
         }
 
         /*

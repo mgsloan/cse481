@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework;
 
 namespace IKSolver
 {
-    class IK
+    public class IK
     {
         static void Main(string[] args)
         {
@@ -116,7 +116,7 @@ namespace IKSolver
 
         private static double degrees(double rads) { return rads * 180.0 / Math.PI; }
 
-        private static double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
+        public static double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
         {
             // (1) find hip roll 
             // from 0 (X-axis) to -pi (negative X-axis) where X-axis is model's right-to-left vector

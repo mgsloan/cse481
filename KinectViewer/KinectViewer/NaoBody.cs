@@ -450,29 +450,12 @@ namespace KinectViewer
             }
         }
 
-        //world space
-        //assume PivotDislace is flat (y = 0) in world space
-        //pivot displace goes from pivot point to target location
-        public void PivotCOM(Vector3 PivotPoint, Vector3 PivotDisplace, Vector3 LinkCOM, Vector3 LinkDir)
-        {
-            double LinkCOM_rot = Math.Acos(PivotDisplace.Length() / LinkCOM.Length());
-
-            double COMtoLink_rot = AngleBetween(LinkCOM, LinkDir); //min angle to rotate LinkDir to LinkCOM
-
-            Vector3 rotationAxis = Vector3.Cross(PivotDisplace, new Vector3(0, 1, 0));
-
-            Matrix rotation = Matrix.CreateFromAxisAngle(rotationAxis, (float)(LinkCOM_rot + COMtoLink_rot));
-
-            Vector3 LinkDir_tx = Vector3.Transform(LinkDir, rotation);
-
-
-        }
-
         public static double AngleBetween(Vector3 v1, Vector3 v2)
         {
             return Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
         }
 
+        //unfinished, could be useful later though
         //get mtrx necessary to transform the X axis to d (assume d is in the space of X)
         public void GetVectorTxform(Vector3 d)
         {
@@ -484,10 +467,7 @@ namespace KinectViewer
 
             Vector3 X = new Vector3();
 
-
             //angle between d_proj and d is rotation about (d * d_proj) axis
-
-
         }
 
         public void doEveryting(NaoSimulator sim)
