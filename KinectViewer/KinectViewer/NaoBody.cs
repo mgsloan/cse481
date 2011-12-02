@@ -35,7 +35,7 @@ namespace KinectViewer
             jointToAngle.Add("RShoulderRoll", 0);
             jointToAngle.Add("RElbowRoll", 0);
             jointToAngle.Add("RElbowYaw", 0);
-            jointToAngle.Add("LShoulderPitch",0);
+            jointToAngle.Add("LShoulderPitch", 0);
             jointToAngle.Add("LShoulderRoll", 0);
             jointToAngle.Add("LElbowRoll", 0);
             jointToAngle.Add("LElbowYaw", 0);
@@ -49,10 +49,10 @@ namespace KinectViewer
             jointToAngle.Add("LKneePitch", 0);
             jointToAngle.Add("LAnklePitch", 0);
             jointToAngle.Add("LAnkleRoll", 0);
-           
 
 
-           
+
+
             parts = new ArrayList(new String[] {
                 "Torso",
                 "RShoulderPitch",
@@ -79,7 +79,7 @@ namespace KinectViewer
                 "LHipRoll"});
 
 
-            
+
 
             try
             {
@@ -88,7 +88,7 @@ namespace KinectViewer
 
                 foreach (string joint in jointToAngle.Keys)
                 {
-                   
+
                     limits.Add(joint, (ArrayList)motion.getLimits(joint));
                 }
                 // give the joints some stiffness
@@ -141,7 +141,7 @@ namespace KinectViewer
 
         public void NaoSimUpdate(NaoSimulator sim)
         {
-            
+
             sim.UpdatePositions(jointToAngle);
 
         }
@@ -176,11 +176,11 @@ namespace KinectViewer
         public void SetJoint(string jointName, float val, float smooth)
         {
             float prior = (float)jointToAngle[jointName];
-            
+
             if (float.IsNaN(prior)) prior = 0;
-                ArrayList limit = (ArrayList) limits[jointName][0];
-                jointToAngle[jointName] = ClampToRange(val, (float) limit[0], (float) limit[1]);
-               
+            ArrayList limit = (ArrayList)limits[jointName][0];
+            jointToAngle[jointName] = ClampToRange(val, (float)limit[0], (float)limit[1]);
+
             if (smooth != 0)
             {
                 jointToAngle[jointName] = prior * smooth + (float)jointToAngle[jointName] * (1 - smooth);
@@ -188,16 +188,16 @@ namespace KinectViewer
             }
         }
 
-        public void UpdateAngle(string jointName, float val, float smooth) 
+        public void UpdateAngle(string jointName, float val, float smooth)
         {
             SetJoint(jointName, val, smooth);
         }
 
         public void UpdateAngle(string jointName, float val)
         {
-           UpdateAngle(jointName, val, 0);
+            UpdateAngle(jointName, val, 0);
         }
-        
+
 
         //public void RSUpdatePitch(float val) { SetJoint(0, val);  }
         //public void RSUpdateRoll (float val) { SetJoint(1, val);  }
@@ -220,15 +220,18 @@ namespace KinectViewer
         //public void LAUpdatePitch(float val) { SetJoint(16, val, 0.5f); }
         //public void LAUpdateRoll (float val) { SetJoint(17, val, 0.5f); }
 
-        public static float Clamp(float f, float t, float v) {
+        public static float Clamp(float f, float t, float v)
+        {
             return Math.Max(f, Math.Min(t, v));
         }
 
-        public static float Lerp(float f, float t, float v) {
+        public static float Lerp(float f, float t, float v)
+        {
             return (1 - v) * t + v * f;
         }
 
-        public static float UnLerp(float f, float t, float v) {
+        public static float UnLerp(float f, float t, float v)
+        {
             return (v - f) / (t - f);
         }
 
@@ -244,44 +247,58 @@ namespace KinectViewer
         public static float ToRad(float rad) { return rad * (float)Math.PI / 180f; }
 
         // Clamps roll for the left foot diagram.
-        public static float NearestFeasibleRoll(float pitch, float roll) {
+        public static float NearestFeasibleRoll(float pitch, float roll)
+        {
             float pitchDeg = FromRad(pitch);
             float rollDeg = FromRad(roll);
-            if (pitchDeg < -48.12) {
+            if (pitchDeg < -48.12)
+            {
                 return ToRad(InterpClamp(-68.15f, 2.86f, -4.29f,
                                          -48.12f, 10.31f, -9.74f,
                                          pitchDeg, rollDeg));
-            } else if (pitchDeg < -40.10) {
+            }
+            else if (pitchDeg < -40.10)
+            {
                 return ToRad(InterpClamp(-48.12f, 10.31f, -9.74f,
                                          -40.10f, 22.79f, -12.60f,
                                          pitchDeg, rollDeg));
-            } else if (pitchDeg < -25.78) {
+            }
+            else if (pitchDeg < -25.78)
+            {
                 return ToRad(InterpClamp(-40.10f, 22.79f, -12.60f,
                                          -25.78f, 22.79f, -44.06f,
                                          pitchDeg, rollDeg));
-            } else if (pitchDeg < 5.72) {
+            }
+            else if (pitchDeg < 5.72)
+            {
                 return ToRad(InterpClamp(-25.78f, 22.79f, -44.06f,
                                          5.72f, 22.79f, -44.06f,
                                          pitchDeg, rollDeg));
-            } else if (pitchDeg < 20.05) {
+            }
+            else if (pitchDeg < 20.05)
+            {
                 return ToRad(InterpClamp(5.72f, 22.79f, -44.06f,
                                          20.05f, 22.79f, -31.54f,
                                          pitchDeg, rollDeg));
-            } else {
+            }
+            else
+            {
                 return ToRad(InterpClamp(20.05f, 22.79f, -31.54f,
                                          52.86f, 0f, -2.86f,
                                          pitchDeg, rollDeg));
             }
         }
 
-        public void RAUpdate(float pitch, float roll) {
+        public void RAUpdate(float pitch, float roll)
+        {
             float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
             //RAUpdatePitch(pitch2); RAUpdateRoll(-NearestFeasibleRoll(pitch2, -roll));
             UpdateAngle("RAnklePitch", pitch2);
             UpdateAngle("RAnkleRoll", -NearestFeasibleRoll(pitch2, -roll));
         }
 
-        public void LAUpdate(float pitch, float roll) {
+        public void LAUpdate(float pitch, float roll)
+        {
             float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
             float roll2 = NearestFeasibleRoll(pitch2, roll);
             //Console.WriteLine("pitch = " + pitch2.ToString());
@@ -379,7 +396,8 @@ namespace KinectViewer
             return proxy.GetMass(part);
         }
 
-        public float Average(params float[] xs) {
+        public float Average(params float[] xs)
+        {
             float sum = 0;
             foreach (float x in xs)
             {
@@ -405,8 +423,8 @@ namespace KinectViewer
 
             // Take the angle of the vector to be the angle we need to rotate
             // the ground plane in order to achieve balance.
-            float roll  = (float) Math.Atan2(local.X, local.Y);
-            float pitch = (float) Math.Atan2(local.Z, local.Y);
+            float roll = (float)Math.Atan2(local.X, local.Y);
+            float pitch = (float)Math.Atan2(local.Z, local.Y);
 
             // Use Force sensors to tweak result.
             float forwardBias = Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
@@ -416,7 +434,7 @@ namespace KinectViewer
             Vector3 offset = new Vector3(0, 0, 3f);
             ls.Add(new LabelledVector(offset, Vector3.Add(offset, local), Color.Black, ""));
             ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
-            
+
             // Foot commands with experimental fudge factors
             if (feet == 2)
             {
@@ -433,10 +451,43 @@ namespace KinectViewer
         }
 
         //world space
-        //assum PivotPoint and TargetBase are at same Y in world space
+        //assume PivotDislace is flat (y = 0) in world space
+        //pivot displace goes from pivot point to target location
         public void PivotCOM(Vector3 PivotPoint, Vector3 PivotDisplace, Vector3 LinkCOM, Vector3 LinkDir)
         {
-            
+            double LinkCOM_rot = Math.Acos(PivotDisplace.Length() / LinkCOM.Length());
+
+            double COMtoLink_rot = AngleBetween(LinkCOM, LinkDir); //min angle to rotate LinkDir to LinkCOM
+
+            Vector3 rotationAxis = Vector3.Cross(PivotDisplace, new Vector3(0, 1, 0));
+
+            Matrix rotation = Matrix.CreateFromAxisAngle(rotationAxis, (float)(LinkCOM_rot + COMtoLink_rot));
+
+            Vector3 LinkDir_tx = Vector3.Transform(LinkDir, rotation);
+
+
+        }
+
+        public static double AngleBetween(Vector3 v1, Vector3 v2)
+        {
+            return Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
+        }
+
+        //get mtrx necessary to transform the X axis to d (assume d is in the space of X)
+        public void GetVectorTxform(Vector3 d)
+        {
+            //project d onto xz plane to get d_proj
+
+            Vector3 d_proj = new Vector3(d.X, 0, d.Z);
+
+            //angle between d_proj and x is y rotation
+
+            Vector3 X = new Vector3();
+
+
+            //angle between d_proj and d is rotation about (d * d_proj) axis
+
+
         }
 
         public void doEveryting(NaoSimulator sim)
@@ -491,7 +542,7 @@ namespace KinectViewer
 
             // Rotate Egoal so COM is within support polygon
             Tuple<Vector3, Vector3> EgoalNew = RotateEgoal(Egoal, footProj, offsetsim, 2, COMsim);
-            
+
             // reproject feet onto rotated EgoalNew to get the final foot positions
             Tuple<Vector3, Vector3> footProjNew = GetFootProj2(EgoalNew, LFPsim, RFPsim);
 
@@ -586,7 +637,7 @@ namespace KinectViewer
 
         // Calculates the goal plane
         // Equations from paper section 6.2.2
-        public Tuple<Vector3,Vector3> GetEgoal(float offset, Vector3 LARpos, Vector3 RARpos)
+        public Tuple<Vector3, Vector3> GetEgoal(float offset, Vector3 LARpos, Vector3 RARpos)
         {
             float LAnkleRoll = proxy.GetData("LAnkleRoll");
             float RAnkleRoll = proxy.GetData("RAnkleRoll");
@@ -594,7 +645,7 @@ namespace KinectViewer
             float Rgoal = ((1 - offset) * LAnkleRoll + (offset * RAnkleRoll)) / 2;
             Vector3 normal = new Vector3(0, Rgoal, 0);
             //Vector3 normal = new Vector3(0, 0, Rgoal);                               // Z was up/down - now its Y
-            Vector3 position = LARpos + offset*(RARpos - LARpos);
+            Vector3 position = LARpos + offset * (RARpos - LARpos);
 
             return new Tuple<Vector3, Vector3>(normal, position);
         }
@@ -668,7 +719,7 @@ namespace KinectViewer
         // WARNING
         // ROTATE ANKLES HAS NOT BEEN UPDATED TO USE KINECT COORDINATES -- STILL USING UNCONVERTED NAO COORDINATES
         // Move feet to new positions using NAO's positionInterpolation
-        public void footIK(Tuple<Vector3,Vector3> feet, Vector3 LARpos, Vector3 RARpos)
+        public void footIK(Tuple<Vector3, Vector3> feet, Vector3 LARpos, Vector3 RARpos)
         {
             Vector3 leftFootProj = feet.Item1;
             Vector3 rightFootProj = feet.Item2;
@@ -705,7 +756,7 @@ namespace KinectViewer
 
             Vector3 v_h = Vector3.Cross(normalLeftAnklePitch, EgoalNorm);
             float d = Vector3.Dot(Leftlengthwise, v_h) / (Leftlengthwise.Length() * v_h.Length());
-            float LAnklePitchNew = (float) Math.Acos(d);
+            float LAnklePitchNew = (float)Math.Acos(d);
 
             Vector3 normalLeftAnkleRoll = new Vector3(0, 0, LAnkleRoll);
             float d2 = Vector3.Dot(normalLeftAnkleRoll, EgoalNorm) / (normalLeftAnkleRoll.Length() * EgoalNorm.Length());
@@ -734,7 +785,7 @@ namespace KinectViewer
                 "LAnkleRoll" });
 
             double larn2 = (double)(LAnkleRoll + LAnkleRollNew - Math.PI) % Math.PI;
-            double lapn2 = (double)(LAnklePitch + LAnklePitchNew) % Math.PI; 
+            double lapn2 = (double)(LAnklePitch + LAnklePitchNew) % Math.PI;
             double rarn2 = (double)(RAnkleRoll + RAnkleRollNew - Math.PI) % Math.PI;
             double rapn2 = (double)(RAnklePitch + RAnklePitchNew) % Math.PI;
 
