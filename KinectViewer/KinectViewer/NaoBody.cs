@@ -442,34 +442,41 @@ namespace KinectViewer
         public void doEveryting(NaoSimulator sim)
         {
             // Get foot objects
-            NaoFoot leftFoot = proxy.GetLeftFoot();
-            NaoFoot rightFoot = proxy.GetRightFoot();
+            //NaoFoot leftFoot = proxy.GetLeftFoot();
+            //NaoFoot rightFoot = proxy.GetRightFoot();
+            NaoFoot leftFootsim = sim.GetLeftFoot();
+            NaoFoot rightFootsim = sim.GetRightFoot();
 
             // Get foot and COM locations
             Vector3 LFPsim = sim.getPosition("LAnkleRoll");
             Vector3 RFPsim = sim.getPosition("RAnkleRoll");
-            Vector3 LFP = proxy.GetPosition("LAnkleRoll").position;
-            Vector3 RFP = proxy.GetPosition("RAnkleRoll").position;
-            Vector3 COM = NaoPos.Convert(proxy.GetCOM());
             Vector3 COMsim = sim.GetCOM();
+            //Vector3 LFP = proxy.GetPosition("LAnkleRoll").position;
+            //Vector3 RFP = proxy.GetPosition("RAnkleRoll").position;
+            //Vector3 COM = NaoPos.Convert(proxy.GetCOM());
             //Vector3 leftFootPos = proxy.GetPos("LAnkleRoll");
             //Vector3 rightFootPos = proxy.GetPos("RAnkleRoll");
             //Vector3 COM2 = proxy.GetCOM();
 
             // Update feet for offset calculations
-            leftFoot.updateFoot(COM);
-            rightFoot.updateFoot(COM);
+            //leftFoot.updateFoot(COM);
+            //rightFoot.updateFoot(COM);
+            leftFootsim.updateFoot(COMsim);
+            rightFootsim.updateFoot(COMsim);
             //updateFoot(leftFoot, COM2);
             //updateFoot(rightFoot, COM2);
 
             // Obtain the offset parameter
-            float offsetL = leftFoot.GetOffset();
-            float offsetR = rightFoot.GetOffset();
-            float offset = OffsetParameter(offsetL, offsetR);
+            //float offsetL = leftFoot.GetOffset();
+            //float offsetR = rightFoot.GetOffset();
+            //float offset = OffsetParameter(offsetL, offsetR);
+            float offsetLsim = leftFootsim.GetOffset();
+            float offsetRsim = rightFootsim.GetOffset();
+            float offsetsim = OffsetParameter(offsetLsim, offsetRsim);
 
             // Get Egoal, project feet onto Egoal plane
-            Tuple<Vector3, Vector3> Egoal = GetEgoal(offset, LFP, RFP);
-            Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, LFP, RFP);
+            Tuple<Vector3, Vector3> Egoal = GetEgoal(offsetsim, LFPsim, RFPsim);
+            Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, LFPsim, RFPsim);
             //Tuple<Vector3,Vector3> Egoal = GetEgoal(offset, leftFootPos, rightFootPos);
             //Tuple<Vector3, Vector3> footProj = GetFootProj(Egoal, leftFootPos, rightFootPos);
 
@@ -478,24 +485,24 @@ namespace KinectViewer
             //**********************************************************
             //float leftDiff = footProj.Item1.Z - leftFootPos.Z;
             //float rightDiff = footProj.Item2.Z - rightFootPos.Z;
-            float leftDiff = footProj.Item1.Y - LFP.Y;
-            float rightDiff = footProj.Item2.Y - RFP.Y;
+            float leftDiff = footProj.Item1.Y - LFPsim.Y;
+            float rightDiff = footProj.Item2.Y - RFPsim.Y;
 
 
             // Rotate Egoal so COM is within support polygon
-            Tuple<Vector3, Vector3> EgoalNew = RotateEgoal(Egoal, footProj, offset, 2, COM);
+            Tuple<Vector3, Vector3> EgoalNew = RotateEgoal(Egoal, footProj, offsetsim, 2, COMsim);
             
             // reproject feet onto rotated EgoalNew to get the final foot positions
-            Tuple<Vector3, Vector3> footProjNew = GetFootProj2(EgoalNew, LFP, RFP);
+            Tuple<Vector3, Vector3> footProjNew = GetFootProj2(EgoalNew, LFPsim, RFPsim);
 
             // determine if feet actually need to be moved
-            float leftlength = Vector3.Subtract(footProjNew.Item1, LFP).Length();
-            float rightlength = Vector3.Subtract(footProjNew.Item2, RFP).Length();
+            float leftlength = Vector3.Subtract(footProjNew.Item1, LFPsim).Length();
+            float rightlength = Vector3.Subtract(footProjNew.Item2, RFPsim).Length();
 
             if ((leftlength > 0.005) || (rightlength > 0.005))
             {
                 // move feet and ankles
-                //footIK(footProjNew, LFP, RFP);
+                //footIK(footProjNew, LFPsim, RFPsim);
                 //RotateAnkles(EgoalNew);
             }
         }
