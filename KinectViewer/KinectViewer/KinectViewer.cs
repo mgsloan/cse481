@@ -15,14 +15,13 @@ namespace KinectViewer
 {
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
-        protected NaoBody nao;
-        protected NaoSimulator sim;
-        protected NaoSpeech naoSpeech = new NaoSpeech();
+        protected NaoSimulator naoSim;
+      
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
-        protected SpeechRecognition sr = new SpeechRecognition();
+        
         const string IP = "127.0.0.1"; // "128.208.4.225";
-        protected SoundController sc = new SoundController();
+
 
         bool trap_mouse = true;
         KeyboardState prior_keys;
@@ -66,7 +65,6 @@ namespace KinectViewer
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();
 
-
             grid = new SampleGrid();
             grid.GridSize = 16;
             grid.GridScale = 1.0f;
@@ -97,12 +95,8 @@ namespace KinectViewer
                 MaxDeviationRadius = 0.05f
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
-            nao = new NaoBody();
-            //naoSpeech.Connect("128.208.4.225");
-            nao.Connect(IP);
-        
-            sim = new NaoSimulator(IP, nao);
-            
+
+            naoSim = new NaoSimulator(IP);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -242,11 +236,11 @@ namespace KinectViewer
             grid.Draw();
             grid2.Draw();
 
-            if (nao.connected)
+            if (naoSim.connected)
             {
                 frame++;
                 //display COM (indicated by a green ball.
-                int foot = 1; 
+                //int foot = 1;
                 /*
                 nao.Balance(foot, lines);
                 if (foot == 2)
@@ -278,8 +272,9 @@ namespace KinectViewer
                     nao.GetLeftFoot().FootLines(lines);
                 }
                 */
-                nao.RSSend();
-                debugReferenceFrame("", nao.GetGyrot(), 3.0f);
+                
+                naoSim.RSSend();
+               
                 drawRobot();
             }
 
@@ -318,9 +313,9 @@ namespace KinectViewer
 
         private void drawRobot()
         {
-            var robot = sim.getRobot();
-            var rightF = sim.GetRightFoot();
-            var leftF = sim.GetLeftFoot();
+            var robot = naoSim.getRobot();
+            var rightF = naoSim.GetRightFoot();
+            var leftF = naoSim.GetLeftFoot();
             RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfl.position)), 
                                     viewMatrix, projection, Color.Black);
             RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfr.position)),
@@ -339,12 +334,12 @@ namespace KinectViewer
             RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prr.position)),
                                     viewMatrix, projection, Color.Black);
 
-            Vector3 COM = sim.GetCOM();
+            Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);
-            Vector3 Rdisplace = Vector3.Transform((sim.getFootTarget(srRef) - COM), Matrix.Invert(srRef));
+            Vector3 Rdisplace = Vector3.Transform((naoSim.getFootTarget(srRef) - COM), Matrix.Invert(srRef));
             lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
 
-            double[] legRAngles = sim.readjustLegs(srRef);
+            double[] legRAngles = naoSim.readjustLegs(srRef);
             /*
             var legRUpdate = new Dictionary<string, float>();
             legRUpdate.Add("RHipRoll", (float)(legRAngles[1]));

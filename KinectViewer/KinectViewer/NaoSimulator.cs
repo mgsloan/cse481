@@ -5,16 +5,20 @@ using System.Text;
 using Microsoft.Xna.Framework;
 using Aldebaran.Proxies;
 using System.Collections;
+using System.Threading;
 
 namespace KinectViewer
 {
     class NaoSimulator
     {
         private Dictionary<string, JointNode> jointToNode;
+        private float speed = 0.2f;
+        private NaoProxy proxy;
+        Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
 
         /*setting up the joint nodes for the robot. */
-        JointNode LShoulderP, RShoulderP, RShoulderR, LShoulderR, LElbowY, RElbowY, LElbowR, RElbowR, LWristY,
-                RWristY, LHipPitch, RHipPitch, LHipRoll, RHipRoll, LKneePitch, RKneePitch, LAnklePitch, RAnklePitch,
+        JointNode LShoulderPitch, RShoulderPitch, RShoulderRoll, LShoulderRoll, LElbowYaw, RElbowYaw, LElbowRoll, RElbowRoll, LWristYaw,
+                RWristYaw, LHipPitch, RHipPitch, LHipRoll, RHipRoll, LKneePitch, RKneePitch, LAnklePitch, RAnklePitch,
                 LAnkleRoll, RAnkleRoll, Torso, HeadYaw, HeadPitch;
 
         NaoFoot rightF, leftF;
@@ -29,19 +33,26 @@ namespace KinectViewer
         /*this constructs a NAO object. Will initial the NAO parts 
         /to their corresponding position vector. 
         */
-        public NaoSimulator(string ip, NaoBody nao)
-            /********create the kinematic chains*****/
+        public bool connected
         {
-            LShoulderP = new JointNode("LShoulderPitch", Vector3.Left);
-            RShoulderP = new JointNode("RShoulderPitch", Vector3.Left);
-            RShoulderR = new JointNode("RShoulderRoll", Vector3.Forward);
-            LShoulderR = new JointNode("LShoulderRoll", Vector3.Forward);
-            LElbowY = new JointNode("LElbowRoll", Vector3.Left);
-            RElbowY = new JointNode("RElbowRoll", Vector3.Right);
-            LElbowR = new JointNode("LElbowYaw", Vector3.Up);
-            RElbowR = new JointNode("RElbowYaw", Vector3.Up);
-            LWristY = new JointNode("LWristYaw", Vector3.Up);
-            RWristY = new JointNode("RWristYaw", Vector3.Up);
+            get
+            {
+                return proxy != null;
+            }
+        }
+
+        public NaoSimulator(string ip)
+        {
+            LShoulderPitch = new JointNode("LShoulderPitch", Vector3.Left);
+            RShoulderPitch = new JointNode("RShoulderPitch", Vector3.Left);
+            RShoulderRoll = new JointNode("RShoulderRoll", Vector3.Forward);
+            LShoulderRoll = new JointNode("LShoulderRoll", Vector3.Forward);
+            LElbowYaw = new JointNode("LElbowRoll", Vector3.Left);
+            RElbowYaw = new JointNode("RElbowRoll", Vector3.Right);
+            LElbowRoll = new JointNode("LElbowYaw", Vector3.Up);
+            RElbowRoll = new JointNode("RElbowYaw", Vector3.Up);
+            LWristYaw = new JointNode("LWristYaw", Vector3.Up);
+            RWristYaw = new JointNode("RWristYaw", Vector3.Up);
             LHipPitch = new JointNode("LHipPitch", Vector3.Left);
             RHipPitch = new JointNode("RHipPitch", Vector3.Left);
             LHipRoll = new JointNode("LHipRoll", Vector3.Backward);
@@ -56,88 +67,96 @@ namespace KinectViewer
             HeadYaw = new JointNode("HeadYaw", Vector3.Up);
             HeadPitch = new JointNode("HeadPitch", Vector3.Up);
 
-            jointToNode = new Dictionary<string, JointNode>();
+            jointToNode = new Dictionary<string, JointNode>()
+            {
+                { "RShoulderPitch", RShoulderPitch }, {"RShoulderRoll", RShoulderRoll },  {"RElbowRoll", RElbowRoll },
+                {"RElbowYaw", RElbowYaw}, {"LShoulderPitch", LShoulderPitch} , {"LShoulderRoll", LShoulderRoll}, 
+                {"LElbowRoll", LElbowRoll} , {"LElbowYaw", LElbowYaw} , {"RHipRoll", RHipRoll }, {"RHipPitch", RHipPitch },
+                {"RKneePitch", RKneePitch}, {"RAnklePitch", RAnklePitch}, {"RAnkleRoll", RAnkleRoll}, {"LHipRoll", LHipRoll},
+                {"LHipPitch", LHipPitch}, {"LKneePitch", LKneePitch}, {"LAnklePitch", LAnklePitch}, {"LAnkleRoll", LAnkleRoll},
+                {"LWristYaw", LWristYaw}, {"RWristYaw", RWristYaw}, {"Torso", Torso}, {"HeadYaw", HeadYaw}, {"HeadPitch", HeadPitch} 
+            };
 
-            jointToNode.Add("RShoulderPitch", RShoulderP);
-            jointToNode.Add("RShoulderRoll", RShoulderR);
-            jointToNode.Add("RElbowRoll", RElbowR);
-            jointToNode.Add("RElbowYaw", RElbowY);
-            jointToNode.Add("LShoulderPitch", LShoulderP);
-            jointToNode.Add("LShoulderRoll", LShoulderR);
-            jointToNode.Add("LElbowRoll", LElbowR);
-            jointToNode.Add("LElbowYaw", LElbowY);
-            jointToNode.Add("RHipRoll", RHipRoll);
-            jointToNode.Add("RHipPitch", RHipPitch);
-            jointToNode.Add("RKneePitch", RKneePitch);
-            jointToNode.Add("RAnklePitch", RAnklePitch);
-            jointToNode.Add("RAnkleRoll", RAnkleRoll);
-            jointToNode.Add("LHipRoll", LHipRoll);
-            jointToNode.Add("LHipPitch", LHipPitch);
-            jointToNode.Add("LKneePitch", LKneePitch);
-            jointToNode.Add("LAnklePitch", LAnklePitch);
-            jointToNode.Add("LAnkleRoll", LAnkleRoll);
-            jointToNode.Add("LWristYaw", LWristY);
-            jointToNode.Add("RWristYaw", RWristY);
-            jointToNode.Add("Torso", Torso);
-            jointToNode.Add("HeadYaw", HeadYaw);
-            jointToNode.Add("HeadPitch", HeadPitch);
+            try
+            {
+                //jointToNode.Keys.ToList(),
+                proxy = new NaoProxy(ip, jointToNode.Keys.ToList(), 100);
+                proxy.InitialPoll();
+                Thread thread = new Thread(new ThreadStart(proxy.PollLoop));
+                thread.Start();
+            }
+            catch (Exception e)
+            {
+                Console.Out.WriteLine("Elbow.Connect exception: " + e);
+            }
 
             leftF = new NaoFoot("L");
             rightF = new NaoFoot("R");
-            
-            JointNode LeftArm = CreateChain(new JointNode[] { LShoulderP, LShoulderR, LElbowY, LElbowR, LWristY });
-            JointNode RightArm = CreateChain(new JointNode[] { RShoulderP, RShoulderR, RElbowY, RElbowR, RWristY });
-            JointNode LeftLeg = CreateChain(new JointNode[] { LHipRoll, LHipPitch,  LKneePitch, LAnklePitch, LAnkleRoll });
-            JointNode RightLeg = CreateChain(new JointNode[] { RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll });
-            JointNode Head =    CreateChain(new JointNode[] { HeadYaw, HeadPitch });
-            JointNode Body = CreateChain(new JointNode[] { Torso });
-            //MotionProxy proxy = new MotionProxy(ip, 9559);
 
+            /********create the kinematic chains*****/
+            JointNode LeftArm = CreateChain(new JointNode[] { LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, LWristYaw });
+            JointNode RightArm = CreateChain(new JointNode[] { RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, RWristYaw });
+            JointNode LeftLeg = CreateChain(new JointNode[] { LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll });
+            JointNode RightLeg = CreateChain(new JointNode[] { RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll });
+            JointNode Head = CreateChain(new JointNode[] { HeadYaw, HeadPitch });
+            JointNode Body = CreateChain(new JointNode[] { Torso });
 
             Robot = new LinkedList<JointNode>(new JointNode[] { LeftArm, RightArm, LeftLeg, RightLeg, Head, Body });
 
-           
-            //initialize the positions of the robot.
-            InitializePositions(Robot, nao);        
+            //initialize the positions of the robot.   
+
+            InitializePositions(Robot);
+            InitializeLimits();
         }
 
-        private JointNode CreateChain(JointNode[] chain) { 
+        private void InitializeLimits()
+        {
+            limits = proxy.GetLimits();          
+        }
+
+        private JointNode CreateChain(JointNode[] chain)
+        {
             JointNode head = new JointNode();
             var chainlst = chain.ToList();
-            for (int i = 0; i < chain.Length - 1; i++) 
+            for (int i = 0; i < chain.Length - 1; i++)
             {
-                chainlst[i].next = chainlst[i + 1]; 
+                chainlst[i].next = chainlst[i + 1];
             }
             head.next = chainlst[0];
             return head;
         }
 
-        
-
-        private void InitializePositions(LinkedList<JointNode> chains, NaoBody nao)
+        private void InitializePositions(LinkedList<JointNode> chains)
         {
             Matrix prev = Matrix.Identity;
-            foreach (JointNode chain in chains) {
+            foreach (JointNode chain in chains)
+            {
                 JointNode cur = chain.next;
-                while (cur != null) {
-                    cur.localPosition = nao.GetPosition(cur.name).transform;
+                while (cur != null)
+                {
+                    cur.localPosition = proxy.GetPosition(cur.name).transform;
                     cur.torsoSpacePosition = cur.localPosition;
                     var temp = cur.localPosition;
                     cur.localPosition = Matrix.Multiply(cur.torsoSpacePosition, Matrix.Invert(prev));
-                    
+
                     Matrix toLocal = Matrix.Invert(cur.torsoSpacePosition);
 
-                    cur.mass = nao.GetMass(cur.name);
-                    if (cur.name != "Torso") cur.initialAngle = nao.GetAngles(cur.name);
-                    Vector3 torsoCom = nao.GetCOM(cur.name);
+                    cur.mass = proxy.GetMass(cur.name);
+                    if (cur.name != "Torso")
+                    {
+                        cur.initialAngle = proxy.GetAngles(cur.name);
+                        cur.updatedAngle = cur.initialAngle;
+                    }
+                    Vector3 torsoCom = proxy.GetCOM(cur.name);
                     cur.com = Vector3.Transform(torsoCom, toLocal);
+
                     //Console.WriteLine(torsoCom.ToString() + ", transformed: " + cur.com.ToString()); 
-                    
+
                     //set the foot sensors in ankleroll reference frame
                     if (cur.name == "RAnkleRoll")
                     {
                         //set the rankleroll angles 
-                        var rightFoot = nao.GetRightFoot();
+                        var rightFoot = proxy.GetRightFoot();
                         rightFLocal = new Vector3[4];
                         rightFLocal[0] = Vector3.Transform(rightFoot.pfl.position, toLocal);
                         rightFLocal[1] = Vector3.Transform(rightFoot.pfr.position, toLocal);
@@ -146,7 +165,7 @@ namespace KinectViewer
                     }
                     else if (cur.name == "LAnkleRoll")
                     {
-                        var leftFoot = nao.GetLeftFoot();
+                        var leftFoot = proxy.GetLeftFoot();
                         leftFLocal = new Vector3[4];
                         leftFLocal[0] = Vector3.Transform(leftFoot.pfl.position, toLocal);
                         leftFLocal[1] = Vector3.Transform(leftFoot.pfr.position, toLocal);
@@ -154,21 +173,21 @@ namespace KinectViewer
                         leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
                     }
 
-                        
+
 
                     cur = cur.next;
                     prev = temp;
                 }
                 prev = Matrix.Identity;
-      
+
             }
 
-            UL_len = (getPosition("RKneePitch") - getPosition("RHipPitch")).Length();
-            LL_len = (getPosition("RAnklePitch") - getPosition("RKneePitch")).Length();
-        }   
-       
+            UL_len = (GetPosition("RKneePitch") - GetPosition("RHipPitch")).Length();
+            LL_len = (GetPosition("RAnklePitch") - GetPosition("RKneePitch")).Length();
+        }
+
         //TODO: limits?
-        public void UpdatePositions(Dictionary<string, float> angles)
+        public void UpdatePositions()
         {
             //iterate through the chains 
             Matrix prev = Matrix.Identity;
@@ -182,13 +201,10 @@ namespace KinectViewer
 
                     Vector3 trans = cur.torsoSpacePosition.Translation;
                     cur.torsoSpacePosition.Translation = Vector3.Zero;
-                    if (angles.ContainsKey(cur.name))
-                    {
-                        float angle = angles[cur.name];
-                        if (cur.name == "RShoulderPitch" || cur.name == "RShoulderRoll")
-                            Console.WriteLine(cur.name + angle);
-                        cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
-                    }
+                    //may need to fix this. 
+                    float angle = cur.updatedAngle;
+                    cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
+                    
                     cur.torsoSpacePosition.Translation = trans;
 
                     prev = cur.torsoSpacePosition;
@@ -198,7 +214,7 @@ namespace KinectViewer
             }
         }
 
-        public Vector3 getPosition(string part)
+        public Vector3 GetPosition(string part)
         {
             return jointToNode[part].torsoSpacePosition.Translation;
         }
@@ -207,15 +223,14 @@ namespace KinectViewer
         // UGLY
         public float GetAxisAngle(Vector3 v, Vector3 axis)
         {
-            if (axis.X ==  1f) return (float)Math.Atan2(axis.Y, axis.Z);
+            if (axis.X == 1f) return (float)Math.Atan2(axis.Y, axis.Z);
             if (axis.X == -1f) return (float)Math.Atan2(axis.Z, axis.Y);
-            if (axis.Y ==  1f) return (float)Math.Atan2(axis.X, axis.Z);
+            if (axis.Y == 1f) return (float)Math.Atan2(axis.X, axis.Z);
             if (axis.Y == -1f) return (float)Math.Atan2(axis.Z, axis.X);
-            if (axis.Z ==  1f) return (float)Math.Atan2(axis.X, axis.Y);
+            if (axis.Z == 1f) return (float)Math.Atan2(axis.X, axis.Y);
             if (axis.Z == -1f) return (float)Math.Atan2(axis.Y, axis.X);
             throw new Exception("Cannot get angle for non axial rotation.");
         }
-
         public Tuple<float, float> GetAngleRequired(string a, string b, Vector3 vec)
         {
             JointNode ja = jointToNode[a], jb = jointToNode[b];
@@ -236,7 +251,6 @@ namespace KinectViewer
 
             return rightF;
         }
-
         public NaoFoot GetLeftFoot()
         {
             var ankleRef = LAnkleRoll.torsoSpacePosition;
@@ -254,7 +268,7 @@ namespace KinectViewer
             //multiply each mass w/ position and divde by total mass
             double totalMass = 0;
             Vector3 numerator = Vector3.Zero;
-            
+
             foreach (JointNode chain in Robot)
             {
                 JointNode cur = chain.next;
@@ -263,17 +277,16 @@ namespace KinectViewer
                     double mass = cur.mass;
                     totalMass += mass;
                     Vector3 position = Vector3.Transform(cur.com, cur.torsoSpacePosition);
-                    numerator += Vector3.Multiply(position, (float) mass);
+                    numerator += Vector3.Multiply(position, (float)mass);
                     cur = cur.next;
-                }   
+                }
 
             }
 
-            Vector3 com = Vector3.Multiply(numerator, (float) 1/ (float) totalMass);
-            
+            Vector3 com = Vector3.Multiply(numerator, (float)1 / (float)totalMass);
+
             //Console.WriteLine(com);
             return com;
-        
         }
 
         public static Vector3 VectorFromList(List<float> fs)
@@ -284,7 +297,7 @@ namespace KinectViewer
         public LinkedList<JointNode> getRobot()
         {
             return Robot;
-        }   
+        }
 
         //for single legged balancing, produce a target for a foot (currently the 
         //right foot, although this could be general)
@@ -292,7 +305,7 @@ namespace KinectViewer
         {
             Vector3 COM = GetCOM();
 
-            Vector3 RFoot = getPosition("RAnklePitch");
+            Vector3 RFoot = GetPosition("RAnklePitch");
 
             //use COM as origin 
             Vector3 RFoot_tr = RFoot - COM;
@@ -309,28 +322,28 @@ namespace KinectViewer
             //reset the origin
             RTarget_torso += COM;
 
-            return RTarget_torso;     
+            return RTarget_torso;
         }
-
         //limb lengths: check
         public double[] readjustLegs(Matrix BodyTxform)
         {
             Vector3 RTarget_torso = getFootTarget(BodyTxform);
 
-            double[] newRAngles = LegIK(Matrix.Identity, getPosition("RHipPitch"), RTarget_torso, UL_len, LL_len);
+            double[] newRAngles = LegIK(Matrix.Identity, GetPosition("RHipPitch"), RTarget_torso, UL_len, LL_len);
 
             //Console.WriteLine("hr: " + newRAngles[1] + ", hp: " + newRAngles[0] + ", kp: " + newRAngles[2]); 
-        
+
             return newRAngles;
         }
+
 
         public void InitializeTwoLegStance(Vector3 initCenter)
         {
             twoLegs = true;
-            initHl = getPosition("RHipPitch");
-            initHr = getPosition("LHipPitch");
-            initFl = getPosition("RAnklePitch");
-            initFr = getPosition("LAnklePitch");
+            initHl = GetPosition("RHipPitch");
+            initHr = GetPosition("LHipPitch");
+            initFl = GetPosition("RAnklePitch");
+            initFr = GetPosition("LAnklePitch");
             this.initCenter = initCenter;
         }
 
@@ -400,5 +413,77 @@ namespace KinectViewer
 
             return angles;
         }
+
+
+        private void SetJoint(string jointName, float val, float smooth)
+        {
+            float prior = jointToNode[jointName].updatedAngle;
+
+            if (float.IsNaN(prior)) prior = 0;
+            ArrayList limit = (ArrayList)limits[jointName][0];
+            jointToNode[jointName].updatedAngle = ClampToRange(val, (float)limit[0], (float)limit[1]);
+
+            if (smooth != 0)
+            {
+                jointToNode[jointName].updatedAngle = prior * smooth + jointToNode[jointName].updatedAngle * (1 - smooth);
+                //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
+            }
+        }
+
+        public void UpdateAngle(string jointName, float val, float smooth)
+        {
+            SetJoint(jointName, val, smooth);
+        }
+
+        //this is essentially a noop (SetJoint does not actually set angle if smooth = 0)
+        public void UpdateAngle(string jointName, float val)
+        {
+            UpdateAngle(jointName, val, 0);
+        }
+
+
+        private static float ClampToRange(float val, float min, float max)
+        {
+            if (val < min) return min;
+            if (val > max) return max;
+            return val;
+        }
+
+
+        public void RSSendBlocking()
+        {
+            if (proxy == null) return;
+            ArrayList joints = new ArrayList();
+            ArrayList values = new ArrayList();
+            foreach (string joint in jointToNode.Keys)
+            {
+                if (joint != "Torso")
+                {
+                    joints.Add(joint);
+                    values.Add(jointToNode[joint].updatedAngle);
+                }
+            }
+            proxy.SetAngles(joints, values, .2f);
+            //_motion.wait(id, 10000);
+            System.Threading.Thread.Sleep(3000);
+        }
+
+        public void RSSend()
+        {
+            if (proxy == null) return;
+            ArrayList joints = new ArrayList();
+            ArrayList values = new ArrayList();
+            foreach (string joint in jointToNode.Keys)
+            {
+                if (joint != "Torso")
+                {
+                    joints.Add(joint);
+                    values.Add(jointToNode[joint].updatedAngle);
+                }
+            }
+            proxy.SetAngles(joints, values, speed);
+        }
+
+
     }
 }
