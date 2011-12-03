@@ -15,6 +15,7 @@ namespace KinectViewer
         private float speed = 0.2f;
         private NaoProxy proxy;
         Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
+        private FixedBalancer fixedBalancer;
 
         /*setting up the joint nodes for the robot. */
         JointNode LShoulderPitch, RShoulderPitch, RShoulderRoll, LShoulderRoll, LElbowYaw, RElbowYaw, LElbowRoll, RElbowRoll, LWristYaw,
@@ -173,8 +174,6 @@ namespace KinectViewer
                         leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
                     }
 
-
-
                     cur = cur.next;
                     prev = temp;
                 }
@@ -184,6 +183,12 @@ namespace KinectViewer
 
             UL_len = (GetPosition("RKneePitch") - GetPosition("RHipPitch")).Length();
             LL_len = (GetPosition("RAnklePitch") - GetPosition("RKneePitch")).Length();
+
+            //Balancer initialization
+            double initHip = jointToNode["RHipPitch"].initialAngle;
+            double initKnee = jointToNode["RKneePitch"].initialAngle;
+            double initAnkle = jointToNode["RAnklePitch"].initialAngle;
+            fixedBalancer = new FixedBalancer(initHip, initKnee, initAnkle);
         }
 
         //TODO: limits?
@@ -196,7 +201,6 @@ namespace KinectViewer
                 JointNode cur = chain.next;
                 while (cur != null)
                 {
-
                     cur.torsoSpacePosition = Matrix.Multiply(cur.localPosition, prev);
 
                     Vector3 trans = cur.torsoSpacePosition.Translation;
@@ -212,6 +216,17 @@ namespace KinectViewer
                 }
                 prev = Matrix.Identity;
             }
+        }
+
+        public void BalanceTwoLegs()
+        {
+            double hipPitch = jointToNode["RHipPitch"].updatedAngle;
+            double kneePitch = jointToNode["RKneePitch"].updatedAngle;
+            double AnklePitch = fixedBalancer.updateAnkle(hipPitch, kneePitch);
+            jointToNode["LKneePitch"].updatedAngle = (float)jointToNode["RKneePitch"].updatedAngle;
+            jointToNode["LHipPitch"].updatedAngle = (float)jointToNode["RHipPitch"].updatedAngle;
+            jointToNode["RAnklePitch"].updatedAngle = (float) AnklePitch;
+            jointToNode["LAnklePitch"].updatedAngle = (float) AnklePitch;
         }
 
         public Vector3 GetPosition(string part)
