@@ -5,6 +5,7 @@ using System.Text;
 
 namespace KinectViewer
 {
+    // http://www.codeproject.com/KB/recipes/IndustrialDotNetPID.aspx
     public class PID
     {
         #region Fields
@@ -24,10 +25,7 @@ namespace KinectViewer
         private double pvMin;
         private double outMax;
         private double outMin;
-
-        //Timing
-        private double computeHz = 1.0f;
-
+        
         #endregion
 
         #region Properties

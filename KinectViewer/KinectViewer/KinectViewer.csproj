@@ -132,6 +132,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FixedBalancer.cs" />
     <Compile Include="JointNode.cs" />
     <Compile Include="NaoSimulator.cs" />
     <Compile Include="NaoFoot.cs" />
@@ -162,6 +163,10 @@
     <ProjectReference Include="..\..\HMMTest\HMMTest\HMMTest.csproj">
       <Project>{254F5564-F570-4877-8998-4EDDB57C2F32}</Project>
       <Name>HMMTest</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\IKSolver\IKSolver.csproj">
+      <Project>{947D0377-62D6-4835-A156-09624DC15B0C}</Project>
+      <Name>IKSolver</Name>
     </ProjectReference>
     <ProjectReference Include="..\KinectViewerContent\KinectViewerContent.contentproj">
       <Name>KinectViewerContent</Name>

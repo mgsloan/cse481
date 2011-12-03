@@ -15,7 +15,7 @@ namespace KinectViewer
         {
             get
             {
-                return proxy != null;
+                return proxy._motion != null;
             }
         }
 
@@ -25,6 +25,8 @@ namespace KinectViewer
         public Dictionary<string, float> jointToAngle;
         public Dictionary<string, ArrayList> limits;
         private NaoProxy proxy;
+
+       // PID rollPID, pitchPID;
 
         public void Connect(string ip)
         {
@@ -50,6 +52,7 @@ namespace KinectViewer
             jointToAngle.Add("LAnklePitch", 0);
             jointToAngle.Add("LAnkleRoll", 0);
 
+            //rollPID = new PID(0.5, 0.5, 0.5, );
 
 
 
@@ -78,9 +81,12 @@ namespace KinectViewer
                 "RHipRoll",
                 "LHipRoll"});
 
+<<<<<<< HEAD
+=======
 
 
 
+>>>>>>> fadba9ffcc1c86415e69256fafba5e2bca50d186
             try
             {
                 MemoryProxy memory = new MemoryProxy(ip, 9559);
@@ -88,7 +94,10 @@ namespace KinectViewer
 
                 foreach (string joint in jointToAngle.Keys)
                 {
+<<<<<<< HEAD
+=======
 
+>>>>>>> fadba9ffcc1c86415e69256fafba5e2bca50d186
                     limits.Add(joint, (ArrayList)motion.getLimits(joint));
                 }
                 // give the joints some stiffness
@@ -385,7 +394,6 @@ namespace KinectViewer
             return Vector3.Transform(NaoPos.Convert(proxy.GetCOM()), Matrix.Identity);
         }
 
-
         public NaoPos GetPosition(string part)
         {
             return proxy.GetPosition(part);
@@ -416,7 +424,7 @@ namespace KinectViewer
 
             // Balance vector.  We need it to be vertical.
             Vector3 delta = Vector3.Subtract(com, target);
-
+            
             // Transform into lower leg local space.
             Matrix mat = Matrix.Invert(GetPosition((feet == 2 ? "R" : "L") + "KneePitch").transform);
             Vector3 local = Vector3.Transform(delta, mat);
@@ -450,29 +458,12 @@ namespace KinectViewer
             }
         }
 
-        //world space
-        //assume PivotDislace is flat (y = 0) in world space
-        //pivot displace goes from pivot point to target location
-        public void PivotCOM(Vector3 PivotPoint, Vector3 PivotDisplace, Vector3 LinkCOM, Vector3 LinkDir)
-        {
-            double LinkCOM_rot = Math.Acos(PivotDisplace.Length() / LinkCOM.Length());
-
-            double COMtoLink_rot = AngleBetween(LinkCOM, LinkDir); //min angle to rotate LinkDir to LinkCOM
-
-            Vector3 rotationAxis = Vector3.Cross(PivotDisplace, new Vector3(0, 1, 0));
-
-            Matrix rotation = Matrix.CreateFromAxisAngle(rotationAxis, (float)(LinkCOM_rot + COMtoLink_rot));
-
-            Vector3 LinkDir_tx = Vector3.Transform(LinkDir, rotation);
-
-
-        }
-
         public static double AngleBetween(Vector3 v1, Vector3 v2)
         {
             return Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
         }
 
+        //unfinished, could be useful later though
         //get mtrx necessary to transform the X axis to d (assume d is in the space of X)
         public void GetVectorTxform(Vector3 d)
         {
@@ -484,10 +475,7 @@ namespace KinectViewer
 
             Vector3 X = new Vector3();
 
-
             //angle between d_proj and d is rotation about (d * d_proj) axis
-
-
         }
 
         public void doEveryting(NaoSimulator sim)

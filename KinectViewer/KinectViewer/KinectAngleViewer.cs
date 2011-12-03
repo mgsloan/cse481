@@ -10,6 +10,7 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
+
         protected override void updateSkeleton(SkeletonData skeleton)
         {
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight    ]),
@@ -77,48 +78,15 @@ namespace KinectViewer
             Vector3 LLA = flipXInRef(srRef, srRefInv, Vector3.Subtract(wristLeft, elbowLeft));
             Vector3 LH  = flipXInRef(srRef, srRefInv, Vector3.Subtract(handLeft, wristLeft));
             LLA.Normalize(); LUA.Normalize(); LH.Normalize();
-
             calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
-            
 
-            
+            foreach (KeyValuePair<String, float> entry in kinectAngles) naoSim.UpdateAngle(entry.Key, entry.Value, .3f);
 
-
-            //TODO: send the information to the NAO 
-            naoSim.UpdatePositions();
+            //important to call this last (it actually sends the angles to the NAO)
             base.updateSkeleton(skeleton);
 
-
             // DEBUG
-
-            ParallelFoot(srReflegs, RUAlegs, RLAlegs);
-
-            /*
-            //float UL_len, LL_len;
-            //Vector3.Distance(ref hipLeft, ref kneeLeft, out UL_len);
-            //Vector3.Distance(ref kneeLeft, ref footLeft, out LL_len);
-
-            //double[] legAngles = LegIK(srRefInv, new Vector3(0, 0, 0), footLeft - hipLeft, 5, 5);
-            //nao.LHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
-            //nao.LHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
-            //nao.LKUpdatePitch((float) (Math.PI - legAngles[2]));
-
-            Vector3 origin = new Vector3(4, 0, 0);
-            Vector3 displayHipRoll = new Vector3(-2, 10, 0);
-            lines.Add(new LabelledVector(origin + displayHipRoll, origin + displayHipRoll, Color.Black, "HipRoll: " + legAngles[1]));
-
-            Vector3 displayHipPitch = new Vector3(-2, 12, 0);
-            lines.Add(new LabelledVector(origin + displayHipPitch, origin + displayHipPitch, Color.Black, "HipPitch: " + (legAngles[0])));
-
-            Vector3 displayKneePitch = new Vector3(-2, 14, 0);
-            lines.Add(new LabelledVector(origin + displayKneePitch, origin + displayKneePitch, Color.Black, "KneePitch: " + legAngles[2]));
-
-            //legAngles = LegIK(srRefInv, hipRight, footRight, UL_len, LL_len);
-            //nao.RHUpdateRoll((float) (legAngles[1] + Math.PI / 2));
-            //nao.RHUpdatePitch((float) (legAngles[0] + Math.PI / 2));
-            //nao.RKUpdatePitch((float) (Math.PI - legAngles[2]));
-            */
-            // END DEBUG
+            //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
@@ -130,31 +98,17 @@ namespace KinectViewer
 
         private void calculateAngles(SkeletonData skeleton, string extremity, Matrix srRef, Matrix srRefInv, Vector3 UA, Vector3 LA, Vector3 H)
         {
-            // Compute angular reference frame used for pitch
-
             // Compute pitch by transforming into body frame, and projecting onto Y-Z plane.
-            
             Vector3 elocal = Vector3.Transform(UA, srRefInv);
-            // elocal.Z and elocal.Y both near 0 at once has wierd singularities - pick a default pitch
-            //float pitch = (float)(Math.Abs(Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2))) < .2 ? (Math.PI / 2)
-            //            : Math.Atan2(-elocal.Y, -elocal.Z));
-            float pitch;
-            //if (Math.Sqrt(Math.Pow(elocal.Z, 2) + Math.Pow(elocal.Y, 2)) < .5) 
-            //    pitch = 0;
-            //else 
-                pitch = (float) Math.Atan2(-elocal.Y, -elocal.Z);
-
-            //Console.WriteLine("UA_PITCH: " + pitch);
+            float pitch = (float) Math.Atan2(-elocal.Y, -elocal.Z);
 
             // Compute angular reference frame used for roll, by pitching our original frame forward.
             Matrix srRef2 = Matrix.Multiply(Matrix.CreateRotationX((float)Math.PI / 2 - pitch), srRef);
             Matrix srRef2Inv = Matrix.Invert(srRef2);
+
             // Compute roll by transforming into this frame, and projecting onto X-Y plane.
             Vector3 elocal2 = Vector3.Transform(UA, srRef2Inv);
             float roll = (float)(Math.Atan2(elocal2.X, elocal2.Y));
-
-            //elocal2.Normalize();
-            //lines.Add(new LabelledVector(Vector3.Zero, elocal2 * 3, Color.Gold, "e_local"));
 
             // Compute angular reference frame used for elbow yaw by rolling the previous frame.
             Matrix eRef = Matrix.Multiply(Matrix.CreateRotationZ((float)Math.PI - roll), srRef2);
@@ -188,23 +142,9 @@ namespace KinectViewer
                 Matrix fRefInv2 = Matrix.Invert(fRef2);
                 Vector3 fLocal2 = Vector3.Transform(H, fRefInv2);
                 ankleRoll = (float)(Math.Atan2(fLocal2.X, fLocal2.Y));
-
-                debugReferenceFrame(ankleRoll.ToString(), fRef2, 4, getLoc(skeleton.Joints[extremity == "rl" ? JointID.AnkleLeft : JointID.AnkleRight]));
-                debugReferenceFrame(anklePitch.ToString(), eRef, 4, getLoc(skeleton.Joints[extremity == "rl" ? JointID.KneeLeft : JointID.KneeRight]));
             }
 
-            /*
-            Matrix wRef = Matrix.Multiply(Matrix.CreateRotationX(eroll), eRef2);
-            Vector3 hlocal = Vector3.Transform(H, Matrix.Invert(wRef));
-            float wroll = (float)(Math.Atan2(hlocal.Z, hlocal.X));
-
-            Matrix wRef2 = Matrix.Multiply(Matrix.CreateRotationY(wroll), wRef);
-            Vector3 hlocal2 = Vector3.Transform(H, Matrix.Invert(wRef2));
-            float hand = (float)(Math.Atan2(hlocal2.Y, hlocal2.Z));
-            */
-
-            //hlocal2.Normalize();
-            //lines.Add(new LabelledVector(Vector3.Zero, hlocal2 * 3, Color.Gold, "h_local"));
+            float hand = (float)Math.Acos(Vector3.Dot(LA, H));
 
             switch (extremity)
             {
@@ -212,83 +152,41 @@ namespace KinectViewer
                     {
                         //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
                         //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
-                        //  debugReferenceFrame("wr = " + hand.ToString(), wRef, 3, getLoc(skeleton.Joints[JointID.WristRight]));
-                        naoSim.UpdateAngle("RShoulderPitch", pitch);
-                        naoSim.UpdateAngle("RShoulderRoll", roll - (float)Math.PI);
-                        naoSim.UpdateAngle("RElbowYaw", eyaw + (float)(Math.PI / 2));
-                        naoSim.UpdateAngle("RElbowRoll", eroll + (float)Math.PI);
-                        
+                        kinectAngles["RShoulderPitch"] = pitch;
+                        kinectAngles["RShoulderRoll"] = roll - (float)Math.PI;
+                        kinectAngles["RElbowYaw"] = eyaw + (float)(Math.PI / 2);
+                        kinectAngles["RElbowRoll"] = eroll + (float)Math.PI;
                         break;
                     }
                 case "la":
                     {
                         //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
                         //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
-                        naoSim.UpdateAngle("LShoulderPitch", pitch);
-                        naoSim.UpdateAngle("LShoulderRoll", -(roll - (float)Math.PI));
-                        naoSim.UpdateAngle("LElbowYaw", -(eyaw + (float)(Math.PI / 2)));
-                        naoSim.UpdateAngle("LElbowRoll", -(eroll + (float)Math.PI));
-
-                        //Console.WriteLine("elbowyaw: " + (-(eyaw + (float)(Math.PI / 2))));
-                        //Console.WriteLine("elbowroll: " + (-(eroll + (float)Math.PI)));
-                     
+                        kinectAngles["LShoulderPitch"] = pitch;
+                        kinectAngles["LShoulderRoll"] = -(roll - (float)Math.PI);
+                        kinectAngles["LElbowYaw"] = -(eyaw + (float)(Math.PI / 2));
+                        kinectAngles["LElbowRoll"] = -(eroll + (float)Math.PI);
                         break;
                     }
                 case "rl":
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        naoSim.UpdateAngle("RHipRoll", roll);
-                        naoSim.UpdateAngle("RHipPitch", pitch - (float)Math.PI / 2);
-                        naoSim.UpdateAngle("RKneePitch", knee);
-                        
-                        
-                        /*
-                        if (skeleton.Joints[JointID.FootRight].TrackingState == JointTrackingState.Tracked)
-                        {
-                            
-                            naoSim.UpdateAngle("RAnklePitch", anklePitch, 0.5f);
-                            naoSim.UpdateAngle("RAnkleRoll", ankleRoll,0.5f);
-                        }
-                        */
+                        kinectAngles["RHipRoll"] = roll;
+                        kinectAngles["RHipPitch"] = pitch - (float)Math.PI / 2;
+                        kinectAngles["RKneePitch"] = knee;
                         break;
                     }
                 case "ll":
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-
-                        naoSim.UpdateAngle("LHipRoll", roll);
-                        naoSim.UpdateAngle("LHipPitch", pitch - (float)Math.PI / 2);
-                        naoSim.UpdateAngle("LKneePitch", knee);
-                       
-                        
-                        
-                        //naoSim.RKUpdatePitch(knee / 2);
-
-                        /*
-                        if (skeleton.Joints[JointID.FootLeft].TrackingState == JointTrackingState.Tracked) {
-                            
-                            naoSim.UpdateAngle("LAnklePitch", anklePitch, 0.5f);
-                            naoSim.UpdateAngle("LAnkleRoll", ankleRoll, 0.5f);
-                         
-                       
-                        }
-                        */
+                        kinectAngles["LHipRoll"] = roll;
+                        kinectAngles["LHipPitch"] = pitch - (float)Math.PI / 2;
+                        kinectAngles["LKneePitch"] = knee;
                         break;
                     }
             }
-
-            // visualizations of values involved
-            //Vector3 offset = Vector3.Add(spine, new Vector3(5, 0, 0));
-            //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, elocal2.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
-            //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(0, elocal.Y, elocal.Z), 5)), Color.Black, "pitch = " + pitch.ToString()));
-            //lines.Add(new LabelledVector(offset, Vector3.Add(offset, Vector3.Multiply(new Vector3(elocal2.X, elocal2.Y, 0), 5)), Color.Black, "roll = " + roll.ToString()));
-            //debugReferenceFrame("", srRef, 3, getLoc(shoulderRight));
-            //debugReferenceFrame(, srRef, 3, shoulderRight);
-            //debugReferenceFrame("sr2", srRef2, 3);
-            //debugReferenceFrame(eyaw.ToString(), eRef, 3, elbowRight);
-            //debugReferenceFrame(eroll.ToString(), eRef2, 3, elbowRight);
         }
 
         public Vector toNuiVec(Vector3 vec)
@@ -299,14 +197,6 @@ namespace KinectViewer
             result.Z = vec.Z;
             return result;
         }
-
-        /*
-        public void localCloud(PlanarImage image)
-        {
-            float x, y;
-            short val;
-            nui.SkeletonEngine.SkeletonToDepthImage(R3b, out x, out y, out val);
-        }*/
 
         //find angles that would make the flat of the foot parallel with the ground
         //UL = upper leg vector, LL = lower leg vector

@@ -16,12 +16,13 @@ namespace KinectViewer
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
         protected NaoSimulator naoSim;
+        protected Balancer balancer;
+        private FixedBalancer fixedBalancer;
       
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
         
         const string IP = "127.0.0.1"; // "128.208.4.225";
-
 
         bool trap_mouse = true;
         KeyboardState prior_keys;
@@ -37,6 +38,9 @@ namespace KinectViewer
         SampleGrid grid2;
         Vector3 leftFootInitial;
         Vector3 rightFootInitial;
+
+        // Kinect-derived angles (manipulated in subclasses)
+        protected Dictionary<String, float> kinectAngles = new Dictionary<string, float>();
 
         // Torso reference (manipulated in subclasses)
         protected Matrix srRef { get; set; }
@@ -64,7 +68,6 @@ namespace KinectViewer
             RobotSimSphere = new SpherePrimitive(GraphicsDevice, 0.6f, 8);
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();
-
 
             grid = new SampleGrid();
             grid.GridSize = 16;
@@ -96,15 +99,37 @@ namespace KinectViewer
                 MaxDeviationRadius = 0.05f
             };
             nui.SkeletonEngine.SmoothParameters = parameters;
-        
+
             naoSim = new NaoSimulator(IP);
-            
+            balancer = new Balancer(naoSim);
+            fixedBalancer = new FixedBalancer(naoSim);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
             cur_skeleton = skeleton;
             //sc.sendRotationSpeeds(nao.values);
+
+            //BALANCE METHOD 1
+
+            foreach (KeyValuePair<String, float> t in kinectAngles)
+            {
+                if (t.Key != "RKneePitch" &&
+                    t.Key != "RHipPitch" &&
+                    t.Key != "RHipRoll")
+                    naoSim.UpdateAngle(t.Key, t.Value);
+            }
+            balancer.Balance(1, lines, srRef.Up);
+
+            //END BALANCE METHOD 1
+
+            //BALANCE METHOD 2
+            //fixedBalancer.balance(); //should do this before calling UpdatePositions
+            //END BALANCE METHOD 2
+
+            naoSim.UpdatePositions();
+
+            naoSim.RSSend();
         }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
@@ -242,7 +267,7 @@ namespace KinectViewer
             {
                 frame++;
                 //display COM (indicated by a green ball.
-                //int foot = 1; 
+                //int foot = 1;
                 /*
                 nao.Balance(foot, lines);
                 if (foot == 2)
@@ -274,7 +299,6 @@ namespace KinectViewer
                     nao.GetLeftFoot().FootLines(lines);
                 }
                 */
-                naoSim.RSSend();
                
                 drawRobot();
             }
@@ -484,6 +508,8 @@ namespace KinectViewer
 
 
         }
+
+        protected virtual void InitializeTwoLegStance() { }
 
         private void AddToCameraPosition(Vector3 vectorToAdd)
         {
