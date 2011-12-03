@@ -111,7 +111,7 @@ namespace KinectViewer
             //sc.sendRotationSpeeds(nao.values);
 
             //BALANCE METHOD 1
-            /*
+
             foreach (KeyValuePair<String, float> t in kinectAngles)
             {
                 if (t.Key != "RKneePitch" &&
@@ -120,11 +120,11 @@ namespace KinectViewer
                     naoSim.UpdateAngle(t.Key, t.Value);
             }
             balancer.Balance(1, lines, srRef.Up);
-            */
+
             //END BALANCE METHOD 1
 
             //BALANCE METHOD 2
-            fixedBalancer.balance(); //should do this before calling UpdatePositions
+            //fixedBalancer.balance(); //should do this before calling UpdatePositions
             //END BALANCE METHOD 2
 
             naoSim.UpdatePositions();
