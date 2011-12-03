@@ -467,6 +467,11 @@ namespace KinectViewer
                     moveVector += new Vector3(0, 1, 0);
                 if (keyState.IsKeyDown(Keys.Z))
                     moveVector += new Vector3(0, -1, 0);
+                if (keyState.IsKeyDown(Keys.C))
+                {
+                    if (!sim.twoLegs) this.InitializeTwoLegStance();
+                    else sim.twoLegs = false;
+                }
                 AddToCameraPosition(moveVector * amount);
             }
 
@@ -495,6 +500,8 @@ namespace KinectViewer
 
 
         }
+
+        protected virtual void InitializeTwoLegStance() { }
 
         private void AddToCameraPosition(Vector3 vectorToAdd)
         {

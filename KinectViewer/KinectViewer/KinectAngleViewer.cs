@@ -47,14 +47,14 @@ namespace KinectViewer
             Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
             Vector3 RHlegs = Vector3.Subtract(footRight, ankleRight);
             RUAlegs.Normalize(); RLAlegs.Normalize(); RHlegs.Normalize();
-            //calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
+            calculateAngles(skeleton, "rl", srReflegs, srRefInvlegs, RUAlegs, RLAlegs, RHlegs);
 
             // left leg
             Vector3 LUAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(kneeLeft, hipLeft));
             Vector3 LLAlegs = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(ankleLeft, kneeLeft));
             Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
-            //calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
+            calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
 
             // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
@@ -82,6 +82,8 @@ namespace KinectViewer
             
             base.updateSkeleton(skeleton);
 
+            foreach (String key in angles.Keys) naoSim.UpdateAngle(key, angles[key], .05f);
+            naoSim.UpdatePositions();
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
         }
@@ -194,7 +196,7 @@ namespace KinectViewer
             result.Z = vec.Z;
             return result;
         }
-        
+
         //find angles that would make the flat of the foot parallel with the ground
         //UL = upper leg vector, LL = lower leg vector
         public void ParallelFoot(Matrix BodyTxform, Vector3 UL, Vector3 LL) 

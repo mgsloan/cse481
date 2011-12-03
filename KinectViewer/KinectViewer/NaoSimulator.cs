@@ -26,6 +26,8 @@ namespace KinectViewer
         Vector3[] leftFLocal;
 
         double UL_len, LL_len; //upper/lower leg length
+        Vector3 initHr, initHl, initFr, initFl, initCenter;
+        public bool twoLegs { get; set; }
 
         LinkedList<JointNode> Robot;
         /*this constructs a NAO object. Will initial the NAO parts 
@@ -101,7 +103,8 @@ namespace KinectViewer
 
             Robot = new LinkedList<JointNode>(new JointNode[] { LeftArm, RightArm, LeftLeg, RightLeg, Head, Body });
 
-            //initialize the positions of the robot.
+            //initialize the positions of the robot.   
+
             InitializePositions(Robot);
             InitializeLimits();
         }
@@ -290,11 +293,14 @@ namespace KinectViewer
         {
             return new Vector3(fs[0], fs[1], fs[2]);
         }
+
         public LinkedList<JointNode> getRobot()
         {
             return Robot;
         }
 
+        //for single legged balancing, produce a target for a foot (currently the 
+        //right foot, although this could be general)
         public Vector3 getFootTarget(Matrix BodyTxform)
         {
             Vector3 COM = GetCOM();
@@ -329,6 +335,33 @@ namespace KinectViewer
 
             return newRAngles;
         }
+
+
+        public void InitializeTwoLegStance(Vector3 initCenter)
+        {
+            twoLegs = true;
+            initHl = GetPosition("RHipPitch");
+            initHr = GetPosition("LHipPitch");
+            initFl = GetPosition("RAnklePitch");
+            initFr = GetPosition("LAnklePitch");
+            this.initCenter = initCenter;
+        }
+
+        //for when both feet are on the ground
+        public void AdjustFeet(Vector3 position)
+        {
+            Vector3 displacement = position - initCenter;
+
+            Vector3 finalFr = initFr - displacement;
+            Vector3 finalFl = initFl - displacement;
+
+            // do IK from each hip to the corresponding foot
+            double[] lAngles = IKSolver.IK.LegIK(Matrix.Identity, initHr, finalFr, UL_len, LL_len);
+            double[] rAngles = IKSolver.IK.LegIK(Matrix.Identity, initHl, finalFl, UL_len, LL_len);
+
+            Console.WriteLine("Left: " + lAngles[0] + ", " + lAngles[1] + ", " + lAngles[2]);
+        }
+
         private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
         {
             // (1) find hip roll 
@@ -402,6 +435,7 @@ namespace KinectViewer
             SetJoint(jointName, val, smooth);
         }
 
+        //this is essentially a noop (SetJoint does not actually set angle if smooth = 0)
         public void UpdateAngle(string jointName, float val)
         {
             UpdateAngle(jointName, val, 0);
