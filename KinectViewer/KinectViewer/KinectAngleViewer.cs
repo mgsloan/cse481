@@ -80,7 +80,10 @@ namespace KinectViewer
 
             calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
             
+
             
+
+
             //TODO: send the information to the NAO 
             naoSim.UpdatePositions();
             base.updateSkeleton(skeleton);
