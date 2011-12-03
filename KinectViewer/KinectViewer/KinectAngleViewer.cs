@@ -81,11 +81,13 @@ namespace KinectViewer
             LLA.Normalize(); LUA.Normalize(); LH.Normalize();
 
             calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
-            
-            base.updateSkeleton(skeleton);
-
+           
             foreach (String key in angles.Keys) naoSim.UpdateAngle(key, angles[key], .05f);
+            naoSim.BalanceTwoLegs(); //should do this before calling UpdatePositions
             naoSim.UpdatePositions();
+
+            //important to call this last (it actually sends the angles to the NAO)
+            base.updateSkeleton(skeleton);
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
         }
