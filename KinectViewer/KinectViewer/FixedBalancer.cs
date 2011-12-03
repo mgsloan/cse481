@@ -11,22 +11,24 @@ namespace KinectViewer
     //expects to be initialized with a stable standing position
     class FixedBalancer
     {
-        double initHip; //initial pitch for both hips
-        double initKnee; //initial pitch for both knees
-        double initAnkle; //inital pitch for both ankles
+        private double initHip; //initial pitch for both hips
+        private double initKnee; //initial pitch for both knees
+        private double initAnkle; //inital pitch for both ankles
+        NaoSimulator naoSim;
 
-        public FixedBalancer(double initHip, double initKnee, double initAnkle)
+        public FixedBalancer(NaoSimulator naoSim)
         {
-            this.initHip = initHip; //current best = .183259
-            this.initKnee = initKnee; //current best = -.076658
-            this.initAnkle = initAnkle; //current best = .085945
+            this.naoSim = naoSim;
+            this.initHip = naoSim.GetInitialAngle("RHipPitch"); //current best = .183259
+            this.initKnee = naoSim.GetInitialAngle("RKneePitch"); //current best = -.076658
+            this.initAnkle = naoSim.GetInitialAngle("RAnklePitch"); //current best = .085945
         }
 
         //http://users.aldebaran-robotics.com/docs/site_en/reddoc/hardware/joints-names_3.3.html
 
         //if knee angle increases by T, hip pitch increases by T, and 
-        //ankle pitch increases by T
-        public Tuple<double, double> updateHipAnkle(double k)
+        //ankle pitch increases by T (currently not used)
+        private Tuple<double, double> updateHipAnkle(double k)
         {
             double delta_k = k - initKnee;
 
@@ -35,12 +37,15 @@ namespace KinectViewer
 
         //if knee angle increases by T, ankle pitch increases by T
         //if hip angle increases by T, ankle pitch increases by T
-        public double updateAnkle(double h, double k)
+        public void balance()
         {
-            double delta_h = h - initHip;
-            double delta_k = k - initKnee;
+            double delta_h = naoSim.GetCurrentAngle("RHipPitch") - initHip;
+            double delta_k = naoSim.GetCurrentAngle("RKneePitch") - initKnee;
 
-            return (initAnkle - .5 * delta_h - 1 * delta_k);
+            naoSim.UpdateAngle("RAnklePitch", (float) (initAnkle - .5 * delta_h - 1 * delta_k), .05f);
+            naoSim.UpdateAngle("LKneePitch", naoSim.GetCurrentAngle("RKneePitch"));
+            naoSim.UpdateAngle("LHipPitch", naoSim.GetCurrentAngle("RHipPitch"));
+            naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));
         }
     }
 }

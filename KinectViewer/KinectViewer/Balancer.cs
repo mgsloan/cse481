@@ -15,10 +15,10 @@ namespace KinectViewer
         NaoProxy nao;
         private float speed = 0.2f;
 
-        public Balancer(NaoSimulator naoSim, NaoProxy nao)
+        public Balancer(NaoSimulator naoSim)
         {
             this.naoSim = naoSim;
-            this.nao = nao;
+            this.nao = naoSim.proxy;
        }
 
         public static float FromRad(float rad) { return rad / (float)Math.PI * 180f; }
@@ -119,10 +119,28 @@ namespace KinectViewer
             return sum / xs.Length;
         }
 
-        public void Balance(int feet, List<LabelledVector> ls)
+        public void Balance(int feet, List<LabelledVector> ls, Vector3 torso)
         {
-            NaoFoot targetFoot = feet == 2 ? naoSim.GetRightFoot() : naoSim.GetLeftFoot();
+            NaoFoot targetFoot;
+            string prefix;
 
+            if (feet == 2) {
+                targetFoot = naoSim.GetRightFoot();
+                prefix = "R";
+            } else {
+                targetFoot = naoSim.GetLeftFoot();
+                prefix = "L";
+            }
+
+            /*
+            Matrix groundRef = targetFoot.pfl.transform;
+            groundRef.Translation = Vector3.Zero;
+            
+            NaoPos kneePos = naoSim.GetPosition(prefix ++ "KneePitch");
+
+            naoSim.UpdateAngle(prefix ++ "HipRoll", );
+            */
+            
             // Center of mass, and center of target, both in torso space.
             Vector3 com = naoSim.GetCOM();
             Vector3 target = targetFoot.GetCenter();
@@ -131,7 +149,7 @@ namespace KinectViewer
             Vector3 delta = Vector3.Subtract(com, target);
 
             // Transform into lower leg local space.
-            Matrix mat = Matrix.Invert(Matrix.CreateTranslation(naoSim.GetPosition((feet == 2 ? "R" : "L") + "KneePitch")));
+            Matrix mat = Matrix.Invert(Matrix.CreateTranslation(naoSim.GetPosition(prefix + "KneePitch")));
             Vector3 local = Vector3.Transform(delta, mat);
 
             // Take the angle of the vector to be the angle we need to rotate

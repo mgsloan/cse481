@@ -13,9 +13,8 @@ namespace KinectViewer
     {
         private Dictionary<string, JointNode> jointToNode;
         private float speed = 0.2f;
-        private NaoProxy proxy;
+        public NaoProxy proxy { get; set; }
         Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
-        private FixedBalancer fixedBalancer;
 
         /*setting up the joint nodes for the robot. */
         JointNode LShoulderPitch, RShoulderPitch, RShoulderRoll, LShoulderRoll, LElbowYaw, RElbowYaw, LElbowRoll, RElbowRoll, LWristYaw,
@@ -78,18 +77,12 @@ namespace KinectViewer
                 {"LWristYaw", LWristYaw}, {"RWristYaw", RWristYaw}, {"Torso", Torso}, {"HeadYaw", HeadYaw}, {"HeadPitch", HeadPitch} 
             };
 
-            try
-            {
-                //jointToNode.Keys.ToList(),
-                proxy = new NaoProxy(ip, jointToNode.Keys.ToList(), 100);
-                proxy.InitialPoll();
-                Thread thread = new Thread(new ThreadStart(proxy.PollLoop));
-                thread.Start();
-            }
-            catch (Exception e)
-            {
-                Console.Out.WriteLine("Elbow.Connect exception: " + e);
-            }
+
+            //jointToNode.Keys.ToList(),
+            proxy = new NaoProxy(ip, jointToNode.Keys.ToList(), 100);
+            proxy.InitialPoll();
+            Thread thread = new Thread(new ThreadStart(proxy.PollLoop));
+            thread.Start();
 
             leftF = new NaoFoot("L");
             rightF = new NaoFoot("R");
@@ -183,12 +176,6 @@ namespace KinectViewer
 
             UL_len = (GetPosition("RKneePitch") - GetPosition("RHipPitch")).Length();
             LL_len = (GetPosition("RAnklePitch") - GetPosition("RKneePitch")).Length();
-
-            //Balancer initialization
-            double initHip = jointToNode["RHipPitch"].initialAngle;
-            double initKnee = jointToNode["RKneePitch"].initialAngle;
-            double initAnkle = jointToNode["RAnklePitch"].initialAngle;
-            fixedBalancer = new FixedBalancer(initHip, initKnee, initAnkle);
         }
 
         //TODO: limits?
@@ -216,17 +203,6 @@ namespace KinectViewer
                 }
                 prev = Matrix.Identity;
             }
-        }
-
-        public void BalanceTwoLegs()
-        {
-            double hipPitch = jointToNode["RHipPitch"].updatedAngle;
-            double kneePitch = jointToNode["RKneePitch"].updatedAngle;
-            double AnklePitch = fixedBalancer.updateAnkle(hipPitch, kneePitch);
-            jointToNode["LKneePitch"].updatedAngle = (float)jointToNode["RKneePitch"].updatedAngle;
-            jointToNode["LHipPitch"].updatedAngle = (float)jointToNode["RHipPitch"].updatedAngle;
-            jointToNode["RAnklePitch"].updatedAngle = (float) AnklePitch;
-            jointToNode["LAnklePitch"].updatedAngle = (float) AnklePitch;
         }
 
         public Vector3 GetPosition(string part)
@@ -438,11 +414,8 @@ namespace KinectViewer
             ArrayList limit = (ArrayList)limits[jointName][0];
             jointToNode[jointName].updatedAngle = ClampToRange(val, (float)limit[0], (float)limit[1]);
 
-            if (smooth != 0)
-            {
-                jointToNode[jointName].updatedAngle = prior * smooth + jointToNode[jointName].updatedAngle * (1 - smooth);
-                //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
-            }
+            jointToNode[jointName].updatedAngle = prior * smooth + jointToNode[jointName].updatedAngle * (1 - smooth);
+            //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
         }
 
         public void UpdateAngle(string jointName, float val, float smooth)
@@ -450,12 +423,20 @@ namespace KinectViewer
             SetJoint(jointName, val, smooth);
         }
 
-        //this is essentially a noop (SetJoint does not actually set angle if smooth = 0)
         public void UpdateAngle(string jointName, float val)
         {
             UpdateAngle(jointName, val, 0);
         }
 
+        public float GetInitialAngle(string jointName)
+        {
+            return jointToNode[jointName].initialAngle;
+        }
+
+        public float GetCurrentAngle(string jointName)
+        {
+            return jointToNode[jointName].updatedAngle;
+        }
 
         private static float ClampToRange(float val, float min, float max)
         {
@@ -498,7 +479,5 @@ namespace KinectViewer
             }
             proxy.SetAngles(joints, values, speed);
         }
-
-
     }
 }

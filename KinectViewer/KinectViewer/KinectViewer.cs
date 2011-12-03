@@ -16,12 +16,13 @@ namespace KinectViewer
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
         protected NaoSimulator naoSim;
+        protected Balancer balancer;
+        private FixedBalancer fixedBalancer;
       
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
         
         const string IP = "127.0.0.1"; // "128.208.4.225";
-
 
         bool trap_mouse = true;
         KeyboardState prior_keys;
@@ -37,6 +38,9 @@ namespace KinectViewer
         SampleGrid grid2;
         Vector3 leftFootInitial;
         Vector3 rightFootInitial;
+
+        // Kinect-derived angles (manipulated in subclasses)
+        protected Dictionary<String, float> kinectAngles = new Dictionary<string, float>();
 
         // Torso reference (manipulated in subclasses)
         protected Matrix srRef { get; set; }
@@ -97,12 +101,34 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
 
             naoSim = new NaoSimulator(IP);
+            balancer = new Balancer(naoSim);
+            fixedBalancer = new FixedBalancer(naoSim);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
         {
             cur_skeleton = skeleton;
             //sc.sendRotationSpeeds(nao.values);
+
+            //BALANCE METHOD 1
+            /*
+            foreach (KeyValuePair<String, float> t in kinectAngles)
+            {
+                if (t.Key != "RKneePitch" &&
+                    t.Key != "RHipPitch" &&
+                    t.Key != "RHipRoll")
+                    naoSim.UpdateAngle(t.Key, t.Value);
+            }
+            balancer.Balance(1, lines, srRef.Up);
+            */
+            //END BALANCE METHOD 1
+
+            //BALANCE METHOD 2
+            fixedBalancer.balance(); //should do this before calling UpdatePositions
+            //END BALANCE METHOD 2
+
+            naoSim.UpdatePositions();
+
             naoSim.RSSend();
         }
 
@@ -273,7 +299,7 @@ namespace KinectViewer
                     nao.GetLeftFoot().FootLines(lines);
                 }
                 */
-                
+               
                 drawRobot();
             }
 

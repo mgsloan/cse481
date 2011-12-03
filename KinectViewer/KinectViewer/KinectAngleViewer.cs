@@ -10,7 +10,6 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
-        Dictionary<String, float> angles = new Dictionary<string,float>();
 
         protected override void updateSkeleton(SkeletonData skeleton)
         {
@@ -79,15 +78,13 @@ namespace KinectViewer
             Vector3 LLA = flipXInRef(srRef, srRefInv, Vector3.Subtract(wristLeft, elbowLeft));
             Vector3 LH  = flipXInRef(srRef, srRefInv, Vector3.Subtract(handLeft, wristLeft));
             LLA.Normalize(); LUA.Normalize(); LH.Normalize();
-
             calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
-           
-            foreach (String key in angles.Keys) naoSim.UpdateAngle(key, angles[key], .05f);
-            naoSim.BalanceTwoLegs(); //should do this before calling UpdatePositions
-            naoSim.UpdatePositions();
+
+            foreach (KeyValuePair<String, float> entry in kinectAngles) naoSim.UpdateAngle(entry.Key, entry.Value, .3f);
 
             //important to call this last (it actually sends the angles to the NAO)
             base.updateSkeleton(skeleton);
+
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
         }
@@ -155,38 +152,38 @@ namespace KinectViewer
                     {
                         //if (hand < 1.4 && rhand) nao.SetRHand(rhand = false);
                         //if (hand > 1.7 && !rhand) nao.SetRHand(rhand = true);
-                        angles["RShoulderPitch"] = pitch;
-                        angles["RShoulderRoll"]  = roll  - (float) Math.PI;
-                        angles["RElbowYaw"]      = eyaw  + (float)(Math.PI / 2);
-                        angles["RElbowRoll"]     = eroll + (float) Math.PI;
+                        kinectAngles["RShoulderPitch"] = pitch;
+                        kinectAngles["RShoulderRoll"] = roll - (float)Math.PI;
+                        kinectAngles["RElbowYaw"] = eyaw + (float)(Math.PI / 2);
+                        kinectAngles["RElbowRoll"] = eroll + (float)Math.PI;
                         break;
                     }
                 case "la":
                     {
                         //if (hand < 1.4 && lhand) nao.SetLHand(lhand = false);
                         //if (hand > 1.7 && !lhand) nao.SetLHand(lhand = true);
-                        angles["LShoulderPitch"] = pitch;
-                        angles["LShoulderRoll"]  = -(roll - (float)Math.PI);
-                        angles["LElbowYaw"]      = -(eyaw + (float)(Math.PI / 2));
-                        angles["LElbowRoll"]     = -(eroll + (float)Math.PI);
+                        kinectAngles["LShoulderPitch"] = pitch;
+                        kinectAngles["LShoulderRoll"] = -(roll - (float)Math.PI);
+                        kinectAngles["LElbowYaw"] = -(eyaw + (float)(Math.PI / 2));
+                        kinectAngles["LElbowRoll"] = -(eroll + (float)Math.PI);
                         break;
                     }
                 case "rl":
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        angles["RHipRoll"] = roll;
-                        angles["RHipPitch"] = pitch - (float)Math.PI / 2;
-                        angles["RKneePitch"] = knee;
+                        kinectAngles["RHipRoll"] = roll;
+                        kinectAngles["RHipPitch"] = pitch - (float)Math.PI / 2;
+                        kinectAngles["RKneePitch"] = knee;
                         break;
                     }
                 case "ll":
                     {
                         roll = roll - (float)Math.PI;
                         if (roll < -(float)Math.PI) roll += 2 * (float)Math.PI;
-                        angles["LHipRoll"] = roll;
-                        angles["LHipPitch"] = pitch - (float)Math.PI / 2;
-                        angles["LKneePitch"] = knee;
+                        kinectAngles["LHipRoll"] = roll;
+                        kinectAngles["LHipPitch"] = pitch - (float)Math.PI / 2;
+                        kinectAngles["LKneePitch"] = knee;
                         break;
                     }
             }
