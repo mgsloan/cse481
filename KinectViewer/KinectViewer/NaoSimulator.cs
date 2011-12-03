@@ -253,6 +253,20 @@ namespace KinectViewer
             return leftF;
         }
 
+        //assumes both feet are flat on the ground
+        public Vector3 GetTwoFootCenter()
+        {
+            var LAnkleRef = LAnkleRoll.torsoSpacePosition;
+            var frontleftleft = Vector3.Transform(leftFLocal[0], LAnkleRef);
+            var backleftleft = Vector3.Transform(leftFLocal[2], LAnkleRef);
+
+            var RAnkleRef = RAnkleRoll.torsoSpacePosition;
+            var backrightright = Vector3.Transform(rightFLocal[0], RAnkleRef);
+            var frontrightright = Vector3.Transform(rightFLocal[1], RAnkleRef);
+
+            return NaoFoot.VectorAverage(frontleftleft, backleftleft, backrightright, frontrightright);
+        }
+
         //returns the current COM based off the current positions of the parts and their masses
         public Vector3 GetCOM()
         {

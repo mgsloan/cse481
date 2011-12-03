@@ -181,13 +181,6 @@ namespace KinectViewer
             }
         }
 
-        //world space
-        //assum PivotPoint and TargetBase are at same Y in world space
-        public void PivotCOM(Vector3 PivotPoint, Vector3 PivotDisplace, Vector3 LinkCOM, Vector3 LinkDir)
-        {
-            
-        }
-
         public void doEveryting(NaoSimulator sim)
         {
             // Get foot objects
