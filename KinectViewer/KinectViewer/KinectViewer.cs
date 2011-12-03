@@ -16,6 +16,7 @@ namespace KinectViewer
     class KinectViewer : Microsoft.Xna.Framework.Game
     {
         protected NaoSimulator naoSim;
+        protected Balancer balancer;
       
         Runtime nui = new Runtime();
         SkeletonData cur_skeleton;
@@ -37,6 +38,9 @@ namespace KinectViewer
         SampleGrid grid2;
         Vector3 leftFootInitial;
         Vector3 rightFootInitial;
+
+        // Kinect-derived angles (manipulated in subclasses)
+        protected Dictionary<String, float> kinectAngles = new Dictionary<string, float>();
 
         // Torso reference (manipulated in subclasses)
         protected Matrix srRef { get; set; }
@@ -97,6 +101,7 @@ namespace KinectViewer
             nui.SkeletonEngine.SmoothParameters = parameters;
 
             naoSim = new NaoSimulator(IP);
+            balancer = new Balancer(naoSim);
         }
 
         protected virtual void updateSkeleton(SkeletonData skeleton)
@@ -272,7 +277,14 @@ namespace KinectViewer
                     nao.GetLeftFoot().FootLines(lines);
                 }
                 */
-                
+
+                foreach (KeyValuePair<String, float> t in kinectAngles) {
+                    if (t.Key != "RKneePitch" &&
+                        t.Key != "RHipPitch" &&
+                        t.Key != "RHipRoll")
+                      naoSim.UpdateAngle(t.Key, t.Value);
+                }
+                balancer.Balance(1, lines);
                 naoSim.RSSend();
                
                 drawRobot();

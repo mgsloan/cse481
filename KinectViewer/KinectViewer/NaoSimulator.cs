@@ -13,7 +13,7 @@ namespace KinectViewer
     {
         private Dictionary<string, JointNode> jointToNode;
         private float speed = 0.2f;
-        private NaoProxy proxy;
+        public NaoProxy proxy { get; set; }
         Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
 
         /*setting up the joint nodes for the robot. */
@@ -449,7 +449,5 @@ namespace KinectViewer
             }
             proxy.SetAngles(joints, values, speed);
         }
-
-
     }
 }
