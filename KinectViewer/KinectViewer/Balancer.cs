@@ -149,7 +149,7 @@ namespace KinectViewer
             Vector3 delta = Vector3.Subtract(com, target);
 
             // Transform into lower leg local space.
-            Matrix mat = Matrix.Invert(Matrix.CreateTranslation(naoSim.GetPosition( + "KneePitch")));
+            Matrix mat = Matrix.Invert(Matrix.CreateTranslation(naoSim.GetPosition(prefix + "KneePitch")));
             Vector3 local = Vector3.Transform(delta, mat);
 
             // Take the angle of the vector to be the angle we need to rotate

@@ -82,7 +82,7 @@ namespace KinectViewer
             
             base.updateSkeleton(skeleton);
 
-            foreach (String key in angles.Keys) naoSim.UpdateAngle(key, angles[key], .05f);
+            foreach (KeyValuePair<String, float> entry in kinectAngles) naoSim.UpdateAngle(entry.Key, entry.Value, .05f);
             naoSim.UpdatePositions();
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);

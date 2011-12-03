@@ -284,7 +284,7 @@ namespace KinectViewer
                         t.Key != "RHipRoll")
                       naoSim.UpdateAngle(t.Key, t.Value);
                 }
-                balancer.Balance(1, lines);
+                balancer.Balance(1, lines, srRef.Up);
                 naoSim.RSSend();
                
                 drawRobot();
@@ -469,8 +469,8 @@ namespace KinectViewer
                     moveVector += new Vector3(0, -1, 0);
                 if (keyState.IsKeyDown(Keys.C))
                 {
-                    if (!sim.twoLegs) this.InitializeTwoLegStance();
-                    else sim.twoLegs = false;
+                    if (!naoSim.twoLegs) this.InitializeTwoLegStance();
+                    else naoSim.twoLegs = false;
                 }
                 AddToCameraPosition(moveVector * amount);
             }
