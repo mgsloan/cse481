@@ -145,13 +145,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />
     <Compile Include="Util\MathUtils.cs" />
-    <Compile Include="Util\GeneralMatrix.cs" />
     <Compile Include="Util\GeometricPrimitive.cs" />
-    <Compile Include="Util\KalmanFilter.cs" />
     <Compile Include="Util\LabelledVector.cs" />
-    <Compile Include="Util\LUDecomposition.cs" />
     <Compile Include="Util\PID.cs" />
-    <Compile Include="Util\QRDecomposition.cs" />
     <Compile Include="Util\SampleGrid.cs" />
     <Compile Include="Util\SpherePrimitive.cs" />
     <Compile Include="Util\VertexPositionNormal.cs" />

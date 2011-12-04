@@ -348,7 +348,7 @@ namespace KinectViewer
             return jointToNode[part].torsoSpacePosition.Translation;
         }
 
-        public Matrix3 GetTransform(string part)
+        public Matrix GetTransform(string part)
         {
             return jointToNode[part].torsoSpacePosition;
         }
