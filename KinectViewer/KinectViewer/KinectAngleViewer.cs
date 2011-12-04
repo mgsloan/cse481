@@ -62,6 +62,8 @@ namespace KinectViewer
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
             calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
 
+            //find ankle roll based on current hip and foot positions relative to a starting
+            //value (currently the point when both feet are touching the ground)
             //assume that the feet are both at the same Y and Z value WRT torso space
             //this does not change anything yet but just prints out what the results should be
             //they would be fed in the simulater, which would then do it's best to balance
