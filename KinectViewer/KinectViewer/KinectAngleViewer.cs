@@ -11,6 +11,9 @@ namespace KinectViewer
     class KinectAngleViewer : KinectViewer
     {
 
+        private Vector3 initHr, initHl, initFr, initFl;
+        private Vector3 curHr, curHl, curFr, curFl;
+
         protected override void updateSkeleton(SkeletonData skeleton)
         {
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight    ]),
@@ -42,6 +45,11 @@ namespace KinectViewer
             Matrix srReflegs = Matrix.CreateWorld(Vector3.Zero, dZlegs, dY2legs);
             Matrix srRefInvlegs = Matrix.Invert(srReflegs);
 
+            curHl = hipLeft;
+            curHr = hipRight;
+            curFl = footLeft;
+            curFr = footRight;
+
             // right leg
             Vector3 RUAlegs = Vector3.Subtract(kneeRight, hipRight);
             Vector3 RLAlegs = Vector3.Subtract(ankleRight, kneeRight);
@@ -55,6 +63,12 @@ namespace KinectViewer
             Vector3 LHlegs  = flipXInRef(srReflegs, srRefInvlegs, Vector3.Subtract(footLeft, ankleLeft));
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
             calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
+
+            if (getTwoLegStance())
+            {
+                double curRRoll = AngleBetween((curFr - curHr), (curHl - curHl));
+                
+            }
 
             // arms
             Vector3 X = Vector3.Subtract(shoulderLeft, shoulderRight);
@@ -87,6 +101,11 @@ namespace KinectViewer
 
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
+        }
+
+        private static float AngleBetween(Vector3 v1, Vector3 v2)
+        {
+            return (float) Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
@@ -196,6 +215,14 @@ namespace KinectViewer
             result.Y = vec.Y;
             result.Z = vec.Z;
             return result;
+        }
+
+        override public void setTwoLegStance()
+        {
+            initHl = curHl;
+            initHr = curHr;
+            initFl = curFl;
+            initFr = curFr;
         }
 
         //find angles that would make the flat of the foot parallel with the ground

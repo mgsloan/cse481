@@ -39,6 +39,12 @@ namespace KinectViewer
         Vector3 leftFootInitial;
         Vector3 rightFootInitial;
 
+        bool fixedTwoLegStance = false;
+
+        public void setTwoLegStance() { }
+        public bool getTwoLegStance() { return fixedTwoLegStance; }
+
+
         // Kinect-derived angles (manipulated in subclasses)
         protected Dictionary<String, float> kinectAngles = new Dictionary<string, float>();
 
@@ -480,6 +486,8 @@ namespace KinectViewer
                     moveVector += new Vector3(0, 1, 0);
                 if (keyState.IsKeyDown(Keys.Z))
                     moveVector += new Vector3(0, -1, 0);
+                if (keyState.IsKeyDown(Keys.C))
+                    setTwoLegStance();
                 AddToCameraPosition(moveVector * amount);
             }
 
@@ -505,8 +513,6 @@ namespace KinectViewer
             // if (keyState.IsKeyDown(Keys.Escape)) 
 
             prior_keys = keyState;
-
-
         }
 
         protected virtual void InitializeTwoLegStance() { }
