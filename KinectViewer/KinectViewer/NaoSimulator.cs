@@ -373,12 +373,8 @@ namespace KinectViewer
         }
          */
 
-        // Takes the name of the joint prior to the two joints for which this will compute rotation angles.  
-        public Tuple<float, float> GetAngleRequired(string a, Vector3 vec)
+        private Tuple<float, float> GetAnglesInternal(JointNode ja, JointNode jb, JointNode jc, Vector3 vec)
         {
-            JointNode ja = jointToNode[a], jb = ja.next, jc = jb.next;
-            if (ja == null || jb == null || jc == null) throw new Exception("Misuse of GetAngleRequired");
-
             // TODO: this reduplicates the logic expressed in the UpdatePositions method, but without actually mutating
             // the simulator.  It's quite possible that this is only used in the "SetAngleRequired" context, in which
             // case the mutators which update the subsequent position matrices for the chain would be more appropriate.
@@ -393,9 +389,23 @@ namespace KinectViewer
 
             return new Tuple<float, float>(angle1, angle2);
         }
-        public void SetAngleRequired(string a, string b, Vector3 vec)
-        {
 
+        // Takes the name of the joint prior to the two joints for which this will compute rotation angles.  
+        public Tuple<float, float> GetAnglesRequired(string a, Vector3 vec)
+        {
+            JointNode ja = jointToNode[a], jb = ja.next, jc = jb.next;
+            if (ja == null || jb == null || jc == null) throw new Exception("Misuse of GetAngleRequired");
+            return GetAnglesInternal(ja, jb, jc, vec);
+        }
+
+        public void SetAnglesRequired(string a, Vector3 vec, float smooth)
+        {
+            JointNode ja = jointToNode[a], jb = ja.next, jc = jb.next;
+            if (ja == null || jb == null || jc == null) throw new Exception("Misuse of SetAngleRequired");
+
+            Tuple<float, float> angles = GetAnglesInternal(ja, jb, jc, vec);
+            SetJoint(jb.name, angles.Item1, smooth);
+            SetJoint(jc.name, angles.Item2, smooth);
         }
 
         public NaoFoot GetRightFoot()

@@ -45,7 +45,6 @@ namespace KinectViewer
         //parts should include every part you'd be interested in asking about at any time in the future
         public NaoProxy(string ip, List<string> parts, int msBetweenPolls)
         {
-
             _memory = new MemoryProxy(ip, 9559);
             _motion =  new MotionProxy(ip, 9559);
             this.parts = parts;
