@@ -145,7 +145,6 @@ namespace KinectViewer
         public float GetAngles(string part) 
         {
             return angles[part];
-        
         }
 
         public Dictionary<string, ArrayList> GetLimits()

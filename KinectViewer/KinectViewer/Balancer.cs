@@ -34,6 +34,15 @@ namespace KinectViewer
                 prefix = "L";
             }
             
+            Vector3 res = Vector3.Transform(torso, MathUtils.ExtractRotation(Matrix.Invert(targetFoot.pfl.transform)));
+
+            Tuple<float, float> angles2 = naoSim.GetAnglesRequired(prefix + "HipYawPitch", res);
+            naoSim.UpdateAngle(prefix + "HipRoll", angles2.Item1);
+            naoSim.UpdateAngle(prefix + "HipPitch", angles2.Item2);
+            Console.WriteLine("X = " + torso.X.ToString() + "; Y = " + torso.Y.ToString() + "; Z = " + torso.Z.ToString());
+            Console.WriteLine("roll = " + angles2.Item1.ToString() + "; pitch = " + angles2.Item2.ToString());
+
+
             /*
             Matrix groundRef = targetFoot.pfl.transform;
             groundRef.Translation = Vector3.Zero;
@@ -59,7 +68,8 @@ namespace KinectViewer
             float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
 
             Vector3 offset = new Vector3(0, 0, -3f);
-            ls.Add(new LabelledVector(offset, Vector3.Add(offset, delta), Color.Black, ""));
+            //ls.Add(new LabelledVector(offset, Vector3.Add(offset, delta), Color.Black, ""));
+            ls.Add(new LabelledVector(Vector3.Negate(offset), Vector3.Subtract(torso, offset), Color.Black, ""));
             ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
             
             // Foot commands with experimental fudge factors

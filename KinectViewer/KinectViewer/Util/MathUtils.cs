@@ -57,5 +57,10 @@ namespace KinectViewer
             result.Translation = Vector3.Zero;
             return result;
         }
+
+        public static float AngleBetween(Vector3 v1, Vector3 v2)
+        {
+            return (float)Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
+        }
     }
 }
