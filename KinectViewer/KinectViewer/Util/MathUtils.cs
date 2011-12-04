@@ -47,5 +47,14 @@ namespace KinectViewer
             }
             return sum / xs.Length;
         }
+
+        public static Matrix ExtractRotation(Matrix mat)
+        {
+            Matrix result = new Matrix();
+            result.Up = mat.Up;
+            result.Right = mat.Right;
+            result.Forward = mat.Forward;
+            return result;
+        }
     }
 }

@@ -155,6 +155,7 @@
     <Compile Include="Util\SampleGrid.cs" />
     <Compile Include="Util\SpherePrimitive.cs" />
     <Compile Include="Util\VertexPositionNormal.cs" />
+    <Compile Include="Viewer.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Game.ico" />

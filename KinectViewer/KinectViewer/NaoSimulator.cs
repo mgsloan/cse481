@@ -361,6 +361,7 @@ namespace KinectViewer
             throw new Exception("Cannot get angle for non axial rotation.");
         }
         
+        /*
         public Tuple<float, float> GetAngleRequired(string a, string b, Vector3 vec)
         {
             JointNode ja = jointToNode[a], jb = jointToNode[b];
@@ -370,7 +371,28 @@ namespace KinectViewer
             Vector3 local2 = Vector3.Transform(vec, Matrix.Invert(trans));
             return new Tuple<float, float>(angle, GetAxisAngle(local2, jb.orientation));
         }
+         */
 
+        // Takes the name of the joint prior to the two joints for which this will compute rotation angles.  
+        public Tuple<float, float> GetAngleRequired(string a, Vector3 vec)
+        {
+            JointNode ja = jointToNode[a], jb = ja.next, jc = jb.next;
+            if (ja == null || jb == null || jc == null) throw new Exception("Misuse of GetAngleRequired");
+
+            // TODO: this reduplicates the logic expressed in the UpdatePositions method, but without actually mutating
+            // the simulator.  It's quite possible that this is only used in the "SetAngleRequired" context, in which
+            // case the mutators which update the subsequent position matrices for the chain would be more appropriate.
+
+            Matrix trans = MathUtils.ExtractRotation(Matrix.Multiply(ja.torsoSpacePosition, jb.localPosition));
+            Vector3 local1 = Vector3.Transform(vec, Matrix.Invert(trans));
+            float angle1 = jb.initialAngle - GetAxisAngle(local1, jb.orientation);
+
+            trans = Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), jc.localPosition);
+            Vector3 local2 = Vector3.Transform(vec, Matrix.Invert(trans));
+            float angle2 = jc.initialAngle - GetAxisAngle(local2, jc.orientation);
+
+            return new Tuple<float, float>(angle1, angle2);
+        }
         public void SetAngleRequired(string a, string b, Vector3 vec)
         {
 

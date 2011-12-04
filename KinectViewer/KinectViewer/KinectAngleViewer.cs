@@ -11,7 +11,7 @@ namespace KinectViewer
     class KinectAngleViewer : KinectViewer
     {
 
-        protected override void updateSkeleton(SkeletonData skeleton)
+        protected override void UpdateSkeleton(SkeletonData skeleton)
         {
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight    ]),
                     handRight      = getLoc(skeleton.Joints[JointID.HandRight     ]),
@@ -83,7 +83,7 @@ namespace KinectViewer
             foreach (KeyValuePair<String, float> entry in kinectAngles) naoSim.UpdateAngle(entry.Key, entry.Value, .3f);
 
             //important to call this last (it actually sends the angles to the NAO)
-            base.updateSkeleton(skeleton);
+            base.UpdateSkeleton(skeleton);
 
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
