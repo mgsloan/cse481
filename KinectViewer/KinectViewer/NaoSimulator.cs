@@ -348,6 +348,11 @@ namespace KinectViewer
             return jointToNode[part].torsoSpacePosition.Translation;
         }
 
+        public Matrix3 GetTransform(string part)
+        {
+            return jointToNode[part].torsoSpacePosition;
+        }
+
         // Gets axis angle, given an axis of rotation
         // UGLY
         public float GetAxisAngle(Vector3 v, Vector3 axis)
