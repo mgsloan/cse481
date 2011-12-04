@@ -338,7 +338,7 @@ namespace KinectViewer
 
         private void drawRobot()
         {
-            var robot = naoSim.getRobot();
+            var robot = naoSim.GetRobot();
             var rightF = naoSim.GetRightFoot();
             var leftF = naoSim.GetLeftFoot();
             RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfl.position)), 
@@ -362,10 +362,10 @@ namespace KinectViewer
             drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
             Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);
-            Vector3 Rdisplace = Vector3.Transform((naoSim.getFootTarget(srRef) - COM), Matrix.Invert(srRef));
+            Vector3 Rdisplace = Vector3.Transform((naoSim.GetFootTarget(srRef) - COM), Matrix.Invert(srRef));
             lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
 
-            double[] legRAngles = naoSim.readjustLegs(srRef);
+            double[] legRAngles = naoSim.ReadjustLegs(srRef);
             /*
             var legRUpdate = new Dictionary<string, float>();
             legRUpdate.Add("RHipRoll", (float)(legRAngles[1]));

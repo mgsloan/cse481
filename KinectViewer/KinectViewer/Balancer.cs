@@ -19,104 +19,6 @@ namespace KinectViewer
         {
             this.naoSim = naoSim;
             this.nao = naoSim.proxy;
-       }
-
-        public static float FromRad(float rad) { return rad / (float)Math.PI * 180f; }
-        public static float ToRad(float rad) { return rad * (float)Math.PI / 180f; }
-
-        // Clamps roll for the left foot diagram.
-        public static float NearestFeasibleRoll(float pitch, float roll) {
-            float pitchDeg = FromRad(pitch);
-            float rollDeg = FromRad(roll);
-            if (pitchDeg < -48.12) {
-                return ToRad(InterpClamp(-68.15f, 2.86f, -4.29f,
-                                         -48.12f, 10.31f, -9.74f,
-                                         pitchDeg, rollDeg));
-            } else if (pitchDeg < -40.10) {
-                return ToRad(InterpClamp(-48.12f, 10.31f, -9.74f,
-                                         -40.10f, 22.79f, -12.60f,
-                                         pitchDeg, rollDeg));
-            } else if (pitchDeg < -25.78) {
-                return ToRad(InterpClamp(-40.10f, 22.79f, -12.60f,
-                                         -25.78f, 22.79f, -44.06f,
-                                         pitchDeg, rollDeg));
-            } else if (pitchDeg < 5.72) {
-                return ToRad(InterpClamp(-25.78f, 22.79f, -44.06f,
-                                         5.72f, 22.79f, -44.06f,
-                                         pitchDeg, rollDeg));
-            } else if (pitchDeg < 20.05) {
-                return ToRad(InterpClamp(5.72f, 22.79f, -44.06f,
-                                         20.05f, 22.79f, -31.54f,
-                                         pitchDeg, rollDeg));
-            } else {
-                return ToRad(InterpClamp(20.05f, 22.79f, -31.54f,
-                                         52.86f, 0f, -2.86f,
-                                         pitchDeg, rollDeg));
-            }
-        }
-
-        public void RAUpdate(float pitch, float roll) {
-            float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
-            //RAUpdatePitch(pitch2); RAUpdateRoll(-NearestFeasibleRoll(pitch2, -roll));
-            naoSim.UpdateAngle("RAnklePitch", pitch2);
-            naoSim.UpdateAngle("RAnkleRoll", -NearestFeasibleRoll(pitch2, -roll));
-        }
-
-        public void LAUpdate(float pitch, float roll)
-        {
-            float pitch2 = Clamp(-1.189516f, 0.922747f, pitch);
-            float roll2 = NearestFeasibleRoll(pitch2, roll);
-            //Console.WriteLine("pitch = " + pitch2.ToString());
-            //Console.WriteLine("roll = " + roll2.ToString());
-            naoSim.UpdateAngle("LAnklePitch", pitch2);
-            naoSim.UpdateAngle("LAnkleRoll", roll2);
-            //LAUpdatePitch(pitch2); LAUpdateRoll(roll2);
-        }
-
-        public static float InterpClamp(float x1, float t1, float f1, float x2, float t2, float f2, float x, float y)
-        {
-            float t = UnLerp(x1, x2, x);
-            float l = Lerp(f1, f2, t), h = Lerp(t1, t2, t);
-            //Console.WriteLine("Clamp: " + l.ToString() + " " + h.ToString());
-            return Clamp(l, h, y);
-        }
-
-        public static float Clamp(float f, float t, float v)
-        {
-            return Math.Max(f, Math.Min(t, v));
-        }
-
-       
-        public static float Lerp(float f, float t, float v)
-        {
-            return (1 - v) * t + v * f;
-        }
-
-        public static float UnLerp(float f, float t, float v)
-        {
-            return (v - f) / (t - f);
-        }
-
-        private static float ScaleToRange(double val, float min, float max)
-        {
-            float returnVal = (float)((val / 180.0) * (max - min)) + min;
-            return returnVal;
-        }
-
-
-        public static Vector3 VectorFromList(List<float> fs)
-        {
-            return new Vector3(fs[0], fs[1], fs[2]);
-        }
-
-
-        public float Average(params float[] xs) {
-            float sum = 0;
-            foreach (float x in xs)
-            {
-                sum += x;
-            }
-            return sum / xs.Length;
         }
 
         public void Balance(int feet, List<LabelledVector> ls, Vector3 torso)
@@ -158,8 +60,8 @@ namespace KinectViewer
             float pitch = (float) Math.Atan2(local.Z, local.Y);
 
             // Use Force sensors to tweak result.
-            float forwardBias = Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
-            float leftwardBias = Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
+            float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
+            float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
             //Console.WriteLine("Biases: " + forwardBias.ToString() + " " + leftwardBias.ToString());
 
             Vector3 offset = new Vector3(0, 0, 3f);
@@ -171,13 +73,13 @@ namespace KinectViewer
             {
                 pitch += forwardBias;
                 roll += leftwardBias;
-                RAUpdate(pitch + 0.05f, -roll);
+                naoSim.RAUpdate(pitch + 0.05f, -roll);
             }
             else
             {
                 pitch += forwardBias;
                 roll += leftwardBias;
-                LAUpdate(pitch - 0.05f, 0.05f - roll);
+                naoSim.LAUpdate(pitch - 0.05f, 0.05f - roll);
             }
         }
 
