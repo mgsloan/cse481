@@ -103,6 +103,10 @@ namespace KinectViewer
             InitializeLimits();
         }
 
+
+        // Functions for initializing and computing NAO kinematics.
+        // ====================================================================
+
         private void InitializeLimits()
         {
             limits = proxy.GetLimits();          
@@ -178,6 +182,27 @@ namespace KinectViewer
             LL_len = (GetPosition("RAnklePitch") - GetPosition("RKneePitch")).Length();
         }
 
+        private void UpdateChain(JointNode chain)
+        {
+            Matrix prev = chain.torsoSpacePosition;
+            JointNode cur = chain.next;
+            while (cur != null)
+            {
+                cur.torsoSpacePosition = Matrix.Multiply(cur.localPosition, prev);
+
+                Vector3 trans = cur.torsoSpacePosition.Translation;
+                cur.torsoSpacePosition.Translation = Vector3.Zero;
+                //may need to fix this. 
+                float angle = cur.updatedAngle;
+                cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
+
+                cur.torsoSpacePosition.Translation = trans;
+
+                prev = cur.torsoSpacePosition;
+                cur = cur.next;
+            }
+        }
+
         //TODO: limits?
         public void UpdatePositions()
         {
@@ -185,29 +210,147 @@ namespace KinectViewer
             Matrix prev = Matrix.Identity;
             foreach (JointNode chain in Robot)
             {
-                JointNode cur = chain.next;
-                while (cur != null)
-                {
-                    cur.torsoSpacePosition = Matrix.Multiply(cur.localPosition, prev);
-
-                    Vector3 trans = cur.torsoSpacePosition.Translation;
-                    cur.torsoSpacePosition.Translation = Vector3.Zero;
-                    //may need to fix this. 
-                    float angle = cur.updatedAngle;
-                    cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
-                    
-                    cur.torsoSpacePosition.Translation = trans;
-
-                    prev = cur.torsoSpacePosition;
-                    cur = cur.next;
-                }
-                prev = Matrix.Identity;
+                UpdateChain(chain);
             }
         }
+
+
+        // Communication with the Nao - propogate the current angles of the
+        // simulator.
+        // ====================================================================
+
+        public void RSSendBlocking()
+        {
+            if (proxy == null) return;
+            ArrayList joints = new ArrayList();
+            ArrayList values = new ArrayList();
+            foreach (string joint in jointToNode.Keys)
+            {
+                if (joint != "Torso")
+                {
+                    joints.Add(joint);
+                    values.Add(jointToNode[joint].updatedAngle);
+                }
+            }
+            proxy.SetAngles(joints, values, .2f);
+            //_motion.wait(id, 10000);
+            System.Threading.Thread.Sleep(3000);
+        }
+
+        public void RSSend()
+        {
+            if (proxy == null) return;
+            ArrayList joints = new ArrayList();
+            ArrayList values = new ArrayList();
+            foreach (string joint in jointToNode.Keys)
+            {
+                if (joint != "Torso" && joint != "RAnklePitch" && joint != "LAnklePitch")
+                {
+                    joints.Add(joint);
+                    values.Add(jointToNode[joint].updatedAngle);
+                }
+            }
+
+            proxy.SetAngles(new ArrayList(new string[] { "RAnklePitch", "LAnklePitch" }),
+                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .05f);
+            proxy.SetAngles(joints, values, speed);
+        }
+
+
+        // Mutators
+        // ====================================================================
+
+        public void UpdateAngle(string jointName, float val, float smooth) { SetJoint(jointName, val, smooth); }
+        public void UpdateAngle(string jointName, float val)               { SetJoint(jointName, val, 0); }
+
+        public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
+        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0)); }
+
+        private JointNode SetJoint(string jointName, float val, float smooth)
+        {
+            JointNode node = jointToNode[jointName];
+            float prior = node.updatedAngle;
+
+            if (float.IsNaN(prior)) prior = 0;
+            ArrayList limit = (ArrayList)limits[jointName][0];
+            node.updatedAngle = MathUtils.Clamp(val, (float)limit[0], (float)limit[1]);
+
+            node.updatedAngle = prior * smooth + node.updatedAngle * (1 - smooth);
+            //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
+            return node;
+        }
+
+        // Setting ankle angles, limited to the feasible ranges.
+        public void LAUpdate(float pitch, float roll)
+        {
+            float pitch2 = MathUtils.Clamp(-1.189516f, 0.922747f, pitch);
+            UpdateAngle("LAnklePitch", pitch2);
+            UpdateAngle("LAnkleRoll", NearestFeasibleRoll(pitch2, roll));
+        }
+        public void RAUpdate(float pitch, float roll)
+        {
+            float pitch2 = MathUtils.Clamp(-1.189516f, 0.922747f, pitch);
+            UpdateAngle("RAnklePitch", pitch2);
+            UpdateAngle("RAnkleRoll", -NearestFeasibleRoll(pitch2, -roll));
+        }
+        
+        // Clamps roll for the left foot diagram.
+        private static float NearestFeasibleRoll(float pitch, float roll)
+        {
+            float pitchDeg = MathUtils.FromRad(pitch);
+            float rollDeg = MathUtils.FromRad(roll);
+            if (pitchDeg < -48.12) {
+                return MathUtils.ToRad(InterpClamp(
+                    -68.15f, 2.86f, -4.29f,
+                    -48.12f, 10.31f, -9.74f,
+                    pitchDeg, rollDeg));
+            } else if (pitchDeg < -40.10) {
+                return MathUtils.ToRad(InterpClamp(
+                    -48.12f, 10.31f, -9.74f,
+                    -40.10f, 22.79f, -12.60f,
+                    pitchDeg, rollDeg));
+            } else if (pitchDeg < -25.78) {
+                return MathUtils.ToRad(InterpClamp(
+                    -40.10f, 22.79f, -12.60f,
+                    -25.78f, 22.79f, -44.06f,
+                    pitchDeg, rollDeg));
+            } else if (pitchDeg < 5.72) {
+                return MathUtils.ToRad(InterpClamp(
+                    -25.78f, 22.79f, -44.06f,
+                                         5.72f, 22.79f, -44.06f,
+                                         pitchDeg, rollDeg));
+            } else if (pitchDeg < 20.05) {
+                return MathUtils.ToRad(InterpClamp(
+                    5.72f, 22.79f, -44.06f,
+                    20.05f, 22.79f, -31.54f,
+                    pitchDeg, rollDeg));
+            } else {
+                return MathUtils.ToRad(InterpClamp(
+                    20.05f, 22.79f, -31.54f,
+                    52.86f, 0f, -2.86f,
+                    pitchDeg, rollDeg));
+            }
+        }
+
+        // Interpolate clamping values for y, dependent on x.
+        private static float InterpClamp(float x1, float t1, float f1, float x2, float t2, float f2, float x, float y)
+        {
+            float t = MathUtils.UnLerp(x, x1, x2);
+            float l = MathUtils.Lerp(t, f1, f2), h = MathUtils.Lerp(t, t1, t2);
+            return MathUtils.Clamp(y, l, h);
+        }
+        
+        // Accessors
+        // ====================================================================
 
         public Vector3 GetPosition(string part)
         {
             return jointToNode[part].torsoSpacePosition.Translation;
+        }
+
+        public Matrix GetTransform(string part)
+        {
+            return jointToNode[part].torsoSpacePosition;
         }
 
         // Gets axis angle, given an axis of rotation
@@ -222,6 +365,8 @@ namespace KinectViewer
             if (axis.Z == -1f) return (float)Math.Atan2(axis.Y, axis.X);
             throw new Exception("Cannot get angle for non axial rotation.");
         }
+        
+        /*
         public Tuple<float, float> GetAngleRequired(string a, string b, Vector3 vec)
         {
             JointNode ja = jointToNode[a], jb = jointToNode[b];
@@ -230,6 +375,42 @@ namespace KinectViewer
             Matrix trans = Matrix.Multiply(Matrix.Multiply(ja.torsoSpacePosition, ja.MakeRotation(angle)), jb.localPosition);
             Vector3 local2 = Vector3.Transform(vec, Matrix.Invert(trans));
             return new Tuple<float, float>(angle, GetAxisAngle(local2, jb.orientation));
+        }
+         */
+
+        private Tuple<float, float> GetAnglesInternal(JointNode ja, JointNode jb, JointNode jc, Vector3 vec)
+        {
+            // TODO: this reduplicates the logic expressed in the UpdatePositions method, but without actually mutating
+            // the simulator.  It's quite possible that this is only used in the "SetAngleRequired" context, in which
+            // case the mutators which update the subsequent position matrices for the chain would be more appropriate.
+
+            Matrix trans = MathUtils.ExtractRotation(Matrix.Multiply(ja.torsoSpacePosition, jb.localPosition));
+            Vector3 local1 = Vector3.Transform(vec, Matrix.Invert(trans));
+            float angle1 = jb.initialAngle - GetAxisAngle(local1, jb.orientation);
+
+            trans = Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), jc.localPosition);
+            Vector3 local2 = Vector3.Transform(vec, Matrix.Invert(trans));
+            float angle2 = jc.initialAngle - GetAxisAngle(local2, jc.orientation);
+
+            return new Tuple<float, float>(angle1, angle2);
+        }
+
+        // Takes the name of the joint prior to the two joints for which this will compute rotation angles.  
+        public Tuple<float, float> GetAnglesRequired(string a, Vector3 vec)
+        {
+            JointNode ja = jointToNode[a], jb = ja.next, jc = jb.next;
+            if (ja == null || jb == null || jc == null) throw new Exception("Misuse of GetAngleRequired");
+            return GetAnglesInternal(ja, jb, jc, vec);
+        }
+
+        public void SetAnglesRequired(string a, Vector3 vec, float smooth)
+        {
+            JointNode ja = jointToNode[a], jb = ja.next, jc = jb.next;
+            if (ja == null || jb == null || jc == null) throw new Exception("Misuse of SetAngleRequired");
+
+            Tuple<float, float> angles = GetAnglesInternal(ja, jb, jc, vec);
+            SetJoint(jb.name, angles.Item1, smooth);
+            SetJoint(jc.name, angles.Item2, smooth);
         }
 
         public NaoFoot GetRightFoot()
@@ -293,20 +474,29 @@ namespace KinectViewer
             //Console.WriteLine(com);
             return com;
         }
-
-        public static Vector3 VectorFromList(List<float> fs)
-        {
-            return new Vector3(fs[0], fs[1], fs[2]);
-        }
-
-        public LinkedList<JointNode> getRobot()
+        
+        public LinkedList<JointNode> GetRobot()
         {
             return Robot;
         }
 
+        public float GetInitialAngle(string jointName)
+        {
+            return jointToNode[jointName].initialAngle;
+        }
+
+        public float GetCurrentAngle(string jointName)
+        {
+            return jointToNode[jointName].updatedAngle;
+        }
+        
+
+        // Code involved in stance computations.
+        // ====================================================================
+
         //for single legged balancing, produce a target for a foot (currently the 
         //right foot, although this could be general)
-        public Vector3 getFootTarget(Matrix BodyTxform)
+        public Vector3 GetFootTarget(Matrix BodyTxform)
         {
             Vector3 COM = GetCOM();
 
@@ -329,10 +519,11 @@ namespace KinectViewer
 
             return RTarget_torso;
         }
+
         //limb lengths: check
-        public double[] readjustLegs(Matrix BodyTxform)
+        public double[] ReadjustLegs(Matrix BodyTxform)
         {
-            Vector3 RTarget_torso = getFootTarget(BodyTxform);
+            Vector3 RTarget_torso = GetFootTarget(BodyTxform);
 
             double[] newRAngles = LegIK(Matrix.Identity, GetPosition("RHipPitch"), RTarget_torso, UL_len, LL_len);
 
@@ -419,79 +610,5 @@ namespace KinectViewer
             return angles;
         }
 
-
-        private void SetJoint(string jointName, float val, float smooth)
-        {
-            float prior = jointToNode[jointName].updatedAngle;
-
-            if (float.IsNaN(prior)) prior = 0;
-            ArrayList limit = (ArrayList)limits[jointName][0];
-            jointToNode[jointName].updatedAngle = ClampToRange(val, (float)limit[0], (float)limit[1]);
-
-            jointToNode[jointName].updatedAngle = prior * smooth + jointToNode[jointName].updatedAngle * (1 - smooth);
-            //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
-        }
-
-        public void UpdateAngle(string jointName, float val, float smooth)
-        {
-            SetJoint(jointName, val, smooth);
-        }
-
-        public void UpdateAngle(string jointName, float val)
-        {
-            UpdateAngle(jointName, val, 0);
-        }
-
-        public float GetInitialAngle(string jointName)
-        {
-            return jointToNode[jointName].initialAngle;
-        }
-
-        public float GetCurrentAngle(string jointName)
-        {
-            return jointToNode[jointName].updatedAngle;
-        }
-
-        private static float ClampToRange(float val, float min, float max)
-        {
-            if (val < min) return min;
-            if (val > max) return max;
-            return val;
-        }
-
-
-        public void RSSendBlocking()
-        {
-            if (proxy == null) return;
-            ArrayList joints = new ArrayList();
-            ArrayList values = new ArrayList();
-            foreach (string joint in jointToNode.Keys)
-            {
-                if (joint != "Torso")
-                {
-                    joints.Add(joint);
-                    values.Add(jointToNode[joint].updatedAngle);
-                }
-            }
-            proxy.SetAngles(joints, values, .2f);
-            //_motion.wait(id, 10000);
-            System.Threading.Thread.Sleep(3000);
-        }
-
-        public void RSSend()
-        {
-            if (proxy == null) return;
-            ArrayList joints = new ArrayList();
-            ArrayList values = new ArrayList();
-            foreach (string joint in jointToNode.Keys)
-            {
-                if (joint != "Torso")
-                {
-                    joints.Add(joint);
-                    values.Add(jointToNode[joint].updatedAngle);
-                }
-            }
-            proxy.SetAngles(joints, values, speed);
-        }
     }
 }

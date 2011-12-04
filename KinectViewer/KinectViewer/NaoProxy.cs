@@ -45,7 +45,6 @@ namespace KinectViewer
         //parts should include every part you'd be interested in asking about at any time in the future
         public NaoProxy(string ip, List<string> parts, int msBetweenPolls)
         {
-
             _memory = new MemoryProxy(ip, 9559);
             _motion =  new MotionProxy(ip, 9559);
             this.parts = parts;
@@ -82,7 +81,7 @@ namespace KinectViewer
                     limits.Add(part, (ArrayList)_motion.getLimits(part));
                     angles.Add(part, _motion.getAngles(part, false)[0]);
                 }
-                com.Add(part, NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false))));
+                com.Add(part, NaoPos.Convert(MathUtils.VectorFromList(_motion.getCOM(part, 0, false))));
                 positions.Add(part, PollPosition(part));
                 masses.Add(part, _motion.getMass(part));
                 
@@ -102,7 +101,7 @@ namespace KinectViewer
                 Console.WriteLine("grx: " + grx.ToString() + " gry: " + gry.ToString());
                 */
 
-                COM = VectorFromList(_motion.getCOM("Body", 0, false));
+                COM = MathUtils.VectorFromList(_motion.getCOM("Body", 0, false));
             
                 PollFoot(rightFoot, "R");
                 PollFoot(leftFoot, "L");
@@ -113,8 +112,8 @@ namespace KinectViewer
                 {
                     if (part != "Torso") angles[part] = _motion.getAngles(part, false)[0];
                 }
-            
-                foreach (String part in this.parts) com[part] = NaoPos.Convert(VectorFromList(_motion.getCOM(part, 0, false)));
+
+                foreach (String part in this.parts) com[part] = NaoPos.Convert(MathUtils.VectorFromList(_motion.getCOM(part, 0, false)));
             
                 foreach (String part in this.parts) positions[part] = PollPosition(part);
            
@@ -280,12 +279,7 @@ namespace KinectViewer
             }
             return result;
         }
-
-        public static Vector3 VectorFromList(List<float> fs)
-        {
-            return new Vector3(fs[0], fs[1], fs[2]);
-        }
-
+        
         public float GetData(string data)
         {
             lock (objLock)
@@ -298,7 +292,7 @@ namespace KinectViewer
         {
             lock (objLock)
             {
-                return VectorFromList(_motion.getPosition(part, 0, false));
+                return MathUtils.VectorFromList(_motion.getPosition(part, 0, false));
             }
         }
 

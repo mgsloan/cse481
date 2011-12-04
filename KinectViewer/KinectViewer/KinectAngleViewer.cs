@@ -10,7 +10,6 @@ namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
-
         private Vector3 initHr, initHl, initFr, initFl; //hip right, hip left, foot right, foot left
         private Vector3 curHr, curHl, curFr, curFl;
 
@@ -97,7 +96,7 @@ namespace KinectViewer
             foreach (KeyValuePair<String, float> entry in kinectAngles) naoSim.UpdateAngle(entry.Key, entry.Value, .3f);
 
             //important to call this last (it actually sends the angles to the NAO)
-            base.updateSkeleton(skeleton);
+            base.UpdateSkeleton(skeleton);
 
             // DEBUG
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
