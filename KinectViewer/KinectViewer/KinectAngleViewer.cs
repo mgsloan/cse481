@@ -11,7 +11,7 @@ namespace KinectViewer
     class KinectAngleViewer : KinectViewer
     {
 
-        private Vector3 initHr, initHl, initFr, initFl;
+        private Vector3 initHr, initHl, initFr, initFl; //hip right, hip left, foot right, foot left
         private Vector3 curHr, curHl, curFr, curFl;
 
         protected override void updateSkeleton(SkeletonData skeleton)
