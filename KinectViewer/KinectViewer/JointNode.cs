@@ -18,7 +18,6 @@ namespace KinectViewer
         public float updatedAngle { get; set; } 
         public Matrix torsoSpacePosition;
         
-
         public JointNode(string name, Vector3 orientation)
         {
             this.orientation = orientation;
@@ -28,7 +27,7 @@ namespace KinectViewer
         }
 
         public JointNode()
-        { }
+        { this.torsoSpacePosition = Matrix.Identity; }
         
         public Matrix MakeRotation(float angle) {
             return Matrix.CreateFromAxisAngle(orientation, initialAngle - angle);

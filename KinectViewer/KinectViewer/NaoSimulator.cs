@@ -182,6 +182,27 @@ namespace KinectViewer
             LL_len = (GetPosition("RAnklePitch") - GetPosition("RKneePitch")).Length();
         }
 
+        private void UpdateChain(JointNode chain)
+        {
+            Matrix prev = chain.torsoSpacePosition;
+            JointNode cur = chain.next;
+            while (cur != null)
+            {
+                cur.torsoSpacePosition = Matrix.Multiply(cur.localPosition, prev);
+
+                Vector3 trans = cur.torsoSpacePosition.Translation;
+                cur.torsoSpacePosition.Translation = Vector3.Zero;
+                //may need to fix this. 
+                float angle = cur.updatedAngle;
+                cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
+
+                cur.torsoSpacePosition.Translation = trans;
+
+                prev = cur.torsoSpacePosition;
+                cur = cur.next;
+            }
+        }
+
         //TODO: limits?
         public void UpdatePositions()
         {
@@ -189,23 +210,7 @@ namespace KinectViewer
             Matrix prev = Matrix.Identity;
             foreach (JointNode chain in Robot)
             {
-                JointNode cur = chain.next;
-                while (cur != null)
-                {
-                    cur.torsoSpacePosition = Matrix.Multiply(cur.localPosition, prev);
-
-                    Vector3 trans = cur.torsoSpacePosition.Translation;
-                    cur.torsoSpacePosition.Translation = Vector3.Zero;
-                    //may need to fix this. 
-                    float angle = cur.updatedAngle;
-                    cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
-                    
-                    cur.torsoSpacePosition.Translation = trans;
-
-                    prev = cur.torsoSpacePosition;
-                    cur = cur.next;
-                }
-                prev = Matrix.Identity;
+                UpdateChain(chain);
             }
         }
 
@@ -255,29 +260,25 @@ namespace KinectViewer
         // Mutators
         // ====================================================================
 
+        public void UpdateAngle(string jointName, float val, float smooth) { SetJoint(jointName, val, smooth); }
+        public void UpdateAngle(string jointName, float val)               { SetJoint(jointName, val, 0); }
 
-        public void UpdateAngle(string jointName, float val, float smooth)
-        {
-            SetJoint(jointName, val, smooth);
-        }
+        public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
+        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0)); }
 
-        public void UpdateAngle(string jointName, float val)
+        private JointNode SetJoint(string jointName, float val, float smooth)
         {
-            UpdateAngle(jointName, val, 0);
-        }
-
-        private void SetJoint(string jointName, float val, float smooth)
-        {
-            float prior = jointToNode[jointName].updatedAngle;
+            JointNode node = jointToNode[jointName];
+            float prior = node.updatedAngle;
 
             if (float.IsNaN(prior)) prior = 0;
             ArrayList limit = (ArrayList)limits[jointName][0];
-            jointToNode[jointName].updatedAngle = MathUtils.Clamp(val, (float)limit[0], (float)limit[1]);
+            node.updatedAngle = MathUtils.Clamp(val, (float)limit[0], (float)limit[1]);
 
-            jointToNode[jointName].updatedAngle = prior * smooth + jointToNode[jointName].updatedAngle * (1 - smooth);
+            node.updatedAngle = prior * smooth + node.updatedAngle * (1 - smooth);
             //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
+            return node;
         }
-        
 
         // Setting ankle angles, limited to the feasible ranges.
         public void LAUpdate(float pitch, float roll)
