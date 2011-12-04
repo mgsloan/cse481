@@ -485,12 +485,17 @@ namespace KinectViewer
             ArrayList values = new ArrayList();
             foreach (string joint in jointToNode.Keys)
             {
-                if (joint != "Torso")
+                if (joint != "Torso" && joint != "RAnklePitch" && joint != "LAnklePitch")
                 {
                     joints.Add(joint);
                     values.Add(jointToNode[joint].updatedAngle);
                 }
             }
+
+            
+            
+            proxy.SetAngles(new ArrayList(new string[] { "RAnklePitch", "LAnklePitch" }), 
+                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .05f);
             proxy.SetAngles(joints, values, speed);
         }
     }

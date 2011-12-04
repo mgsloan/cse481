@@ -359,6 +359,7 @@ namespace KinectViewer
             RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prr.position)),
                                     viewMatrix, projection, Color.Black);
 
+            drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
             Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);
             Vector3 Rdisplace = Vector3.Transform((naoSim.getFootTarget(srRef) - COM), Matrix.Invert(srRef));
