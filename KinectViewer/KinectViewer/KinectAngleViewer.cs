@@ -5,15 +5,14 @@ using System.Text;
 using Microsoft.Research.Kinect.Nui;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 
 namespace KinectViewer
 {
     class KinectAngleViewer : KinectViewer
     {
-        private Vector3 initHr, initHl, initFr, initFl; //hip right, hip left, foot right, foot left
-        private Vector3 curHr, curHl, curFr, curFl;
 
-        protected override void updateSkeleton(SkeletonData skeleton)
+        protected override void UpdateSkeleton(SkeletonData skeleton)
         {
             Vector3 elbowRight     = getLoc(skeleton.Joints[JointID.ElbowRight    ]),
                     handRight      = getLoc(skeleton.Joints[JointID.HandRight     ]),
@@ -63,10 +62,30 @@ namespace KinectViewer
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
             calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
 
-            if (getTwoLegStance())
+            if (TwoLegStand)
             {
-                double curRRoll = AngleBetween((curFr - curHr), (curHl - curHl));
-                
+                //current left & right hip roll (take angle between hips and from hip to foot)
+                double curRHRoll = MathUtils.AngleBetween((curFr - curHr), (curHl - curHr));
+                double curLHRoll = MathUtils.AngleBetween((curFl - curHl), (curHr - curHl));
+
+                //initial left and right hip roll (when the two legged stance was started)
+                double initRHRoll = MathUtils.AngleBetween((initFr - initHr), (initHl - initHr));
+                double initLHRoll = MathUtils.AngleBetween((initFl - initHl), (initHr - initHl));
+
+                //change in left & right hip roll
+                double deltaRH = curRHRoll - initRHRoll;
+                double deltaLH = curLHRoll - initLHRoll;
+
+                //initial left & right ankle roll (take angle between feet and from foot to hip)
+                double initLARoll = MathUtils.AngleBetween((initHl - initFl), (initFr - initFl));
+                double initRARoll = MathUtils.AngleBetween((initHr - initFr), (initFl - initFr));
+
+                //ankles counterrotate with respect to hip
+                double curLARoll = initLARoll - deltaLH;
+                double curRARoll = initRARoll - deltaRH;
+
+                Console.WriteLine("LRoll: " + curLARoll);
+                Console.WriteLine("RRoll: " + curRARoll);
             }
 
             // arms
@@ -102,9 +121,18 @@ namespace KinectViewer
             //ParallelFoot(srReflegs, RUAlegs, RLAlegs);
         }
 
-        private static float AngleBetween(Vector3 v1, Vector3 v2)
+        override protected void SetTwoLegStance()
         {
-            return (float) Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
+            TwoLegStand = true;
+            initHl = curHl;
+            initHr = curHr;
+            initFl = curFl;
+            initFr = curFr;
+        }
+
+        override protected void SetOneLegStance()
+        {
+            TwoLegStand = false;
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
@@ -214,14 +242,6 @@ namespace KinectViewer
             result.Y = vec.Y;
             result.Z = vec.Z;
             return result;
-        }
-
-        override public void setTwoLegStance()
-        {
-            initHl = curHl;
-            initHr = curHr;
-            initFl = curFl;
-            initFr = curFr;
         }
 
         //find angles that would make the flat of the foot parallel with the ground

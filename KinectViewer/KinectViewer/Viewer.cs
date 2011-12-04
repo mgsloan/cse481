@@ -25,6 +25,7 @@ namespace KinectViewer
         protected Vector3 gridOrigin;
 
         protected List<LabelledVector> lines = new List<LabelledVector>();
+        protected Dictionary<Keys, Action> keyHandlers = new Dictionary<Keys, Action>();
 
         protected int frame = 0;
 
@@ -172,6 +173,11 @@ namespace KinectViewer
                     moveVector += new Vector3(0, 1, 0);
                 if (keyState.IsKeyDown(Keys.Z))
                     moveVector += new Vector3(0, -1, 0);
+                foreach (KeyValuePair<Keys, Action> entry in keyHandlers)
+                {
+                    if (keyState.IsKeyDown(entry.Key)) entry.Value.Invoke();
+                }
+
                 AddToCameraPosition(moveVector * amount);
             }
 
@@ -199,6 +205,10 @@ namespace KinectViewer
             prior_keys = keyState;
         }
 
+        protected void AddKeyHandler(Keys k, Action handler)
+        {
+            keyHandlers.Add(k, handler);
+        }
 
         private void AddToCameraPosition(Vector3 vectorToAdd)
         {

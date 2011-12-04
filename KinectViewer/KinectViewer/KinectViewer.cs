@@ -14,6 +14,8 @@ namespace KinectViewer
 {
     class KinectViewer : Viewer
     {
+        private enum FootState { LEFT, RIGHT, BOTH }
+
         protected NaoSimulator naoSim;
         protected Balancer balancer;
         private TwoFootBalancer fixedBalancer;
@@ -30,11 +32,15 @@ namespace KinectViewer
         Vector3 leftFootInitial;
         Vector3 rightFootInitial;
 
-        bool fixedTwoLegStance = false;
+        //manipulated by subclass
+        protected Vector3 initHr, initHl, initFr, initFl; //hip right, hip left, foot right, foot left
+        protected Vector3 curHr, curHl, curFr, curFl;
+        protected bool TwoLegStand = false;
+        private FootState footState = FootState.BOTH;
 
-        public void setTwoLegStance() { }
-        public bool getTwoLegStance() { return fixedTwoLegStance; }
-
+        //subclasses implement, this class decides when to call
+        protected virtual void SetTwoLegStance() { }
+        protected virtual void SetOneLegStance() { }
 
         // Kinect-derived angles (manipulated in subclasses)
         protected Dictionary<String, float> kinectAngles = new Dictionary<string, float>();
@@ -96,10 +102,10 @@ namespace KinectViewer
             */
             //END BALANCE METHOD 1
 
-            balancer.Balance(1, lines, srRef.Up);
+            //balancer.Balance(1, lines, srRef.Up);
 
             //BALANCE METHOD 2
-            //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
+            fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
             //END BALANCE METHOD 2
 
             naoSim.UpdatePositions();
@@ -154,7 +160,6 @@ namespace KinectViewer
         //lifted
         private void determineFootElevation(SkeletonData skeleton)
         {
-
             var leftjoint = skeleton.Joints[JointID.AnkleLeft];
             var rightjoint = skeleton.Joints[JointID.AnkleRight];
 
@@ -171,15 +176,21 @@ namespace KinectViewer
                 //Console.WriteLine("cur_right: " + cur_right.Y);
                 if (cur_left.Y - cur_right.Y > .3)
                 {
-                    //Console.WriteLine("your left foot is up");
+                    if (!footState.Equals(FootState.LEFT)) Console.WriteLine("your left foot is up");
+                    footState = FootState.LEFT;
+                    SetOneLegStance();
                 }
                 else if (cur_left.Y - cur_right.Y < -.3)
                 {
-                    //Console.WriteLine("your right foot is up");
+                    if (!footState.Equals(FootState.RIGHT)) Console.WriteLine("your right foot is up");
+                    footState = FootState.RIGHT;
+                    SetOneLegStance();
                 }
                 else
                 {
-                    //Console.WriteLine("both of your feet are on the ground");
+                    if (!footState.Equals(FootState.BOTH)) Console.WriteLine("both of your feet are on the ground");
+                    footState = FootState.BOTH;
+                    SetTwoLegStance();
                 }
             }
             else
