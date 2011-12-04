@@ -90,13 +90,20 @@ namespace KinectViewer
             */
             //END BALANCE METHOD 1
 
-            balancer.Balance(1, lines, srRef.Up);
 
             //BALANCE METHOD 2
             //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
             //END BALANCE METHOD 2
 
+            float ang = 0.2f;
+            naoSim.UpdateAngle("LKneePitch", ang);
+            naoSim.UpdateAngle("LHipPitch", -ang);
+            naoSim.UpdateAngle("RHipRoll", -.73f);
+            naoSim.UpdateAngle("RHipPitch", -.5f);
+
             naoSim.UpdatePositions();
+
+            balancer.Balance(1, lines, srRef.Up);
 
             naoSim.RSSend();
         }

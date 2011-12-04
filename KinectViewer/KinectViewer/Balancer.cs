@@ -49,23 +49,17 @@ namespace KinectViewer
 
             // Balance vector.  We need it to be vertical.
             Vector3 delta = Vector3.Subtract(com, target);
-
-            // Transform into lower leg local space.
-            Matrix mat = Matrix.Invert(MathUtils.ExtractRotation(naoSim.GetTransform(prefix + "KneePitch")));
-            Vector3 local = Vector3.Transform(delta, mat);
-
-            // Take the angle of the vector to be the angle we need to rotate
-            // the ground plane in order to achieve balance.
-            float roll  = (float) Math.Atan2(local.X, local.Y);
-            float pitch = (float) Math.Atan2(local.Z, local.Y);
+            
+            Tuple<float, float> angles = naoSim.GetAnglesRequired(prefix + "KneePitch", delta);
+            float roll = angles.Item1;
+            float pitch = angles.Item2;
 
             // Use Force sensors to tweak result.
             float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
             float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
-            //Console.WriteLine("Biases: " + forwardBias.ToString() + " " + leftwardBias.ToString());
 
-            Vector3 offset = new Vector3(0, 0, 3f);
-            ls.Add(new LabelledVector(offset, Vector3.Add(offset, local), Color.Black, ""));
+            Vector3 offset = new Vector3(0, 0, -3f);
+            ls.Add(new LabelledVector(offset, Vector3.Add(offset, delta), Color.Black, ""));
             ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
             
             // Foot commands with experimental fudge factors

@@ -128,12 +128,10 @@ namespace KinectViewer
             base.Draw(gameTime);
         }
         
-
         protected override void Update(GameTime gameTime)
         {
             if (Keyboard.GetState().IsKeyDown(Keys.Escape))
                 this.Exit();
-
 
             float timeDifference = (float)gameTime.ElapsedGameTime.TotalMilliseconds / 1000.0f;
             ProcessInput(timeDifference);

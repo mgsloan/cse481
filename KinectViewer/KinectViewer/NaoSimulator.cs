@@ -18,8 +18,8 @@ namespace KinectViewer
 
         /*setting up the joint nodes for the robot. */
         JointNode LShoulderPitch, RShoulderPitch, RShoulderRoll, LShoulderRoll, LElbowYaw, RElbowYaw, LElbowRoll, RElbowRoll, LWristYaw,
-                RWristYaw, LHipPitch, RHipPitch, LHipRoll, RHipRoll, LKneePitch, RKneePitch, LAnklePitch, RAnklePitch,
-                LAnkleRoll, RAnkleRoll, Torso, HeadYaw, HeadPitch;
+                RWristYaw, LHipYawPitch, RHipYawPitch, LHipPitch, RHipPitch, LHipRoll, RHipRoll, LKneePitch, RKneePitch, LAnklePitch,
+                RAnklePitch, LAnkleRoll, RAnkleRoll, Torso, HeadYaw, HeadPitch;
 
         NaoFoot rightF, leftF;
         Vector3[] rightFLocal;
@@ -53,6 +53,10 @@ namespace KinectViewer
             RElbowRoll = new JointNode("RElbowYaw", Vector3.Up);
             LWristYaw = new JointNode("LWristYaw", Vector3.Up);
             RWristYaw = new JointNode("RWristYaw", Vector3.Up);
+            //TODO: determine axis...
+            LHipYawPitch = new JointNode("LHipYawPitch", Vector3.Left);
+            RHipYawPitch = new JointNode("LHipYawPitch", Vector3.Left);
+            RHipPitch = new JointNode("RHipPitch", Vector3.Left);
             LHipPitch = new JointNode("LHipPitch", Vector3.Left);
             RHipPitch = new JointNode("RHipPitch", Vector3.Left);
             LHipRoll = new JointNode("LHipRoll", Vector3.Backward);
@@ -69,14 +73,12 @@ namespace KinectViewer
 
             jointToNode = new Dictionary<string, JointNode>()
             {
-                { "RShoulderPitch", RShoulderPitch }, {"RShoulderRoll", RShoulderRoll },  {"RElbowRoll", RElbowRoll },
-                {"RElbowYaw", RElbowYaw}, {"LShoulderPitch", LShoulderPitch} , {"LShoulderRoll", LShoulderRoll}, 
-                {"LElbowRoll", LElbowRoll} , {"LElbowYaw", LElbowYaw} , {"RHipRoll", RHipRoll }, {"RHipPitch", RHipPitch },
-                {"RKneePitch", RKneePitch}, {"RAnklePitch", RAnklePitch}, {"RAnkleRoll", RAnkleRoll}, {"LHipRoll", LHipRoll},
-                {"LHipPitch", LHipPitch}, {"LKneePitch", LKneePitch}, {"LAnklePitch", LAnklePitch}, {"LAnkleRoll", LAnkleRoll},
-                {"LWristYaw", LWristYaw}, {"RWristYaw", RWristYaw}, {"Torso", Torso}, {"HeadYaw", HeadYaw}, {"HeadPitch", HeadPitch} 
+                {"RShoulderPitch", RShoulderPitch}, {"RShoulderRoll", RShoulderRoll},  {"RElbowRoll", RElbowRoll}, {"RElbowYaw", RElbowYaw}, {"RWristYaw", RWristYaw},
+                {"LShoulderPitch", LShoulderPitch} , {"LShoulderRoll", LShoulderRoll}, {"LElbowRoll", LElbowRoll} , {"LElbowYaw", LElbowYaw}, {"LWristYaw", LWristYaw},
+                {"RHipYawPitch", RHipYawPitch}, {"RHipRoll", RHipRoll}, {"RHipPitch", RHipPitch}, {"RKneePitch", RKneePitch}, {"RAnklePitch", RAnklePitch}, {"RAnkleRoll", RAnkleRoll},
+                {"LHipYawPitch", LHipYawPitch}, {"LHipRoll", LHipRoll}, {"LHipPitch", LHipPitch}, {"LKneePitch", LKneePitch}, {"LAnklePitch", LAnklePitch}, {"LAnkleRoll", LAnkleRoll},
+                {"Torso", Torso}, {"HeadYaw", HeadYaw}, {"HeadPitch", HeadPitch} 
             };
-
 
             //jointToNode.Keys.ToList(),
             proxy = new NaoProxy(ip, jointToNode.Keys.ToList(), 100);
@@ -88,12 +90,12 @@ namespace KinectViewer
             rightF = new NaoFoot("R");
 
             /********create the kinematic chains*****/
-            JointNode LeftArm = CreateChain(new JointNode[] { LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, LWristYaw });
+            JointNode LeftArm  = CreateChain(new JointNode[] { LShoulderPitch, LShoulderRoll, LElbowYaw, LElbowRoll, LWristYaw });
             JointNode RightArm = CreateChain(new JointNode[] { RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, RWristYaw });
-            JointNode LeftLeg = CreateChain(new JointNode[] { LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll });
-            JointNode RightLeg = CreateChain(new JointNode[] { RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll });
-            JointNode Head = CreateChain(new JointNode[] { HeadYaw, HeadPitch });
-            JointNode Body = CreateChain(new JointNode[] { Torso });
+            JointNode LeftLeg  = CreateChain(new JointNode[] { LHipYawPitch, LHipRoll, LHipPitch, LKneePitch, LAnklePitch, LAnkleRoll });
+            JointNode RightLeg = CreateChain(new JointNode[] { RHipYawPitch, RHipRoll, RHipPitch, RKneePitch, RAnklePitch, RAnkleRoll });
+            JointNode Head     = CreateChain(new JointNode[] { HeadYaw, HeadPitch });
+            JointNode Body     = CreateChain(new JointNode[] { Torso });
 
             Robot = new LinkedList<JointNode>(new JointNode[] { LeftArm, RightArm, LeftLeg, RightLeg, Head, Body });
 
@@ -268,7 +270,8 @@ namespace KinectViewer
 
         private JointNode SetJoint(string jointName, float val, float smooth)
         {
-            JointNode node = jointToNode[jointName];
+            bool isPelvis = (jointName == "LHipYawPitch" || jointName == "RHipYawPitch");
+            JointNode node = jointToNode[isPelvis ? "LHipYawPitch" : jointName];
             float prior = node.updatedAngle;
 
             if (float.IsNaN(prior)) prior = 0;
@@ -276,6 +279,7 @@ namespace KinectViewer
             node.updatedAngle = MathUtils.Clamp(val, (float)limit[0], (float)limit[1]);
 
             node.updatedAngle = prior * smooth + node.updatedAngle * (1 - smooth);
+            if (isPelvis) jointToNode["RHipYawPitch"].updatedAngle = node.updatedAngle;
             //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
             return node;
         }
@@ -283,13 +287,13 @@ namespace KinectViewer
         // Setting ankle angles, limited to the feasible ranges.
         public void LAUpdate(float pitch, float roll)
         {
-            float pitch2 = MathUtils.Clamp(-1.189516f, 0.922747f, pitch);
+            float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
             UpdateAngle("LAnklePitch", pitch2);
             UpdateAngle("LAnkleRoll", NearestFeasibleRoll(pitch2, roll));
         }
         public void RAUpdate(float pitch, float roll)
         {
-            float pitch2 = MathUtils.Clamp(-1.189516f, 0.922747f, pitch);
+            float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
             UpdateAngle("RAnklePitch", pitch2);
             UpdateAngle("RAnkleRoll", -NearestFeasibleRoll(pitch2, -roll));
         }

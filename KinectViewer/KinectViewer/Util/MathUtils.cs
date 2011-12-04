@@ -54,6 +54,7 @@ namespace KinectViewer
             result.Up = mat.Up;
             result.Right = mat.Right;
             result.Forward = mat.Forward;
+            result.Translation = Vector3.Zero;
             return result;
         }
     }
