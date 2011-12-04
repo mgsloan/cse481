@@ -36,6 +36,121 @@ namespace KinectViewer
         // Torso reference (manipulated in subclasses)
         protected Matrix srRef { get; set; }
 
+        protected virtual void UpdateSkeleton(SkeletonData skeleton)
+        {
+            if (cur_skeleton == null)
+            {
+                //set the initial position of the feet
+                //var set = TryInitializeFeetPosition(skeleton);
+            }
+            cur_skeleton = skeleton;
+            determineFootElevation(skeleton);
+            gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
+            //sc.sendRotationSpeeds(nao.values);
+
+            //BALANCE METHOD 2
+            //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
+            //END BALANCE METHOD 2
+
+            UpdateRobot();
+        }
+
+        // This method is here so that it's easy to switch back and forth between using render requests to
+        // update the robot and using kinect updates to trigger robot update.
+        protected void UpdateRobot()
+        {
+            float ang = 0.2f;
+            naoSim.UpdateAngle("LKneePitch", ang);
+            naoSim.UpdateAngle("LHipPitch", -ang);
+            naoSim.UpdateAngle("RHipRoll", -.73f);
+            naoSim.UpdateAngle("RHipPitch", -.5f);
+            naoSim.UpdateAngle("RHipYawPitch", 0f);
+            naoSim.UpdateAngle("LHipYawPitch", 0f);
+
+            naoSim.UpdatePositions();
+
+            balancer.Balance(1, lines, srRef.Up);
+
+            naoSim.RSSend();
+        }
+
+        protected override void DrawStuff()
+        {
+            if (naoSim.connected)
+            {
+
+                naoSim.UpdatePositions();
+                frame++;
+                DrawRobot();
+            }
+
+            if (cur_skeleton != null)
+            {
+                if (cur_skeleton.TrackingState == SkeletonTrackingState.Tracked)
+                {
+                    foreach (Joint joint in cur_skeleton.Joints)
+                    {
+                        var position = FromKinectSpace(joint.Position);
+                        drawPrimitive(sphere, position, Color.Red);
+                    }
+                }
+            }
+        }
+
+        private void DrawRobot()
+        {
+            var robot = naoSim.GetRobot();
+            var rightF = naoSim.GetRightFoot();
+            var leftF = naoSim.GetLeftFoot();
+
+            foreach (NaoFoot foot in new[] { rightF, leftF })
+            {
+                foreach (NaoPos pos in new[] { foot.pfl, foot.pfr, foot.prl, foot.prr })
+                {
+                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(pos.position)),
+                                            viewMatrix, projection, Color.Black);
+                }
+            }
+
+            drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
+            Vector3 COM = naoSim.GetCOM();
+            drawPrimitive(COMsphere, COM, Color.Green);
+            Vector3 Rdisplace = Vector3.Transform((naoSim.GetFootTarget(srRef) - COM), Matrix.Invert(srRef));
+            lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
+
+            double[] legRAngles = naoSim.ReadjustLegs(srRef);
+            /*
+            var legRUpdate = new Dictionary<string, float>();
+            legRUpdate.Add("RHipRoll", (float)(legRAngles[1]));
+            legRUpdate.Add("RHipPitch", (float)(legRAngles[0] - Math.PI / 2));
+            legRUpdate.Add("RKneePitch", (float)(legRAngles[2]));
+            sim.UpdatePositions(legRUpdate); 
+            */
+
+            foreach (JointNode chain in robot)
+            {
+                JointNode cur = chain.next;
+                while (cur != null)
+                {
+                    if (cur.name == "LHipYawPitch" || cur.name == "RHipYawPitch")
+                        debugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
+                    Matrix w1 = Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation));
+                    //if (srRef != null) w1 = Matrix.Multiply(w1, Matrix.Invert(srRef));
+                    RobotSimSphere.Draw(w1, viewMatrix, projection, Color.Red);
+
+                    float sc = (float)cur.mass * 2;
+                    Matrix w2 = Matrix.Multiply(Matrix.CreateScale(sc, sc * 2, sc), Matrix.Multiply(Matrix.CreateTranslation(cur.com), cur.torsoSpacePosition));
+                    //if (srRef != null) w2 = Matrix.Multiply(w2, Matrix.Invert(srRef));
+                    RobotSimSphere.Draw(w2, viewMatrix, projection, Color.White);
+                    cur = cur.next;
+                }
+            }
+
+            //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
+            //float offset = nao.computeOffsetParam();
+            //Console.WriteLine("offset: " + offset);
+        }
+
         protected override void LoadContent()
         {
             base.LoadContent();
@@ -47,12 +162,11 @@ namespace KinectViewer
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();
 
-            nui.Initialize(//RuntimeOptions.UseColor | RuntimeOptions.UseDepthAndPlayerIndex |
-                RuntimeOptions.UseSkeletalTracking);
+            nui.Initialize(RuntimeOptions.UseSkeletalTracking);
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             // Must set to true and set after call to Initialize
-            nui.NuiCamera.ElevationAngle = 1;
+            nui.NuiCamera.ElevationAngle = 15;
 
             nui.SkeletonEngine.TransformSmooth = true;
             // Use to transform and reduce jitter
@@ -71,42 +185,6 @@ namespace KinectViewer
             fixedBalancer = new TwoFootBalancer(naoSim);
         }
 
-        protected virtual void UpdateSkeleton(SkeletonData skeleton)
-        {
-            cur_skeleton = skeleton;
-            gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
-            //sc.sendRotationSpeeds(nao.values);
-
-            //BALANCE METHOD 1
-            /*
-            foreach (KeyValuePair<String, float> t in kinectAngles)
-            {
-                if (t.Key != "RKneePitch" &&
-                    t.Key != "RHipPitch" &&
-                    t.Key != "RHipRoll")
-                    naoSim.UpdateAngle(t.Key, t.Value);
-            }
-            
-            */
-            //END BALANCE METHOD 1
-
-
-            //BALANCE METHOD 2
-            //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
-            //END BALANCE METHOD 2
-
-            float ang = 0.2f;
-            naoSim.UpdateAngle("LKneePitch", ang);
-            naoSim.UpdateAngle("LHipPitch", -ang);
-            naoSim.UpdateAngle("RHipRoll", -.73f);
-            naoSim.UpdateAngle("RHipPitch", -.5f);
-
-            naoSim.UpdatePositions();
-
-            balancer.Balance(1, lines, srRef.Up);
-
-            naoSim.RSSend();
-        }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
@@ -119,28 +197,6 @@ namespace KinectViewer
 
             if (skeleton != null)
             {
-
-                //first time to see a skeleton.
-                if (cur_skeleton == null)
-                {
-                    //set the initial position of the feet
-                    //var set = TryInitializeFeetPosition(skeleton);
-                    //if (set) //if it succesfully sets the feet
-                    //{
-                    //    cur_skeleton = skeleton;
-                    //}
-                    //else
-                    //{
-                    //    cur_skeleton = null;
-                    //}
-                }
-
-                //if the initial positions have been set
-                //if (cur_skeleton != null)
-                //{
-                determineFootElevation(skeleton);
-                //}
-
                 UpdateSkeleton(skeleton);
                 //float offset = nao.computeOffsetParam();
                 //Console.WriteLine("offset: " + offset);
@@ -213,94 +269,6 @@ namespace KinectViewer
         }
 
 
-        protected override void DrawStuff()
-        {
-            if (naoSim.connected)
-            {
-                frame++;
-                drawRobot();
-            }
-
-            if (cur_skeleton != null)
-            {
-                if (cur_skeleton.TrackingState == SkeletonTrackingState.Tracked)
-                {
-                    foreach (Joint joint in cur_skeleton.Joints)
-                    {
-                        var position = FromKinectSpace(joint.Position);
-                        drawPrimitive(sphere, position, Color.Red);
-                    }
-                }
-            }
-        }
-
-        private void drawRobot()
-        {
-            var robot = naoSim.GetRobot();
-            var rightF = naoSim.GetRightFoot();
-            var leftF = naoSim.GetLeftFoot();
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfl.position)),
-                                    viewMatrix, projection, Color.Black);
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.pfr.position)),
-                                    viewMatrix, projection, Color.Black);
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.prl.position)),
-                                    viewMatrix, projection, Color.Black);
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(rightF.prr.position)),
-                                    viewMatrix, projection, Color.Black);
-
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.pfl.position)),
-                                    viewMatrix, projection, Color.Black);
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.pfr.position)),
-                                    viewMatrix, projection, Color.Black);
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prl.position)),
-                                    viewMatrix, projection, Color.Black);
-            RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(leftF.prr.position)),
-                                    viewMatrix, projection, Color.Black);
-
-            drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
-            Vector3 COM = naoSim.GetCOM();
-            drawPrimitive(COMsphere, COM, Color.Green);
-            Vector3 Rdisplace = Vector3.Transform((naoSim.GetFootTarget(srRef) - COM), Matrix.Invert(srRef));
-            lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
-
-            double[] legRAngles = naoSim.ReadjustLegs(srRef);
-            /*
-            var legRUpdate = new Dictionary<string, float>();
-            legRUpdate.Add("RHipRoll", (float)(legRAngles[1]));
-            legRUpdate.Add("RHipPitch", (float)(legRAngles[0] - Math.PI / 2));
-            legRUpdate.Add("RKneePitch", (float)(legRAngles[2]));
-            sim.UpdatePositions(legRUpdate); 
-            */
-
-            foreach (JointNode chain in robot)
-            {
-                JointNode cur = chain.next;
-                while (cur != null)
-                {
-                    Matrix w1 = Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation));
-                    //if (srRef != null) w1 = Matrix.Multiply(w1, Matrix.Invert(srRef));
-                    RobotSimSphere.Draw(w1, viewMatrix, projection, Color.Red);
-
-                    float sc = (float)cur.mass * 2;
-                    Matrix w2 = Matrix.Multiply(Matrix.CreateScale(sc, sc * 2, sc), Matrix.Multiply(Matrix.CreateTranslation(cur.com), cur.torsoSpacePosition));
-                    //if (srRef != null) w2 = Matrix.Multiply(w2, Matrix.Invert(srRef));
-                    RobotSimSphere.Draw(w2, viewMatrix, projection, Color.White);
-                    cur = cur.next;
-                }
-            }
-
-
-            //drawPrimitive(COMsphere, nao.getGyro(), Color.Red);
-            /*
-            foreach (String part in nao.parts) {
-                NaoPos p = nao.GetPosition(part);
-                //lines.Add(p.DebugLine(3.0f, Color.Black, ""));
-                if (part == "LKneePitch")
-                    debugReferenceFrame("", p.transform, 3.0f);
-                drawPrimitive(BodySphere, p.position, Color.Blue);
-            }
-            */
-        }
 
         public Vector3 FromKinectSpace(Vector position)
         {

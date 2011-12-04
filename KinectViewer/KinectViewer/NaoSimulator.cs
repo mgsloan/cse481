@@ -11,7 +11,7 @@ namespace KinectViewer
 {
     class NaoSimulator
     {
-        private Dictionary<string, JointNode> jointToNode;
+        public Dictionary<string, JointNode> jointToNode { get; set; }
         private float speed = 0.2f;
         public NaoProxy proxy { get; set; }
         Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
@@ -53,9 +53,9 @@ namespace KinectViewer
             RElbowRoll = new JointNode("RElbowYaw", Vector3.Up);
             LWristYaw = new JointNode("LWristYaw", Vector3.Up);
             RWristYaw = new JointNode("RWristYaw", Vector3.Up);
-            //TODO: determine axis...
-            LHipYawPitch = new JointNode("LHipYawPitch", Vector3.Left);
-            RHipYawPitch = new JointNode("LHipYawPitch", Vector3.Left);
+            float sq2 = (float)Math.Sqrt(2.0) / 2.0f;
+            LHipYawPitch = new JointNode("LHipYawPitch", new Vector3(-sq2, sq2, 0f));
+            RHipYawPitch = new JointNode("RHipYawPitch", new Vector3(-sq2, -sq2, 0f));
             RHipPitch = new JointNode("RHipPitch", Vector3.Left);
             LHipPitch = new JointNode("LHipPitch", Vector3.Left);
             RHipPitch = new JointNode("RHipPitch", Vector3.Left);
@@ -214,6 +214,13 @@ namespace KinectViewer
             {
                 UpdateChain(chain);
             }
+        }
+
+        // Given a joint name, sets the angle to the one reported by the robot.
+        public void SenseJoint(string part)
+        {
+            JointNode node = jointToNode[part];
+            UpdateAngle(part, proxy.GetAngles(part));
         }
 
 

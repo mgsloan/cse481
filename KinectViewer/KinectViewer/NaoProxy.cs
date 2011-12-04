@@ -142,7 +142,6 @@ namespace KinectViewer
             return new NaoPos(_motion.getPosition(part, 0, false));
         }
 
-
         public float GetAngles(string part) 
         {
             return angles[part];

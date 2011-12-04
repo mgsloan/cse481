@@ -33,7 +33,7 @@ namespace KinectViewer
                 targetFoot = naoSim.GetLeftFoot();
                 prefix = "L";
             }
-
+            
             /*
             Matrix groundRef = targetFoot.pfl.transform;
             groundRef.Translation = Vector3.Zero;
