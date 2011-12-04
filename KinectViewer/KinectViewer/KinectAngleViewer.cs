@@ -62,6 +62,9 @@ namespace KinectViewer
             LUAlegs.Normalize(); LLAlegs.Normalize(); LHlegs.Normalize();
             calculateAngles(skeleton, "ll", srReflegs, srRefInvlegs, LUAlegs, LLAlegs, LHlegs);
 
+            //assume that the feet are both at the same Y and Z value WRT torso space
+            //this does not change anything yet but just prints out what the results should be
+            //they would be fed in the simulater, which would then do it's best to balance
             if (TwoLegStand)
             {
                 //current left & right hip roll (take angle between hips and from hip to foot)
