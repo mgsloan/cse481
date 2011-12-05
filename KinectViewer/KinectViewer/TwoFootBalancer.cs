@@ -83,24 +83,15 @@ namespace KinectViewer
             //Boolean isForward = (Vector3.Dot(displacement, torsoForward) > 0);           
             //Console.WriteLine(isForward);
             // Transform into ankle local space.
-            var rot_mat = MathUtils.ExtractRotation(naoSim.GetTransform("RKneePitch"));
-            Matrix mat = rot_mat;
-
-            
-            Vector3 local = Vector3.Transform(displacement, mat);
-
-            // Take the angle of the vector to be the angle we need to rotate
-            // the ground plane in order to achieve balance.
-            float roll = (float)Math.Atan2(local.X, local.Y);
-            float pitch = (float) Math.Atan2(local.Z, local.Y);
-
-        
+            Tuple<float, float> angles = naoSim.GetAnglesRequired("RKneePitch", displacement);
+            float roll = angles.Item1;
+            float pitch = angles.Item2;
                     
 
-                    
-            Console.WriteLine("pitch: " + pitch);
-            naoSim.UpdateAngle("RAnklePitch", pitch);
-            naoSim.UpdateAngle("LAnklePitch", pitch);
+                
+            Console.WriteLine(pitch);
+            naoSim.UpdateAngle("RAnklePitch", .05f + pitch);
+            naoSim.UpdateAngle("LAnklePitch", .05f + pitch);
             
 
 
