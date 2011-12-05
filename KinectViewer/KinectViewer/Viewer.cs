@@ -38,6 +38,8 @@ namespace KinectViewer
         const float rotationSpeed = 0.3f;
         const float moveSpeed = 10.0f;
 
+        static Viewer instance;
+
         // Constructor / Initializer
         // ====================================================================
 
@@ -45,6 +47,8 @@ namespace KinectViewer
         {
             Content.RootDirectory = "Content";
             graphics = new GraphicsDeviceManager(this);
+            instance = this;
+            debugOrigin = Vector3.Zero;
         }
 
         protected override void LoadContent()
@@ -74,16 +78,33 @@ namespace KinectViewer
             p.Draw(Matrix.CreateTranslation(pos), viewMatrix, projection, c);
         }
 
-        public void debugReferenceFrame(String str, Matrix m, float sz)
-        {
-            debugReferenceFrame(str, m, sz, m.Translation);
+        public static Vector3 debugOrigin { get; set; }
+
+        public static void DebugReferenceFrameAtOrigin(String str, Matrix m) {
+            DebugReferenceFrame(str, m, 3.0f, debugOrigin);
         }
 
-        public void debugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        public static void DebugReferenceFrame(String str, Matrix m)
         {
-            lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Red, str));
-            lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
-            lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
+            DebugReferenceFrame(str, m, 3.0f, m.Translation);
+        }
+
+        public static void DebugReferenceFrame(String str, Matrix m, float sz, Vector3 origin)
+        {
+            instance.lines.Add(new LabelledVector(origin, origin + m.Right * sz, Color.Red, str));
+            instance.lines.Add(new LabelledVector(origin, origin + m.Up * sz, Color.Green, ""));
+            instance.lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
+        }
+
+
+        public static void DebugVector(String str, Vector3 vec, Color c)
+        {
+            DebugVector(str, debugOrigin, vec, c);
+        }
+
+        public static void DebugVector(String str, Vector3 orig, Vector3 vec, Color c)
+        {
+            instance.lines.Add(new LabelledVector(orig, Vector3.Add(orig, vec), c, str));
         }
 
         // Method subclasses overload to actually draw interesting things.

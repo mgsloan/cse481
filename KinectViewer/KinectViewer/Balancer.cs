@@ -21,7 +21,7 @@ namespace KinectViewer
             this.nao = naoSim.proxy;
         }
 
-        public void Balance(int feet, List<LabelledVector> ls, Vector3 torso)
+        public void Balance(int feet, List<LabelledVector> ls, Vector3 torso, int frame)
         {
             NaoFoot targetFoot;
             string prefix;
@@ -35,13 +35,13 @@ namespace KinectViewer
             }
             
             Vector3 res = Vector3.Transform(torso, MathUtils.ExtractRotation(Matrix.Invert(targetFoot.pfl.transform)));
-
+            /*
             Tuple<float, float> angles2 = naoSim.GetAnglesRequired(prefix + "HipYawPitch", res);
             naoSim.UpdateAngle(prefix + "HipRoll", angles2.Item1);
             naoSim.UpdateAngle(prefix + "HipPitch", angles2.Item2);
             Console.WriteLine("X = " + torso.X.ToString() + "; Y = " + torso.Y.ToString() + "; Z = " + torso.Z.ToString());
             Console.WriteLine("roll = " + angles2.Item1.ToString() + "; pitch = " + angles2.Item2.ToString());
-
+            */
 
             /*
             Matrix groundRef = targetFoot.pfl.transform;
@@ -57,8 +57,11 @@ namespace KinectViewer
             Vector3 target = targetFoot.GetCenter();
 
             // Balance vector.  We need it to be vertical.
-            Vector3 delta = Vector3.Subtract(com, target);
+            // Vector3 delta = Vector3.Subtract(com, target);
             
+            float time = (float) frame / 30.0f;
+            Vector3 delta = new Vector3((float)Math.Sin(time), 1f, (float)Math.Cos(time));
+
             Tuple<float, float> angles = naoSim.GetAnglesRequired(prefix + "KneePitch", delta);
             float roll = angles.Item1;
             float pitch = angles.Item2;
@@ -69,7 +72,7 @@ namespace KinectViewer
 
             Vector3 offset = new Vector3(0, 0, -3f);
             //ls.Add(new LabelledVector(offset, Vector3.Add(offset, delta), Color.Black, ""));
-            ls.Add(new LabelledVector(Vector3.Negate(offset), Vector3.Subtract(torso, offset), Color.Black, ""));
+            ls.Add(new LabelledVector(Vector3.Negate(offset), Vector3.Subtract(delta, offset), Color.Black, ""));
             ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
             
             // Foot commands with experimental fudge factors

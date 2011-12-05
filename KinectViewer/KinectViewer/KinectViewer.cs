@@ -75,12 +75,12 @@ namespace KinectViewer
             //naoSim.UpdateAngle("LHipPitch", -ang);
             naoSim.UpdateAngle("RHipRoll", -.73f);
             naoSim.UpdateAngle("RHipPitch", -.5f);
-            naoSim.UpdateAngle("RHipYawPitch", 0f);
-            naoSim.UpdateAngle("LHipYawPitch", 0f);
-
+            //naoSim.UpdateAngle("RHipYawPitch", 0f);
+            //naoSim.UpdateAngle("LHipYawPitch", 0f);
+            naoSim.SenseJoint("RHipYawPitch");
             naoSim.UpdatePositions();
 
-            balancer.Balance(1, lines, srRef.Up);
+            balancer.Balance(1, lines, srRef.Up, frame);
 
             naoSim.RSSend();
         }
@@ -143,8 +143,8 @@ namespace KinectViewer
                 JointNode cur = chain.next;
                 while (cur != null)
                 {
-                    if (cur.name == "LHipYawPitch" || cur.name == "RHipYawPitch")
-                        debugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
+                    //if (cur.name == "LHipYawPitch" || cur.name == "RHipYawPitch")
+                    //    DebugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
                     Matrix w1 = Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation));
                     //if (srRef != null) w1 = Matrix.Multiply(w1, Matrix.Invert(srRef));
                     RobotSimSphere.Draw(w1, viewMatrix, projection, Color.Red);
@@ -282,7 +282,6 @@ namespace KinectViewer
             return false;
 
         }
-
 
 
         public Vector3 FromKinectSpace(Vector position)
