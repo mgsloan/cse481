@@ -395,13 +395,19 @@ namespace KinectViewer
             // the simulator.  It's quite possible that this is only used in the "SetAngleRequired" context, in which
             // case the mutators which update the subsequent position matrices for the chain would be more appropriate.
 
-            Matrix trans = Matrix.Multiply(ja.torsoSpacePosition, jb.localPosition);
+            Matrix trans = Matrix.Multiply(Matrix.Multiply(ja.torsoSpacePosition, jb.localPosition), jb.MakeRotation(0.0f));
             Vector3 local1 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle1 = jb.initialAngle - GetAxisAngle(local1, jb.orientation);
 
-            trans = Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), jc.localPosition);
+            Viewer.debugOrigin = new Vector3(3f, 0, 0f);
+            Viewer.DebugReferenceFrame("t1", trans);
+
+            trans = Matrix.Multiply(Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), jc.localPosition), jb.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle2 = jc.initialAngle - GetAxisAngle(local2, jc.orientation);
+
+            Viewer.debugOrigin = new Vector3(4f, 0, 0f);
+            Viewer.DebugReferenceFrame("t2", trans);
 
             return new Tuple<float, float>(angle1, angle2);
         }
