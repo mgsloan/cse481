@@ -133,6 +133,7 @@ namespace KinectViewer
             initHr = curHr;
             initFl = curFl;
             initFr = curFr;
+            naoSim.InitializeTwoLegStance(FromKinectSpace(cur_skeleton.Joints[JointID.HipCenter].Position));
         }
 
         override protected void SetOneLegStance()

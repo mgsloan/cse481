@@ -21,7 +21,7 @@ namespace KinectViewer
         private TwoFootBalancer fixedBalancer;
 
         Runtime nui = new Runtime();
-        SkeletonData cur_skeleton;
+        protected SkeletonData cur_skeleton;
 
         const string IP = "127.0.0.1"; // "128.208.4.225";
 
@@ -59,9 +59,11 @@ namespace KinectViewer
             determineFootElevation(skeleton);
             gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
             //sc.sendRotationSpeeds(nao.values);
-            //fixedBalancer.balance(lines, srRef.Forward);
-            //naoSim.UpdatePositions();
-            //naoSim.RSSend();
+
+            fixedBalancer.balance(lines, srRef.Forward, cur_skeleton);
+            naoSim.UpdatePositions();
+            naoSim.RSSend();
+
             //BALANCE METHOD 2
             //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
 
@@ -80,10 +82,11 @@ namespace KinectViewer
             //naoSim.UpdateAngle("RHipPitch", -.5f);
             //naoSim.UpdateAngle("RHipYawPitch", 0f);
             //naoSim.UpdateAngle("LHipYawPitch", 0f);
-            naoSim.SenseJoint("RHipYawPitch");
+
+            //naoSim.SenseJoint("RHipYawPitch");
             //naoSim.SenseJoint("RAnkleRoll");
             //naoSim.SenseJoint("RAnklePitch");
-            balancer.Balance(1, lines, srRef.Up, frame);
+           // balancer.Balance(1, lines, srRef.Up, frame);
 
             naoSim.RSSend();
         }
