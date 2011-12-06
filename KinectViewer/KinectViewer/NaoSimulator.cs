@@ -322,8 +322,8 @@ namespace KinectViewer
             } else if (pitchDeg < 5.72) {
                 return MathUtils.ToRad(InterpClamp(
                     -25.78f, 22.79f, -44.06f,
-                                         5.72f, 22.79f, -44.06f,
-                                         pitchDeg, rollDeg));
+                    5.72f, 22.79f, -44.06f,
+                    pitchDeg, rollDeg));
             } else if (pitchDeg < 20.05) {
                 return MathUtils.ToRad(InterpClamp(
                     5.72f, 22.79f, -44.06f,
@@ -366,8 +366,8 @@ namespace KinectViewer
             if (axis.X == -1f) return (float)Math.Atan2(v.Z, v.Y);
             if (axis.Y == 1f)  return (float)Math.Atan2(v.X, v.Z);
             if (axis.Y == -1f) return (float)Math.Atan2(v.Z, v.X);
-            if (axis.Z == 1f)  return (float)Math.Atan2(v.Y, v.X);
-            if (axis.Z == -1f) return (float)Math.Atan2(v.X, v.Y);
+            if (axis.Z == 1f)  return (float)Math.Atan2(v.X, v.Y);
+            if (axis.Z == -1f) return (float)Math.Atan2(v.Y, v.X);
             throw new Exception("Cannot get angle for non axial rotation.");
         }
         
@@ -401,15 +401,19 @@ namespace KinectViewer
             trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jb.orientation, -angle1));
 
             Viewer.debugOrigin = new Vector3(3f, 0, 0f);
-            Viewer.DebugReferenceFrame("t1", trans);
+            Viewer.DebugReferenceFrameAtOrigin("t1", trans);
 
-
-            trans = Matrix.Multiply(Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), Matrix.Invert(jb.torsoSpacePosition)), jb.MakeRotation(0.0f));
+            // Local space of the second joint, with zero rotation.
+            trans = MathUtils.RotateBy(
+                Matrix.Multiply(jc.localPosition, trans),
+                jc.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle2 = GetAxisAngle(local2, jc.orientation);
+            Console.WriteLine(angle2.ToString());
 
-            Viewer.debugOrigin = new Vector3(4f, 0, 0f);
-            Viewer.DebugReferenceFrame("t2", trans);
+            trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jc.orientation, -angle2));
+            Viewer.DebugReferenceFrameAtOrigin("t2", trans);
+
 
             return new Tuple<float, float>(angle1, angle2);
         }

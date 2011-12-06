@@ -18,10 +18,11 @@ namespace KinectViewer
         KeyboardState prior_keys;
 
         protected GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
-        SpriteFont spriteFont;
-        SampleGrid grid;
-        SampleGrid grid2;
+        protected Color clearColor = Color.Bisque;
+        protected SpriteBatch spriteBatch;
+        protected SpriteFont spriteFont;
+        protected SampleGrid grid;
+        protected SampleGrid grid2;
         protected Vector3 gridOrigin;
 
         protected List<LabelledVector> lines = new List<LabelledVector>();
@@ -114,7 +115,7 @@ namespace KinectViewer
 
         protected override void Draw(GameTime gameTime)
         {
-            GraphicsDevice.Clear(Color.CornflowerBlue);
+            GraphicsDevice.Clear(clearColor);
 
             GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
 
@@ -201,6 +202,7 @@ namespace KinectViewer
 
             if (KeyFreshPress(keyState, Keys.K)) trap_mouse = !trap_mouse;
 
+            /*
             if (KeyFreshPress(keyState, Keys.F))
             {
                 if (graphics.IsFullScreen)
@@ -217,6 +219,7 @@ namespace KinectViewer
                 }
                 graphics.ApplyChanges();
             }
+             */
 
             // if (keyState.IsKeyDown(Keys.Escape))
 

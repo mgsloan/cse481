@@ -59,9 +59,9 @@ namespace KinectViewer
             determineFootElevation(skeleton);
             gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
             //sc.sendRotationSpeeds(nao.values);
-            fixedBalancer.balance(lines, srRef.Forward);
-            naoSim.UpdatePositions();
-            naoSim.RSSend();
+            //fixedBalancer.balance(lines, srRef.Forward);
+            //naoSim.UpdatePositions();
+            //naoSim.RSSend();
             //BALANCE METHOD 2
             //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
 
@@ -80,11 +80,12 @@ namespace KinectViewer
             //naoSim.UpdateAngle("RHipPitch", -.5f);
             //naoSim.UpdateAngle("RHipYawPitch", 0f);
             //naoSim.UpdateAngle("LHipYawPitch", 0f);
-            //naoSim.SenseJoint("RHipYawPitch");
-           
-            //balancer.Balance(1, lines, srRef.Up, frame);
+            naoSim.SenseJoint("RHipYawPitch");
+            //naoSim.SenseJoint("RAnkleRoll");
+            //naoSim.SenseJoint("RAnklePitch");
+            balancer.Balance(1, lines, srRef.Up, frame);
 
-            //naoSim.RSSend();
+            naoSim.RSSend();
         }
 
         protected override void DrawStuff()
@@ -145,8 +146,8 @@ namespace KinectViewer
                 JointNode cur = chain.next;
                 while (cur != null)
                 {
-                    //if (cur.name == "LHipYawPitch" || cur.name == "RHipYawPitch")
-                    //    DebugReferenceFrame("", cur.torsoSpacePosition, 3.0f);
+                    //if (cur.name == "RAnklePitch" || cur.name == "RAnkleRoll")
+                    //    Viewer.DebugReferenceFrame("", cur.torsoSpacePosition);
                     Matrix w1 = Matrix.Multiply(Matrix.CreateScale(0.3f, 0.3f, 0.3f), Matrix.CreateTranslation(cur.torsoSpacePosition.Translation));
                     //if (srRef != null) w1 = Matrix.Multiply(w1, Matrix.Invert(srRef));
                     RobotSimSphere.Draw(w1, viewMatrix, projection, Color.Red);
@@ -175,23 +176,30 @@ namespace KinectViewer
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();
 
-            nui.Initialize(RuntimeOptions.UseSkeletalTracking);
-
-            nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
-            // Must set to true and set after call to Initialize
-            nui.NuiCamera.ElevationAngle = 1;
-
-            nui.SkeletonEngine.TransformSmooth = true;
-            // Use to transform and reduce jitter   
-            var parameters = new TransformSmoothParameters
+            try
             {
-                Smoothing = 0.5f,
-                Correction = 0.5f,
-                Prediction = 0.0f,
-                JitterRadius = 0.05f,
-                MaxDeviationRadius = 0.05f
-            };
-            nui.SkeletonEngine.SmoothParameters = parameters;
+                nui.Initialize(RuntimeOptions.UseSkeletalTracking);
+
+                nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
+                // Must set to true and set after call to Initialize
+                nui.NuiCamera.ElevationAngle = 1;
+
+                nui.SkeletonEngine.TransformSmooth = true;
+                // Use to transform and reduce jitter   
+                var parameters = new TransformSmoothParameters
+                {
+                    Smoothing = 0.5f,
+                    Correction = 0.5f,
+                    Prediction = 0.0f,
+                    JitterRadius = 0.05f,
+                    MaxDeviationRadius = 0.05f
+                };
+                nui.SkeletonEngine.SmoothParameters = parameters;
+            }
+            catch
+            {
+                clearColor = Color.Turquoise;
+            }
 
             naoSim = new NaoSimulator(IP);
             balancer = new Balancer(naoSim);

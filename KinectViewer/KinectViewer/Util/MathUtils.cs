@@ -18,7 +18,7 @@ namespace KinectViewer
 
         public static float Lerp(float v, float f, float t)
         {
-            return (1 - v) * t + v * f;
+            return (1 - v) * f + v * t;
         }
 
         public static float UnLerp(float v, float f, float t)

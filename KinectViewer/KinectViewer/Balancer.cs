@@ -62,6 +62,7 @@ namespace KinectViewer
             float time = (float) frame / 30.0f;
             Vector3 delta = new Vector3((float)Math.Sin(time), 1f, (float)Math.Cos(time));
 
+            Viewer.debugOrigin = new Vector3(3.0f, 0f, 0f);
             Tuple<float, float> angles = naoSim.GetAnglesRequired(prefix + "KneePitch", delta);
             float pitch = angles.Item1;
             float roll = angles.Item2;
@@ -70,10 +71,10 @@ namespace KinectViewer
             float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
             float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
 
-            Vector3 offset = new Vector3(0, 0, -3f);
             //ls.Add(new LabelledVector(offset, Vector3.Add(offset, delta), Color.Black, ""));
-            ls.Add(new LabelledVector(Vector3.Negate(offset), Vector3.Subtract(delta, offset), Color.Black, ""));
-            ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
+            Viewer.DebugVector("", delta, Color.Black);
+            //ls.Add(new LabelledVector(Vector3.Negate(offset), Vector3.Subtract(delta, offset), Color.Black, ""));
+            //ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
             
             // Foot commands with experimental fudge factors
             if (feet == 2)
