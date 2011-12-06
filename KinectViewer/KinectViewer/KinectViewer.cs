@@ -14,11 +14,11 @@ namespace KinectViewer
 {
     class KinectViewer : Viewer
     {
-        private enum FootState { LEFT, RIGHT, BOTH }
+      
 
         protected NaoSimulator naoSim;
         protected Balancer balancer;
-        private TwoFootBalancer fixedBalancer;
+        private TwoFootBalancer twoFootBalancer;
 
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
@@ -36,7 +36,7 @@ namespace KinectViewer
         protected Vector3 initHr, initHl, initFr, initFl; //hip right, hip left, foot right, foot left
         protected Vector3 curHr, curHl, curFr, curFl;
         protected bool TwoLegStand = false;
-        private FootState footState = FootState.BOTH;
+        protected FootState footState = FootState.BOTH;
 
         //subclasses implement, this class decides when to call
         protected virtual void SetTwoLegStance() { }
@@ -60,22 +60,21 @@ namespace KinectViewer
             gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
             //sc.sendRotationSpeeds(nao.values);
 
-            fixedBalancer.balance(lines, srRef.Forward, cur_skeleton);
+          
+
+
+
+
             naoSim.UpdatePositions();
             naoSim.RSSend();
-
-            //BALANCE METHOD 2
-            //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
-
-            //END BALANCE METHOD 2
-
         }
+
 
         // This method is here so that it's easy to switch back and forth between using render requests to
         // update the robot and using kinect updates to trigger robot update.
         protected void UpdateRobot()
         {
-            float ang = 0.2f;
+            
             //naoSim.UpdateAngle("LKneePitch", ang);
             //naoSim.UpdateAngle("LHipPitch", -ang);
             //naoSim.UpdateAngle("RHipRoll", -.73f);
@@ -86,9 +85,9 @@ namespace KinectViewer
             //naoSim.SenseJoint("RHipYawPitch");
             //naoSim.SenseJoint("RAnkleRoll");
             //naoSim.SenseJoint("RAnklePitch");
-           // balancer.Balance(1, lines, srRef.Up, frame);
+            twoFootBalancer.balance(lines, srRef.Forward, footState);
 
-            naoSim.RSSend();
+            
         }
 
         protected override void DrawStuff()
@@ -206,7 +205,7 @@ namespace KinectViewer
 
             naoSim = new NaoSimulator(IP);
             balancer = new Balancer(naoSim);
-            fixedBalancer = new TwoFootBalancer(naoSim);
+            twoFootBalancer = new TwoFootBalancer(naoSim);
         }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
@@ -248,16 +247,16 @@ namespace KinectViewer
                 //Console.WriteLine("init_right: " + rightFootInitial.Y);
                 //Console.WriteLine("cur_left: " + cur_left.Y);
                 //Console.WriteLine("cur_right: " + cur_right.Y);
-                if (cur_left.Y - cur_right.Y > .3)
+                if (cur_left.Y - cur_right.Y > .35)
                 {
                     if (!footState.Equals(FootState.LEFT)) Console.WriteLine("your left foot is up");
-                    footState = FootState.LEFT;
+                    footState = FootState.RIGHT;
                     SetOneLegStance();
                 }
-                else if (cur_left.Y - cur_right.Y < -.3)
+                else if (cur_left.Y - cur_right.Y < -.35)
                 {
                     if (!footState.Equals(FootState.RIGHT)) Console.WriteLine("your right foot is up");
-                    footState = FootState.RIGHT;
+                    footState = FootState.LEFT;
                     SetOneLegStance();
                 }
                 else

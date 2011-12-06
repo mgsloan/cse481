@@ -172,7 +172,7 @@ namespace KinectViewer
                         leftFLocal[2] = Vector3.Transform(leftFoot.prl.position, toLocal);
                         leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
                     }
-
+                    
                     cur = cur.next;
                     prev = temp;
                 }
