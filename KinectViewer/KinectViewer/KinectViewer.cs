@@ -59,9 +59,12 @@ namespace KinectViewer
             determineFootElevation(skeleton);
             gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
             //sc.sendRotationSpeeds(nao.values);
-
+            fixedBalancer.balance(lines, srRef.Forward);
+            naoSim.UpdatePositions();
+            naoSim.RSSend();
             //BALANCE METHOD 2
             //fixedBalancer.balance(lines, srRef.Forward); //should do this before calling UpdatePositions
+
             //END BALANCE METHOD 2
 
         }
@@ -71,18 +74,17 @@ namespace KinectViewer
         protected void UpdateRobot()
         {
             float ang = 0.2f;
-            naoSim.UpdateAngle("LKneePitch", ang);
+            //naoSim.UpdateAngle("LKneePitch", ang);
             //naoSim.UpdateAngle("LHipPitch", -ang);
-            naoSim.UpdateAngle("RHipRoll", -.73f);
-            naoSim.UpdateAngle("RHipPitch", -.5f);
+            //naoSim.UpdateAngle("RHipRoll", -.73f);
+            //naoSim.UpdateAngle("RHipPitch", -.5f);
             //naoSim.UpdateAngle("RHipYawPitch", 0f);
             //naoSim.UpdateAngle("LHipYawPitch", 0f);
-            naoSim.SenseJoint("RHipYawPitch");
-            naoSim.UpdatePositions();
+            //naoSim.SenseJoint("RHipYawPitch");
+           
+            //balancer.Balance(1, lines, srRef.Up, frame);
 
-            balancer.Balance(1, lines, srRef.Up, frame);
-
-            naoSim.RSSend();
+            //naoSim.RSSend();
         }
 
         protected override void DrawStuff()
@@ -177,10 +179,10 @@ namespace KinectViewer
 
             nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
             // Must set to true and set after call to Initialize
-            nui.NuiCamera.ElevationAngle = 15;
+            nui.NuiCamera.ElevationAngle = 1;
 
             nui.SkeletonEngine.TransformSmooth = true;
-            // Use to transform and reduce jitter
+            // Use to transform and reduce jitter   
             var parameters = new TransformSmoothParameters
             {
                 Smoothing = 0.5f,

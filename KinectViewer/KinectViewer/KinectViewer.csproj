@@ -132,7 +132,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FixedBalancer.cs" />
     <Compile Include="JointNode.cs" />
     <Compile Include="NaoSimulator.cs" />
     <Compile Include="NaoFoot.cs" />
@@ -144,6 +143,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Game1.cs" />
+    <Compile Include="TwoFootBalancer.cs" />
     <Compile Include="Util\MathUtils.cs" />
     <Compile Include="Util\GeometricPrimitive.cs" />
     <Compile Include="Util\LabelledVector.cs" />

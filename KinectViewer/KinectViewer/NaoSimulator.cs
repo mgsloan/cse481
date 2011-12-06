@@ -261,7 +261,7 @@ namespace KinectViewer
             }
 
             proxy.SetAngles(new ArrayList(new string[] { "RAnklePitch", "LAnklePitch" }),
-                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .05f);
+                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .2f);
             proxy.SetAngles(joints, values, speed);
         }
 
@@ -395,14 +395,14 @@ namespace KinectViewer
             // the simulator.  It's quite possible that this is only used in the "SetAngleRequired" context, in which
             // case the mutators which update the subsequent position matrices for the chain would be more appropriate.
 
-            Matrix trans = Matrix.Multiply(Matrix.Multiply(ja.torsoSpacePosition, jb.localPosition), jb.MakeRotation(0.0f));
+            Matrix trans = Matrix.Multiply(Matrix.Multiply(ja.torsoSpacePosition, Matrix.Invert(ja.torsoSpacePosition)), jb.MakeRotation(0.0f));
             Vector3 local1 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle1 = jb.initialAngle - GetAxisAngle(local1, jb.orientation);
 
             Viewer.debugOrigin = new Vector3(3f, 0, 0f);
             Viewer.DebugReferenceFrame("t1", trans);
 
-            trans = Matrix.Multiply(Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), jc.localPosition), jb.MakeRotation(0.0f));
+            trans = Matrix.Multiply(Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), Matrix.Invert(jb.torsoSpacePosition)), jb.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle2 = jc.initialAngle - GetAxisAngle(local2, jc.orientation);
 
@@ -427,6 +427,7 @@ namespace KinectViewer
 
             Tuple<float, float> angles = GetAnglesInternal(ja, jb, jc, vec);
             SetJoint(jb.name, angles.Item1, smooth);
+
             SetJoint(jc.name, angles.Item2, smooth);
         }
 
