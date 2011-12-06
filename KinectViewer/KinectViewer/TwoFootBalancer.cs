@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
+using Microsoft.Research.Kinect.Nui;
 
 namespace KinectViewer
 {
@@ -16,6 +17,10 @@ namespace KinectViewer
         private double initHip; //initial pitch for both hips
         private double initKnee; //initial pitch for both knees
         private double initAnkle; //inital pitch for both ankles
+        private double initHipRoll; //initial roll for hips
+        private double initAnkleRoll; //initial roll for ankles
+
+      
         NaoSimulator naoSim;
 
         public TwoFootBalancer(NaoSimulator naoSim)
@@ -24,6 +29,10 @@ namespace KinectViewer
             this.initHip = .103259; //naoSim.GetInitialAngle("RHipPitch"); //current best  
             this.initKnee =  -.076658;//naoSim.GetInitialAngle("RKneePitch"); //current best = 
             this.initAnkle = .085945;//naoSim.GetInitialAngle("RAnklePitch"); //current best =
+            this.initHipRoll = naoSim.GetInitialAngle("RHipRoll");
+            this.initHipRoll = naoSim.GetInitialAngle("RAnkleRoll");
+
+            //this.initTorsoPosition = naoSim.GetPosition("Torso");
         }
 
         //http://users.aldebaran-robotics.com/docs/site_en/reddoc/hardware/joints-names_3.3.html
@@ -40,7 +49,7 @@ namespace KinectViewer
         //expects stable initial position
         //if knee angle increases by T, ankle pitch increases by T
         //if hip angle increases by T, ankle pitch increases by T
-        public void balance(List<LabelledVector> ls, Vector3 torsoForward)
+        public void balance(List<LabelledVector> ls, Vector3 torsoForward, SkeletonData cur_skeleton)
         {
             double delta_h = naoSim.GetCurrentAngle("RHipPitch") - initHip;
             double delta_k = naoSim.GetCurrentAngle("RKneePitch") - initKnee;
@@ -50,11 +59,35 @@ namespace KinectViewer
             naoSim.UpdateAngle("LKneePitch", naoSim.GetCurrentAngle("RKneePitch"));
             naoSim.UpdateAngle("LHipPitch", naoSim.GetCurrentAngle("RHipPitch"));
             naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));
+
+            DetermineRollAngles(cur_skeleton);
             
 
             SmartBalance(ls, torsoForward);
         }
-        
+
+        public void DetermineRollAngles(SkeletonData cur_skeleton) {
+
+            //if (cur_skeleton != null)
+            //{
+            //    double[] lAngles = naoSim.AdjustFeet(MathUtils.FromKinectSpace(cur_skeleton.Joints[JointID.HipCenter].Position));
+            //    naoSim.UpdateAngle("LHipPitch", (float)lAngles[0]);
+            //    Console.WriteLine("LHipPitch: " + ((float) lAngles[0] - (float) Math.PI/2));
+            //    naoSim.UpdateAngle("LHipRoll", (float)lAngles[1]);
+            //    Console.WriteLine("LHipRoll: " + (float)lAngles[1]);
+            //    naoSim.UpdateAngle("LKneePitch", (float)lAngles[2] - (float)Math.PI);
+            //    //naoSim.UpdateAngle("RHipPitch", (float)-feetangles[1][0] + (float)Math.PI / 2);
+            //    //naoSim.UpdateAngle("RHipRoll", (float)-feetangles[1][1] + (float)Math.PI / 2);
+            //    //naoSim.UpdateAngle("RKneePitch", (float)feetangles[1][2] - (float)Math.PI);
+            //}
+            double delta_h = naoSim.GetCurrentAngle("RHipRoll") - initHipRoll;
+            naoSim.UpdateAngle("LAnkleRoll", (float)(initAnkle - delta_h), .05f);
+            naoSim.UpdateAngle("RAnkleRoll", naoSim.GetCurrentAngle("LAnkleRoll"));
+
+
+        }
+
+
         public float Average(params float[] xs) {
             float sum = 0;
             foreach (float x in xs)
@@ -99,9 +132,9 @@ namespace KinectViewer
             
                 
             Console.WriteLine("pitch2: " + pitch);
-            //Console.WriteLine("roll: " + roll);
-            naoSim.RAUpdate(pitch + .055f, 0f);
-            naoSim.LAUpdate(pitch + .055f, 0f);
+            Console.WriteLine("roll: " + roll);
+            naoSim.RAUpdate(pitch + .055f, -roll);
+            naoSim.LAUpdate(pitch + .055f, -roll);
             
 
 

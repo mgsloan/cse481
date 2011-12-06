@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
-
+using Microsoft.Research.Kinect.Nui;
 namespace KinectViewer
 {
     class MathUtils
@@ -71,6 +71,15 @@ namespace KinectViewer
         public static float AngleBetween(Vector3 v1, Vector3 v2)
         {
             return (float)Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
+        }
+
+        public static Vector3 FromKinectSpace(Vector position)
+        {
+            var returnVector = new Vector3();
+            returnVector.X = position.X * 10;
+            returnVector.Y = position.Y * 10;
+            returnVector.Z = position.Z * 10;
+            return returnVector;
         }
     }
 }

@@ -263,14 +263,15 @@ namespace KinectViewer
         // Mutators
         // ====================================================================
 
-        public void UpdateAngle(string jointName, float val, float smooth) { SetJoint(jointName, val, smooth); }
-        public void UpdateAngle(string jointName, float val)               { SetJoint(jointName, val, 0); }
+        public void UpdateAngle(string jointName, float val, float smooth) { if (!float.IsNaN(val)) { SetJoint(jointName, val, smooth); } }
+        public void UpdateAngle(string jointName, float val) { if (!float.IsNaN(val)) { SetJoint(jointName, val, 0); } }
 
         public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
         public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0)); }
 
         private JointNode SetJoint(string jointName, float val, float smooth)
         {
+            
             bool isPelvis = (jointName == "LHipYawPitch" || jointName == "RHipYawPitch");
             JointNode node = jointToNode[isPelvis ? "LHipYawPitch" : jointName];
             float prior = node.updatedAngle;
@@ -283,6 +284,7 @@ namespace KinectViewer
             if (isPelvis) jointToNode["RHipYawPitch"].updatedAngle = node.updatedAngle;
             //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
             return node;
+            
         }
 
         // Setting ankle angles, limited to the feasible ranges.
@@ -564,9 +566,13 @@ namespace KinectViewer
         }
 
         //for when both feet are on the ground
-        public void AdjustFeet(Vector3 position)
+        public double[] AdjustFeet(Vector3 position)
         {
+            
             Vector3 displacement = position - initCenter;
+            Viewer.debugOrigin = new Vector3(3f, 0f, 0f);
+            Viewer.DebugVector("displacement", displacement, Color.Yellow);
+            
 
             Vector3 finalFr = initFr - displacement;
             Vector3 finalFl = initFl - displacement;
@@ -575,7 +581,8 @@ namespace KinectViewer
             double[] lAngles = IKSolver.IK.LegIK(Matrix.Identity, initHr, finalFr, UL_len, LL_len);
             double[] rAngles = IKSolver.IK.LegIK(Matrix.Identity, initHl, finalFl, UL_len, LL_len);
 
-            Console.WriteLine("Left: " + lAngles[0] + ", " + lAngles[1] + ", " + lAngles[2]);
+            return lAngles;
+            //Console.WriteLine("Left: " + lAngles[0] + ", " + lAngles[1] + ", " + lAngles[2]);
         }
 
         private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot, double UL_len, double LL_len)
