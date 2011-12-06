@@ -113,7 +113,7 @@ namespace KinectViewer
 
             Vector3 displacement = Vector3.Subtract(com,supportcenter);
 
-            Tuple<float, float> angles = naoSim.GetAnglesRequired("RKneePitch", displacement);
+            Tuple<float, float> angles = new Tuple<float, float>(0f,0f); //naoSim.GetAnglesRequired("RKneePitch", displacement);
             float pitch = angles.Item1;
             float roll = angles.Item2;
 

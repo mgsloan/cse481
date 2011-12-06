@@ -60,8 +60,10 @@ namespace KinectViewer
             gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
             //sc.sendRotationSpeeds(nao.values);
 
-            fixedBalancer.balance(lines, srRef.Forward, cur_skeleton);
+            //fixedBalancer.balance(lines, srRef.Forward, cur_skeleton);
             naoSim.UpdatePositions();
+            //UpdateRobot();
+            //naoSim.UpdatePositions();
             naoSim.RSSend();
 
             //BALANCE METHOD 2
@@ -83,10 +85,14 @@ namespace KinectViewer
             //naoSim.UpdateAngle("RHipYawPitch", 0f);
             //naoSim.UpdateAngle("LHipYawPitch", 0f);
 
-            //naoSim.SenseJoint("RHipYawPitch");
-            //naoSim.SenseJoint("RAnkleRoll");
-            //naoSim.SenseJoint("RAnklePitch");
-           // balancer.Balance(1, lines, srRef.Up, frame);
+            naoSim.SenseJoint("RHipYawPitch");
+            naoSim.SenseJoint("RAnkleRoll");
+            naoSim.SenseJoint("RAnklePitch");
+
+            naoSim.SenseJoint("LHipYawPitch");
+            naoSim.SenseJoint("LAnkleRoll");
+            naoSim.SenseJoint("LAnklePitch");
+            balancer.Balance(1, lines, srRef.Up, frame);
 
             naoSim.RSSend();
         }

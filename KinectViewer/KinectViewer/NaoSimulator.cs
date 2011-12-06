@@ -384,7 +384,7 @@ namespace KinectViewer
             return new Tuple<float, float>(angle, GetAxisAngle(local2, jb.orientation));
         }
          */
-
+        /*
         private Tuple<float, float> GetAnglesInternal(JointNode ja, JointNode jb, JointNode jc, Vector3 vec)
         {
             // TODO: this reduplicates the logic expressed in the UpdatePositions method, but without actually mutating
@@ -400,21 +400,21 @@ namespace KinectViewer
             float angle1 = GetAxisAngle(local1, jb.orientation);
 
             // Transformation appropriately rotated by the determined angle.
-            trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jb.orientation, -angle1));
+            trans = MathUtils.RotateByRev(Matrix.CreateFromAxisAngle(jb.orientation, -angle1), trans);
 
             Viewer.debugOrigin = new Vector3(3f, 0, 0f);
-            Viewer.DebugReferenceFrameAtOrigin("t1", trans);
+            Viewer.DebugReferenceFrame("t1", trans);
 
             // Local space of the second joint, with zero rotation.
-            trans = MathUtils.RotateBy(
-                Matrix.Multiply(jc.localPosition, trans),
-                jc.MakeRotation(0.0f));
+            trans = MathUtils.RotateBy(Matrix.Multiply(jc.localPosition, trans), jc.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle2 = GetAxisAngle(local2, jc.orientation);
             Console.WriteLine(angle2.ToString());
 
-            trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jc.orientation, -angle2));
-            Viewer.DebugReferenceFrameAtOrigin("t2", trans);
+
+            trans = MathUtils.RotateByRev(Matrix.CreateFromAxisAngle(jc.orientation, -angle2), trans);
+            Viewer.DebugReferenceFrame("t2", trans);
+            Viewer.debugOrigin = new Vector3(4.0f, 0, 0);
 
 
             return new Tuple<float, float>(angle1, angle2);
@@ -435,9 +435,11 @@ namespace KinectViewer
 
             Tuple<float, float> angles = GetAnglesInternal(ja, jb, jc, vec);
             SetJoint(jb.name, angles.Item1, smooth);
-
             SetJoint(jc.name, angles.Item2, smooth);
         }
+         */
+
+
 
         public NaoFoot GetRightFoot()
         {
