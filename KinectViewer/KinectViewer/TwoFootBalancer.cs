@@ -21,9 +21,9 @@ namespace KinectViewer
         public TwoFootBalancer(NaoSimulator naoSim)
         {
             this.naoSim = naoSim;
-            this.initHip =  naoSim.GetInitialAngle("RHipPitch"); //current best =.103259; 
-            this.initKnee = naoSim.GetInitialAngle("RKneePitch"); //current best = -.076658; 
-            this.initAnkle =  naoSim.GetInitialAngle("RAnklePitch"); //current best =.085945;
+            this.initHip = .103259; //naoSim.GetInitialAngle("RHipPitch"); //current best  
+            this.initKnee =  -.076658;//naoSim.GetInitialAngle("RKneePitch"); //current best = 
+            this.initAnkle = .085945;//naoSim.GetInitialAngle("RAnklePitch"); //current best =
         }
 
         //http://users.aldebaran-robotics.com/docs/site_en/reddoc/hardware/joints-names_3.3.html
@@ -46,11 +46,13 @@ namespace KinectViewer
             double delta_k = naoSim.GetCurrentAngle("RKneePitch") - initKnee;
 
             naoSim.UpdateAngle("RAnklePitch", (float) (initAnkle - .8 * delta_h - 1 * delta_k), .05f);
+            naoSim.UpdateAngle("RHipYawPitch", 0f);
             naoSim.UpdateAngle("LKneePitch", naoSim.GetCurrentAngle("RKneePitch"));
             naoSim.UpdateAngle("LHipPitch", naoSim.GetCurrentAngle("RHipPitch"));
-            naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));   
+            naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));
+            
 
-            //SmartBalance(ls, torsoForward);
+            SmartBalance(ls, torsoForward);
         }
         
         public float Average(params float[] xs) {
@@ -77,30 +79,29 @@ namespace KinectViewer
             Vector3 supportcenter = naoSim.GetTwoFootCenter();
 
             Vector3 displacement = Vector3.Subtract(com,supportcenter);
-            
-            //Boolean isForward = (Vector3.Dot(displacement, torsoForward) > 0);           
-            //Console.WriteLine(isForward);
-            // Transform into ankle local space.
-            Matrix mat = Matrix.Invert(Matrix.CreateTranslation(naoSim.GetPosition("RAnkleRoll")));
-            Vector3 local = Vector3.Transform(displacement, mat);
-            
-            // Take the angle of the vector to be the angle we need to rotate
-            // the ground plane in order to achieve balance.
-            //float roll  = (float) Math.Atan2(local.X, local.Y);
-            float pitch = (float) Math.Atan2(local.Z, local.Y);    
 
-            //// Use Force sensors to tweak result.
-            //float forwardBias = Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
-            //float leftwardBias = Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
-            //Console.WriteLine("Biases: " + forwardBias.ToString() + " " + leftwardBias.ToString());
+            Tuple<float, float> angles = naoSim.GetAnglesRequired("RKneePitch", displacement);
+            float pitch = angles.Item1;
+            float roll = angles.Item2;
 
-            //Vector3 offset = new Vector3(0, 0, 3f);
-            //ls.Add(new LabelledVector(offset, Vector3.Add(offset, local), Color.Black, ""));
-            //ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
+            // Use Force sensors to tweak result.
+            float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
+            float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
+            Console.WriteLine("pitch1: " + pitch);
+            Vector3 offset = new Vector3(0, 0, -3f);
+            //ls.Add(new LabelledVector(offset, Vector3.Add(offset, delta), Color.Black, ""));
+            ls.Add(new LabelledVector(Vector3.Negate(offset), Vector3.Subtract(displacement, offset), Color.Black, ""));
+            ls.Add(new LabelledVector(offset, new Vector3(leftwardBias, 1f, 3f + forwardBias), Color.Green, ""));
+
+
+            pitch += forwardBias;
+            roll += leftwardBias;
+            
                 
-            Console.WriteLine(-pitch);
-            naoSim.UpdateAngle("RAnklePitch", -pitch);
-            naoSim.UpdateAngle("LAnklePitch", -pitch);
+            Console.WriteLine("pitch2: " + pitch);
+            //Console.WriteLine("roll: " + roll);
+            naoSim.RAUpdate(pitch + .055f, 0f);
+            naoSim.LAUpdate(pitch + .055f, 0f);
             
 
 

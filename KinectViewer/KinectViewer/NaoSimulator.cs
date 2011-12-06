@@ -255,7 +255,7 @@ namespace KinectViewer
             }
 
             proxy.SetAngles(new ArrayList(new string[] { "RAnklePitch", "LAnklePitch" }),
-                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .05f);
+                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .2f);
             proxy.SetAngles(joints, values, speed);
         }
 
@@ -402,9 +402,9 @@ namespace KinectViewer
 
             Viewer.debugOrigin = new Vector3(3f, 0, 0f);
             Viewer.DebugReferenceFrame("t1", trans);
-            
-            // Local space of the second joint, with zero rotation.
-            trans = MathUtils.RotateBy(Matrix.Multiply(jc.localPosition, trans), jc.MakeRotation(0.0f));
+
+
+            trans = Matrix.Multiply(Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), Matrix.Invert(jb.torsoSpacePosition)), jb.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle2 = GetAxisAngle(local2, jc.orientation);
 
@@ -429,6 +429,7 @@ namespace KinectViewer
 
             Tuple<float, float> angles = GetAnglesInternal(ja, jb, jc, vec);
             SetJoint(jb.name, angles.Item1, smooth);
+
             SetJoint(jc.name, angles.Item2, smooth);
         }
 
