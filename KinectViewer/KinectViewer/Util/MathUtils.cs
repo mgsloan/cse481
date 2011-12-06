@@ -68,6 +68,15 @@ namespace KinectViewer
             return result;
         }
 
+        // Multiplies the first matrix by the second, as if the first matrix had zero translation.
+        public static Matrix RotateByRev(Matrix a, Matrix b)
+        {
+            Matrix result = ExtractRotation(b);
+            Matrix.Multiply(ref a, ref result, out result);
+            result.Translation = b.Translation;
+            return result;
+        }
+
         public static float AngleBetween(Vector3 v1, Vector3 v2)
         {
             return (float)Math.Acos(Vector3.Dot(v1, v2) / (v1.Length() * v2.Length()));
