@@ -96,7 +96,6 @@ namespace KinectViewer
             instance.lines.Add(new LabelledVector(origin, origin + m.Forward * sz, Color.Blue, ""));
         }
 
-
         public static void DebugVector(String str, Vector3 vec, Color c)
         {
             DebugVector(str, debugOrigin, vec, c);

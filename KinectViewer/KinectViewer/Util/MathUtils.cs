@@ -55,6 +55,16 @@ namespace KinectViewer
             result.Right = mat.Right;
             result.Forward = mat.Forward;
             result.Translation = Vector3.Zero;
+            result.M44 = 1;
+            return result;
+        }
+
+        // Multiplies the first matrix by the second, as if the first matrix had zero translation.
+        public static Matrix RotateBy(Matrix a, Matrix b)
+        {
+            Matrix result = ExtractRotation(a);
+            Matrix.Multiply(ref result, ref b, out result);
+            result.Translation = a.Translation;
             return result;
         }
 

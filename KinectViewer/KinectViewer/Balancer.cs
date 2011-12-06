@@ -42,7 +42,7 @@ namespace KinectViewer
             Console.WriteLine("X = " + torso.X.ToString() + "; Y = " + torso.Y.ToString() + "; Z = " + torso.Z.ToString());
             Console.WriteLine("roll = " + angles2.Item1.ToString() + "; pitch = " + angles2.Item2.ToString());
             */
-
+             
             /*
             Matrix groundRef = targetFoot.pfl.transform;
             groundRef.Translation = Vector3.Zero;
@@ -63,8 +63,8 @@ namespace KinectViewer
             Vector3 delta = new Vector3((float)Math.Sin(time), 1f, (float)Math.Cos(time));
 
             Tuple<float, float> angles = naoSim.GetAnglesRequired(prefix + "KneePitch", delta);
-            float roll = angles.Item1;
-            float pitch = angles.Item2;
+            float pitch = angles.Item1;
+            float roll = angles.Item2;
 
             // Use Force sensors to tweak result.
             float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;

@@ -63,13 +63,13 @@ namespace KinectViewer
             RHipRoll = new JointNode("RHipRoll", Vector3.Forward);
             LKneePitch = new JointNode("LKneePitch", Vector3.Left);
             RKneePitch = new JointNode("RKneePitch", Vector3.Left);
-            LAnklePitch = new JointNode("LAnklePitch", Vector3.Up);
-            RAnklePitch = new JointNode("RAnklePitch", Vector3.Up);
-            LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Up);
-            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Up);
+            LAnklePitch = new JointNode("LAnklePitch", Vector3.Left);
+            RAnklePitch = new JointNode("RAnklePitch", Vector3.Left);
+            LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Backward);
+            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Forward);
             Torso = new JointNode("Torso", Vector3.Up);
             HeadYaw = new JointNode("HeadYaw", Vector3.Up);
-            HeadPitch = new JointNode("HeadPitch", Vector3.Up);
+            HeadPitch = new JointNode("HeadPitch", Vector3.Left);
 
             jointToNode = new Dictionary<string, JointNode>()
             {
@@ -190,16 +190,10 @@ namespace KinectViewer
             JointNode cur = chain.next;
             while (cur != null)
             {
-                cur.torsoSpacePosition = Matrix.Multiply(cur.localPosition, prev);
-
-                Vector3 trans = cur.torsoSpacePosition.Translation;
-                cur.torsoSpacePosition.Translation = Vector3.Zero;
-                //may need to fix this. 
-                float angle = cur.updatedAngle;
-                cur.torsoSpacePosition = Matrix.Multiply(cur.torsoSpacePosition, cur.MakeRotation(angle));
-
-                cur.torsoSpacePosition.Translation = trans;
-
+                cur.torsoSpacePosition = MathUtils.RotateBy(
+                    Matrix.Multiply(cur.localPosition, prev),
+                    cur.MakeRotation(cur.updatedAngle));
+                
                 prev = cur.torsoSpacePosition;
                 cur = cur.next;
             }
@@ -368,12 +362,12 @@ namespace KinectViewer
         // UGLY
         public float GetAxisAngle(Vector3 v, Vector3 axis)
         {
-            if (axis.X == 1f) return (float)Math.Atan2(axis.Y, axis.Z);
-            if (axis.X == -1f) return (float)Math.Atan2(axis.Z, axis.Y);
-            if (axis.Y == 1f) return (float)Math.Atan2(axis.X, axis.Z);
-            if (axis.Y == -1f) return (float)Math.Atan2(axis.Z, axis.X);
-            if (axis.Z == 1f) return (float)Math.Atan2(axis.X, axis.Y);
-            if (axis.Z == -1f) return (float)Math.Atan2(axis.Y, axis.X);
+            if (axis.X == 1f)  return (float)Math.Atan2(v.Y, v.Z);
+            if (axis.X == -1f) return (float)Math.Atan2(v.Z, v.Y);
+            if (axis.Y == 1f)  return (float)Math.Atan2(v.X, v.Z);
+            if (axis.Y == -1f) return (float)Math.Atan2(v.Z, v.X);
+            if (axis.Z == 1f)  return (float)Math.Atan2(v.Y, v.X);
+            if (axis.Z == -1f) return (float)Math.Atan2(v.X, v.Y);
             throw new Exception("Cannot get angle for non axial rotation.");
         }
         
@@ -394,17 +388,25 @@ namespace KinectViewer
             // TODO: this reduplicates the logic expressed in the UpdatePositions method, but without actually mutating
             // the simulator.  It's quite possible that this is only used in the "SetAngleRequired" context, in which
             // case the mutators which update the subsequent position matrices for the chain would be more appropriate.
+            
+            // Local space of the first joint, with zero rotation.
+            Matrix trans = MathUtils.RotateBy(
+                Matrix.Multiply(jb.localPosition, ja.torsoSpacePosition),
+                jb.MakeRotation(0.0f));
 
-            Matrix trans = Matrix.Multiply(Matrix.Multiply(ja.torsoSpacePosition, jb.localPosition), jb.MakeRotation(0.0f));
             Vector3 local1 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
-            float angle1 = jb.initialAngle - GetAxisAngle(local1, jb.orientation);
+            float angle1 = GetAxisAngle(local1, jb.orientation);
+
+            // Transformation appropriately rotated by the determined angle.
+            trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jb.orientation, -angle1));
 
             Viewer.debugOrigin = new Vector3(3f, 0, 0f);
             Viewer.DebugReferenceFrame("t1", trans);
-
-            trans = Matrix.Multiply(Matrix.Multiply(Matrix.Multiply(trans, jb.MakeRotation(angle1)), jc.localPosition), jb.MakeRotation(0.0f));
+            
+            // Local space of the second joint, with zero rotation.
+            trans = MathUtils.RotateBy(Matrix.Multiply(jc.localPosition, trans), jc.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
-            float angle2 = jc.initialAngle - GetAxisAngle(local2, jc.orientation);
+            float angle2 = GetAxisAngle(local2, jc.orientation);
 
             Viewer.debugOrigin = new Vector3(4f, 0, 0f);
             Viewer.DebugReferenceFrame("t2", trans);
