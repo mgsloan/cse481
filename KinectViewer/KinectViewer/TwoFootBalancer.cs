@@ -133,8 +133,8 @@ namespace KinectViewer
                 
             Console.WriteLine("pitch2: " + pitch);
             Console.WriteLine("roll: " + roll);
-            naoSim.RAUpdate(pitch + .055f, -roll);
-            naoSim.LAUpdate(pitch + .055f, -roll);
+            naoSim.RAUpdate(pitch + .055f, roll - (float) Math.PI/2);
+            naoSim.LAUpdate(pitch + .055f, roll - (float) Math.PI/2);
             
 
 
