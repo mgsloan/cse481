@@ -23,7 +23,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
 
-        const string IP = "127.0.0.1"; // "128.208.4.225";
+        const string IP =   "127.0.0.1"; //"128.208.4.14";
 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
@@ -59,26 +59,19 @@ namespace KinectViewer
             determineFootElevation(skeleton);
             gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
             //sc.sendRotationSpeeds(nao.values);
-
-          
-
-
-
-
-            naoSim.UpdatePositions();
-            naoSim.RSSend();
+            
         }
 
 
-        // This method is here so that it's easy to switch back and forth between using render requests to
+        // This method is here so that it's easy to switch back and forth between using render requests  to
         // update the robot and using kinect updates to trigger robot update.
         protected void UpdateRobot()
         {
             
             //naoSim.UpdateAngle("LKneePitch", ang);
             //naoSim.UpdateAngle("LHipPitch", -ang);
-            naoSim.UpdateAngle("RHipRoll", -.73f);
-            naoSim.UpdateAngle("RHipPitch", -.5f);
+            //naoSim.UpdateAngle("RHipRoll", -.73f);
+            //naoSim.UpdateAngle("RHipPitch", -.5f);
             //naoSim.UpdateAngle("RHipYawPitch", 0f);
             //naoSim.UpdateAngle("LHipYawPitch", 0f);
 
@@ -86,14 +79,16 @@ namespace KinectViewer
             //naoSim.SenseJoint("RAnkleRoll");
             //naoSim.SenseJoint("RAnklePitch");
 
-            naoSim.SenseJoint("LHipYawPitch");
-            naoSim.SenseJoint("LAnkleRoll");
-            naoSim.SenseJoint("LAnklePitch");
-            balancer.Balance(1, lines, srRef.Up, frame);
-
+            //naoSim.SenseJoint("LHipYawPitch");
+            //naoSim.SenseJoint("LAnkleRoll");
+            //naoSim.SenseJoint("LAnklePitch");
+            //balancer.Balance(1, lines, srRef.Up, frame);
+            twoFootBalancer.balance(lines, srRef.Up);
+            naoSim.UpdatePositions();
             naoSim.RSSend();
+            //naoSim.RSSend();
 
-            //twoFootBalancer.balance(lines, srRef.Forward, footState);
+            
 
         }
 
@@ -123,19 +118,8 @@ namespace KinectViewer
         private void DrawRobot()
         {
             var robot = naoSim.GetRobot();
-            var rightF = naoSim.GetRightFoot();
-            var leftF = naoSim.GetLeftFoot();
-
-            foreach (NaoFoot foot in new[] { rightF, leftF })
-            {
-                foreach (NaoPos pos in new[] { foot.pfl, foot.pfr, foot.prl, foot.prr })
-                {
-                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(pos.position)),
-                                            viewMatrix, projection, Color.Black);
-                }
-            }
-
-            //drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
+            
+            drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
             Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);
             drawPrimitive(COMsphere, naoSim.proxy.GetCOM(), Color.Red);

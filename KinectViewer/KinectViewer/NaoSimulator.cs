@@ -152,26 +152,7 @@ namespace KinectViewer
 
                     //Console.WriteLine(torsoCom.ToString() + ", transformed: " + cur.com.ToString()); 
 
-                    //set the foot sensors in ankleroll reference frame
-                    if (cur.name == "RAnkleRoll")
-                    {
-                        //set the rankleroll angles 
-                        var rightFoot = proxy.GetRightFoot();
-                        rightFLocal = new Vector3[4];
-                        rightFLocal[0] = Vector3.Transform(rightFoot.pfl.position, toLocal);
-                        rightFLocal[1] = Vector3.Transform(rightFoot.pfr.position, toLocal);
-                        rightFLocal[2] = Vector3.Transform(rightFoot.prl.position, toLocal);
-                        rightFLocal[3] = Vector3.Transform(rightFoot.prr.position, toLocal);
-                    }
-                    else if (cur.name == "LAnkleRoll")
-                    {
-                        var leftFoot = proxy.GetLeftFoot();
-                        leftFLocal = new Vector3[4];
-                        leftFLocal[0] = Vector3.Transform(leftFoot.pfl.position, toLocal);
-                        leftFLocal[1] = Vector3.Transform(leftFoot.pfr.position, toLocal);
-                        leftFLocal[2] = Vector3.Transform(leftFoot.prl.position, toLocal);
-                        leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
-                    }
+                 
                     
                     cur = cur.next;
                     prev = temp;
@@ -267,7 +248,7 @@ namespace KinectViewer
         public void UpdateAngle(string jointName, float val) { if (!float.IsNaN(val)) { SetJoint(jointName, val, 0); } }
 
         public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
-        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0)); }
+        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0.7f)); }
 
         private JointNode SetJoint(string jointName, float val, float smooth)
         {
@@ -443,37 +424,33 @@ namespace KinectViewer
 
         public NaoFoot GetRightFoot()
         {
-            var ankleRef = RAnkleRoll.torsoSpacePosition;
-            rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
-            rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
-            rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
-            rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
+            //var ankleRef = RAnkleRoll.torsoSpacePosition;
+            //rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
+            //rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
+            //rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
+            //rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
 
             return rightF;
         }
         public NaoFoot GetLeftFoot()
         {
-            var ankleRef = LAnkleRoll.torsoSpacePosition;
-            leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
-            leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
-            leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
-            leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
-
+            
+            //var ankleRef = LAnkleRoll.torsoSpacePosition;
+            //leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
+            //leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
+            //leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
+            //leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
             return leftF;
+            
         }
 
         //assumes both feet are flat on the ground
         public Vector3 GetTwoFootCenter()
         {
             var LAnkleRef = LAnkleRoll.torsoSpacePosition;
-            var frontleftleft = Vector3.Transform(leftFLocal[0], LAnkleRef);
-            var backleftleft = Vector3.Transform(leftFLocal[2], LAnkleRef);
-
             var RAnkleRef = RAnkleRoll.torsoSpacePosition;
-            var backrightright = Vector3.Transform(rightFLocal[0], RAnkleRef);
-            var frontrightright = Vector3.Transform(rightFLocal[1], RAnkleRef);
 
-            return NaoFoot.VectorAverage(frontleftleft, backleftleft, backrightright, frontrightright);
+            return NaoFoot.VectorAverage(new Vector3[] {LAnkleRef.Translation, RAnkleRef.Translation} );
         }
 
         //returns the current COM based off the current positions of the parts and their masses
