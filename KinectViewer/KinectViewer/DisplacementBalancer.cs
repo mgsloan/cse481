@@ -25,19 +25,18 @@ namespace KinectViewer
             this.naoSim = naoSim;
         }
 
-
         public void InitializeTwoLegStance(Vector3 initCenter)
         {
             Vector3 lhip = naoSim.GetPosition("LHipRoll"),  rhip = naoSim.GetPosition("RHipRoll");
             Vector3 lknee = naoSim.GetPosition("LKneePitch");
             Vector3 lfoot = naoSim.GetPosition("LAnkleRoll"), rfoot = naoSim.GetPosition("RAnkleRoll");
-            this.hipWidth  = Vector3.Distance(lhip, rhip);
-            this.feetWidth = Vector3.Distance(lfoot, rfoot);
-            this.uLength = Vector3.Distance(lhip, lknee);
-            this.lLength = Vector3.Distance(lknee, lfoot);
+            this.hipWidth  = Vector3.Distance(lhip,  rhip);
+            this.feetWidth = 2.38f; //Vector3.Distance(lfoot, rfoot);
+            this.uLength   = Vector3.Distance(lhip,  lknee);
+            this.lLength   = Vector3.Distance(lknee, lfoot);
             this.length = uLength + lLength;
             this.skew = (feetWidth - hipWidth) / 2;
-            this.maxHeight = (float)Math.Sqrt(Math.Pow(length, 2) - Math.Pow(skew, 2)); 
+            this.maxHeight = (float)Math.Sqrt(Math.Pow(length, 2) - Math.Pow(skew, 2));
             this.initCenter = initCenter;
             this.initialAngles = LegIK(Matrix.Identity, new Vector3(0, length - 0.01f, 0), Vector3.Zero);
         }
@@ -91,14 +90,14 @@ namespace KinectViewer
             float lcKneePitch = (float)(anglesl[2] - initialAngles[2]);
 
             Viewer.debugOrigin = new Vector3(-6f, -2f, 0f);
-            Viewer.DebugVector("d2", displacement, Color.Pink);
+            Viewer.DebugVector(feetWidth.ToString(), displacement, Color.Pink);
 
             Viewer.debugOrigin = new Vector3(-3f, 0, 0);
-            Viewer.DebugReferenceFrameAtOrigin(rcHipPitch.ToString(), Matrix.CreateRotationX(rcHipPitch));
+            Viewer.DebugReferenceFrameAtOrigin(lcHipPitch.ToString(), Matrix.CreateRotationX(lcHipPitch));
             Viewer.debugOrigin = new Vector3(-6f, 1f, 0);
-            Viewer.DebugReferenceFrameAtOrigin(rcHipRoll.ToString(), Matrix.CreateRotationZ(rcHipRoll));
+            Viewer.DebugReferenceFrameAtOrigin(lcHipRoll.ToString(), Matrix.CreateRotationZ(lcHipRoll));
             Viewer.debugOrigin = new Vector3(-9f, 2f, 0);
-            Viewer.DebugReferenceFrameAtOrigin(rcKneePitch.ToString(), Matrix.CreateRotationX(rcKneePitch));
+            Viewer.DebugReferenceFrameAtOrigin(lcKneePitch.ToString(), Matrix.CreateRotationX(lcKneePitch));
 
             if (float.IsNaN(rcHipPitch)) rcHipPitch = 0;
             if (float.IsNaN(lcHipPitch)) lcHipPitch = 0;
