@@ -25,7 +25,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
        // "128.208.4.14";  //
-        const string IP = "127.0.0.1"; 
+        const string IP = "128.208.4.14"; //"127.0.0.1"; 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
@@ -60,14 +60,13 @@ namespace KinectViewer
             }
             cur_skeleton = skeleton;
             determineFootElevation(skeleton);
-            gridOrigin = GetSpine();
             //sc.sendRotationSpeeds(nao.values);
 
             naoSim.UpdatePositions();
             lines.Clear();
             if (footState == FootState.BOTH)
-                displacementBalancer.AdjustFeet(gridOrigin);
-            naoSim.UpdateAngle("RHipYawPitch", 0f);
+                displacementBalancer.AdjustFeet(GetSpine());
+            //naoSim.UpdateAngle("RHipYawPitch", 0f);
             /*
             naoSim.UpdateAngle("LShoulderPitch", 0f);
             naoSim.UpdateAngle("RShoulderPitch", 0f);
@@ -77,8 +76,6 @@ namespace KinectViewer
             //naoSim.UpdateAngle("RAnkleRoll", 0f);
             //naoSim.UpdateAngle("LAnklePitch", 0f);
             //naoSim.UpdateAngle("LAnkleRoll", 0f);
-            naoSim.SenseJoint("RAnkleRoll");
-            naoSim.SenseJoint("LAnkleRoll");
 
             naoSim.UpdatePositions();
             naoSim.RSSend();
@@ -130,7 +127,9 @@ namespace KinectViewer
                 {
                     foreach (Joint joint in cur_skeleton.Joints)
                     {
-                        var position = FromKinectSpace(joint.Position);
+                        var position = Vector3.Add(Vector3.Subtract(FromKinectSpace(joint.Position), GetSpine()), new Vector3(6f, 0, 0));
+                        position.X = -position.X;
+                        position.Z = -position.Z;
                         drawPrimitive(sphere, position, Color.Red);
                     }
                 }
@@ -140,7 +139,25 @@ namespace KinectViewer
         private void DrawRobot()
         {
             var robot = naoSim.GetRobot();
-            
+
+            var rightF = naoSim.GetRightFoot();
+            var leftF = naoSim.GetLeftFoot();
+
+            foreach (NaoFoot foot in new[] { rightF, leftF })
+            {
+                NaoPos[] poss = new[] { foot.pfl, foot.pfr, foot.prl, foot.prr };
+                float[] forces = new[] { foot.ffl, foot.ffr, foot.frl, foot.frr };
+                for (int i = 0; i < 4; i++)
+                {
+                    NaoPos pos = poss[i];
+                    float force = forces[i];
+                    if (force < 1f) force = 0.2f;
+                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, force / 3f, 0.2f), Matrix.CreateTranslation(pos.position)),
+                                            viewMatrix, projection, Color.Orange);
+                    
+                }
+            }
+
             drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
             Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);

@@ -65,8 +65,8 @@ namespace KinectViewer
             RKneePitch = new JointNode("RKneePitch", Vector3.Left);
             LAnklePitch = new JointNode("LAnklePitch", Vector3.Left);
             RAnklePitch = new JointNode("RAnklePitch", Vector3.Left);
-            LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Backward);
-            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Backward);
+            LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Forward);
+            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Forward);
             Torso = new JointNode("Torso", Vector3.Up);
             HeadYaw = new JointNode("HeadYaw", Vector3.Up);
             HeadPitch = new JointNode("HeadPitch", Vector3.Left);
@@ -81,7 +81,7 @@ namespace KinectViewer
             };
 
             //jointToNode.Keys.ToList(),
-            proxy = new NaoProxy(ip, jointToNode.Keys.ToList(), 100);
+            proxy = new NaoProxy(ip, jointToNode.Keys.ToList(), 30);
             proxy.InitialPoll();
             Thread thread = new Thread(new ThreadStart(proxy.PollLoop));
             thread.Start();
@@ -152,7 +152,27 @@ namespace KinectViewer
 
                     //Console.WriteLine(torsoCom.ToString() + ", transformed: " + cur.com.ToString()); 
 
-                 
+                    if (cur.name == "RAnkleRoll")
+                    {
+                        //set the rankleroll angles
+                        var rightFoot = proxy.GetRightFoot();
+                        proxy.PollFootPos(rightFoot, "R");
+                        rightFLocal = new Vector3[4];
+                        rightFLocal[0] = Vector3.Transform(rightFoot.pfl.position, toLocal);
+                        rightFLocal[1] = Vector3.Transform(rightFoot.pfr.position, toLocal);
+                        rightFLocal[2] = Vector3.Transform(rightFoot.prl.position, toLocal);
+                        rightFLocal[3] = Vector3.Transform(rightFoot.prr.position, toLocal);
+                    }
+                    else if (cur.name == "LAnkleRoll")
+                    {
+                        var leftFoot = proxy.GetLeftFoot();
+                        proxy.PollFootPos(leftFoot, "L");
+                        leftFLocal = new Vector3[4];
+                        leftFLocal[0] = Vector3.Transform(leftFoot.pfl.position, toLocal);
+                        leftFLocal[1] = Vector3.Transform(leftFoot.pfr.position, toLocal);
+                        leftFLocal[2] = Vector3.Transform(leftFoot.prl.position, toLocal);
+                        leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
+                    }
                     
                     cur = cur.next;
                     prev = temp;
@@ -248,7 +268,7 @@ namespace KinectViewer
         public void UpdateAngle(string jointName, float val) { if (!float.IsNaN(val)) { SetJoint(jointName, val, 0); } }
 
         public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
-        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0.7f)); }
+        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0.0f)); }
 
         private JointNode SetJoint(string jointName, float val, float smooth)
         {
@@ -271,8 +291,8 @@ namespace KinectViewer
         public void AUpdate(string prefix, float pitch, float roll)
         {
             float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
-            UpdateAngle(prefix + "AnklePitch", pitch2);
-            UpdateAngle(prefix + "AnkleRoll", NearestFeasibleRoll(pitch2, roll));
+            UpdateAngle(prefix + "AnklePitch", pitch2, 0.9f);
+            UpdateAngle(prefix + "AnkleRoll", NearestFeasibleRoll(pitch2, roll), 0.9f);
         }
 
         // Setting ankle angles, limited to the feasible ranges.
@@ -421,22 +441,21 @@ namespace KinectViewer
 
         public NaoFoot GetRightFoot()
         {
-            //var ankleRef = RAnkleRoll.torsoSpacePosition;
-            //rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
-            //rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
-            //rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
-            //rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
+            var ankleRef = RAnkleRoll.torsoSpacePosition;
+            rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
+            rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
+            rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
+            rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
 
             return rightF;
         }
         public NaoFoot GetLeftFoot()
         {
-            
-            //var ankleRef = LAnkleRoll.torsoSpacePosition;
-            //leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
-            //leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
-            //leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
-            //leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
+            var ankleRef = LAnkleRoll.torsoSpacePosition;
+            leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
+            leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
+            leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
+            leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
             return leftF;
             
         }

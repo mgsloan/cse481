@@ -128,14 +128,19 @@ namespace KinectViewer
         // not thread safe - lock before calling this
         private void PollFoot(NaoFoot foot, string prefix)
         {
-            //foot.pfr = PollPosition(prefix + "FsrFR");
-            //foot.prr = PollPosition(prefix + "FsrRR");
-            //foot.pfl = PollPosition(prefix + "FsrFL");
-            //foot.prl = PollPosition(prefix + "FsrRL");
             foot.ffr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontRight/Sensor/Value");
             foot.frr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearRight/Sensor/Value");
             foot.ffl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontLeft/Sensor/Value");
             foot.frl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearLeft/Sensor/Value");
+        }
+
+        // not thread safe - lock before calling this
+        public void PollFootPos(NaoFoot foot, string prefix)
+        {
+            foot.pfr = PollPosition(prefix + "FsrFR");
+            foot.prr = PollPosition(prefix + "FsrRR");
+            foot.pfl = PollPosition(prefix + "FsrFL");
+            foot.prl = PollPosition(prefix + "FsrRL");
         }
 
         // not thread safe - lock before calling this
@@ -146,7 +151,7 @@ namespace KinectViewer
 
         public float GetAngles(string part) 
         {
-            return angles[part];
+            return _motion.getAngles(part, false)[0];
         }
 
         public Dictionary<string, ArrayList> GetLimits()

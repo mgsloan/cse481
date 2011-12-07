@@ -48,22 +48,35 @@ namespace KinectViewer
             {
                 string prefix = "L";
                 Vector3 delta = Vector3.Subtract(com, naoSim.GetPosition(prefix + "AnkleRoll"));
-                SetFootNormal(prefix, delta, true);
+                TweakedBalance(prefix, delta, true);
             }
             else if (state == FootState.RIGHT)
             {
                 string prefix = "R";
                 Vector3 delta = Vector3.Subtract(com, naoSim.GetPosition(prefix + "AnkleRoll"));
-                SetFootNormal(prefix, delta, true);
+                TweakedBalance(prefix, delta, true);
             } else if (state == FootState.BOTH)
             {
                 Vector3 delta = Vector3.Subtract(com, BetweenFeet());
-                SetFootNormal("L", delta, false);
-                SetFootNormal("R", delta, false);
+                TweakedBalance("L", delta, false);
+                TweakedBalance("R", delta, false);
             }
         }
 
-        public void SetFootNormal(String prefix, Vector3 target, bool setRoll) {
+        public void TweakedBalance(String prefix, Vector3 target, bool setRoll)
+        {
+            var targetFoot = prefix == "R" ? naoSim.GetRightFoot() : naoSim.GetLeftFoot();
+            float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
+            float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
+            SetFootNormal(prefix, target, setRoll, forwardBias, leftwardBias);
+        }
+
+        public void SetFootNormal(String prefix, Vector3 target, bool setRoll)
+        {
+            SetFootNormal(prefix, target, setRoll, 0.0f, 0.0f);
+        }
+
+        public void SetFootNormal(String prefix, Vector3 target, bool setRoll, float pitchTweak, float rollTweak) {
             // Transform into lower leg local space.
             Matrix mat = Matrix.Invert(naoSim.GetTransform(prefix + "KneePitch"));
             Vector3 local = Vector3.Transform(target, mat);
@@ -136,23 +149,23 @@ namespace KinectViewer
             float lcKneePitch = (float)(anglesl[2] - initialAngles[2]);
 
             Viewer.debugOrigin = BetweenFeet();
-            Viewer.DebugVector(uLength.ToString(), hipL, Color.Red);
-            Viewer.DebugVector(lLength.ToString(), hipR, Color.Red);
+            hipL.X = -hipL.X;
+            hipR.X = -hipR.X;
+            Viewer.DebugVector("", hipL, Color.Red);
+            Viewer.DebugVector("", hipR, Color.Red);
 
             Viewer.debugOrigin = new Vector3(-6f, -2f, 0f);
             Viewer.DebugVector("", displacement, Color.Pink);
-
+            /*
             Viewer.debugOrigin = new Vector3(-3f, 0, 0);
             Viewer.DebugReferenceFrameAtOrigin(lcHipPitch.ToString(), Matrix.CreateRotationX(lcHipPitch));
             Viewer.debugOrigin = new Vector3(-6f, 1f, 0);
             Viewer.DebugReferenceFrameAtOrigin(lcHipRoll.ToString(), Matrix.CreateRotationZ(lcHipRoll));
             Viewer.debugOrigin = new Vector3(-9f, 2f, 0);
             Viewer.DebugReferenceFrameAtOrigin(lcKneePitch.ToString(), Matrix.CreateRotationX(lcKneePitch));
-
+            */
             if (float.IsNaN(rcHipPitch)) rcHipPitch = 0;
             if (float.IsNaN(lcHipPitch)) lcHipPitch = 0;
-
-            AnkleBalance(FootState.BOTH);
 
             naoSim.UpdateAngle("RHipPitch", -rcHipPitch);
             naoSim.UpdateAngle("RHipRoll", rcHipRoll);
@@ -163,6 +176,15 @@ namespace KinectViewer
             naoSim.UpdateAngle("LHipRoll", lcHipRoll);
             naoSim.UpdateAngle("LAnkleRoll", -lcHipRoll);
             naoSim.UpdateAngle("LKneePitch", lcKneePitch);
+            float yawPitch = 0;
+            if (displacement.Y < -uLength) {
+                yawPitch = -1.145303f; //MathUtils.Lerp((float)Math.Pow(-displacement.Y / (maxHeight * 0.9f), 2f), 0f, -1.145303f);
+            }
+            naoSim.UpdateAngle("RHipYawPitch", yawPitch);
+
+            naoSim.UpdatePositions();
+
+            AnkleBalance(FootState.BOTH);
         }
 
         private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot)

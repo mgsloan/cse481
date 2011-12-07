@@ -33,7 +33,7 @@ namespace KinectViewer
         protected Matrix projection;
         protected Matrix viewMatrix;
 
-        Vector3 cameraPosition = new Vector3(0, 1, -2);
+        Vector3 cameraPosition = new Vector3(-5f, 1f, -8f);
         float leftrightRot = 0;
         float updownRot = -MathHelper.Pi / 10.0f;
         const float rotationSpeed = 0.3f;
