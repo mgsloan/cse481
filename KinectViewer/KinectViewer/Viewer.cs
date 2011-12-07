@@ -136,10 +136,11 @@ namespace KinectViewer
             grid2.Draw();
             
             spriteBatch.Begin();
-            LabelledVector[] lines2 = new LabelledVector[lines.Count];
+            LabelledVector[] lines2 = new LabelledVector[lines.Count + 20];
             lines.CopyTo(lines2);
             foreach (LabelledVector l in lines2)
             {
+                if (l != null)
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
 

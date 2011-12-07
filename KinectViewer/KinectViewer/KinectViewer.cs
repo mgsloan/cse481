@@ -27,7 +27,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
        // "128.208.4.14";  //
-        const string IP = false ? "128.208.4.14" : "127.0.0.1";
+        const string IP = true ? "128.208.4.14" : "127.0.0.1";
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
@@ -88,31 +88,40 @@ namespace KinectViewer
                 string[] kinectParts = new string[] { "RShoulderPitch", "RShoulderRoll", "RElbowRoll", "RElbowYaw", "RWristYaw",
                     "LShoulderPitch", "LShoulderRoll", "LElbowRoll", "LElbowYaw", "LWristYaw", "", "", "" };
 
-                /*
-                if (footState == FootState.LEFT) {
-                    kinectParts[kinectParts.Length - 1] = "LHipRoll";
-                    kinectParts[kinectParts.Length - 2] = "LHipPitch";
-                    kinectParts[kinectParts.Length - 3] = "LKneePitch";
-                } else if (footState == FootState.RIGHT) {
+
+                if (footState == FootState.LEFT)
+                {
                     kinectParts[kinectParts.Length - 1] = "RHipRoll";
                     kinectParts[kinectParts.Length - 2] = "RHipPitch";
                     kinectParts[kinectParts.Length - 3] = "RKneePitch";
                 }
-                */
-
-                foreach (string part in kinectParts)
-                    if (kinectAngles.ContainsKey(part))
-                        naoSim.UpdateAngle(part, kinectAngles[part], 0f);
-                /*
-                if (footState == FootState.LEFT)
-                {
-
-                }
                 else if (footState == FootState.RIGHT)
                 {
-
+                    kinectParts[kinectParts.Length - 1] = "LHipRoll";
+                    kinectParts[kinectParts.Length - 2] = "LHipPitch";
+                    kinectParts[kinectParts.Length - 3] = "LKneePitch";
                 }
-                 */
+
+                Vector3 lFoot = getLoc(JointID.AnkleLeft), rFoot = getLoc(JointID.AnkleRight);
+                Vector3 hCenter = getLoc(JointID.HipCenter);
+                Vector3 lDelta = Vector3.Subtract(hCenter, lFoot);
+                Vector3 rDelta = Vector3.Subtract(hCenter, rFoot);
+                lDelta.Normalize();
+                rDelta.Normalize();
+                float ang = (float)Math.Acos(Vector3.Dot(lDelta, rDelta));
+                DebugVector(ang.ToString(), new Vector3(-4f, 4f, 0f), Vector3.Zero, Color.MistyRose);
+
+                foreach (string part in kinectParts) {
+                    if (kinectAngles.ContainsKey(part)) {
+                        float angle = kinectAngles[part];
+                        float smooth = 0.3f;
+                        if (footState == FootState.LEFT && part == "LHipRoll") { angle = ang / 2f; smooth = 0.8f; }
+                        if (footState == FootState.LEFT && part == "RHipRoll") { angle = ang / -2f; smooth = 0.8f; }
+                        if (footState == FootState.RIGHT && part == "LHipRoll") { angle = ang / 2f; smooth = 0.8f; }
+                        if (footState == FootState.RIGHT && part == "RHipRoll") { angle = ang / -2f; smooth = 0.8f; }
+                        naoSim.UpdateAngle(part, angle, smooth);
+                    }
+                }
 
                 if (frame < twoLegStartFrame + 30)
                 {
@@ -124,7 +133,6 @@ namespace KinectViewer
 
                 Vector3 target = getLoc(JointID.Spine);
                 Vector3 initial = twoLegInitial;
-                Vector3 lFoot = getLoc(JointID.AnkleLeft), rFoot = getLoc(JointID.AnkleRight);
                 initial.X = (2 * initial.X + lFoot.X + rFoot.X) / 4f;
                 Vector3 displacement = Vector3.Multiply(Vector3.Subtract(target, initial), toNaoSpace);
                 float dist = Vector3.Distance(displacement, prevDisplacement);
@@ -159,7 +167,7 @@ namespace KinectViewer
                         var position = Vector3.Add(Vector3.Subtract(FromKinectSpace(joint.Position), getLoc(JointID.Spine)), new Vector3(6f, 0, 0));
                         position.X = -position.X;
                         position.Z = -position.Z;
-                        drawPrimitive(sphere, position, Color.Red);
+                        drawPrimitive(sphere, Vector3.Multiply(position, 0.4f), Color.Red);
                     }
                 }
             }
@@ -232,7 +240,7 @@ namespace KinectViewer
             base.LoadContent();
             sphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
             COMsphere = new SpherePrimitive(GraphicsDevice, 0.5f, 8);
-            BodySphere = new SpherePrimitive(GraphicsDevice, 0.4f, 8);
+            BodySphere = new SpherePrimitive(GraphicsDevice, 0.2f, 8);
             RobotSimSphere = new SpherePrimitive(GraphicsDevice, 0.6f, 8);
             leftFootInitial = new Vector3();
             rightFootInitial = new Vector3();

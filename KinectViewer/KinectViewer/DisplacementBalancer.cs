@@ -83,7 +83,7 @@ namespace KinectViewer
                 Viewer.debugOrigin = new Vector3(-7f, 2f, 0f);
                 Viewer.DebugVector("", new Vector3(leftwardBias * 100, forwardBias * 100, 0), Color.OrangeRed);
                 Viewer.DebugVector("rb", new Vector3(rleftward * 100, rforward * 100, 00), Color.MediumVioletRed);
-                SetFootNormal(prefix, target, rforward - 0.08f, rleftward);
+                SetFootNormal(prefix, target, rforward - 0.08f, rleftward - 0.03f);
             }
             else
             {
