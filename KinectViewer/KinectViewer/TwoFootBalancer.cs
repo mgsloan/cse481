@@ -31,7 +31,7 @@ namespace KinectViewer
             this.initAnkle = .085945;//naoSim.GetInitialAngle("RAnklePitch"); //current best =
             this.initHipRoll = 0.0; //naoSim.GetInitialAngle("RHipRoll");
             this.initHipRoll = 0.0; // naoSim.GetInitialAngle("RAnkleRoll");
-
+            this.initAnkleRoll = 0.0;
             //this.initTorsoPosition = naoSim.GetPosition("Torso");
         }
 
@@ -61,8 +61,8 @@ namespace KinectViewer
             naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));
                     
             //double delta_hr = naoSim.GetCurrentAngle("RHipRoll") - initHipRoll;
-            //naoSim.UpdateAngle("LAnkleRoll", (float)(initAnkle - delta_h));
-            //naoSim.UpdateAngle("RAnkleRoll", naoSim.GetCurrentAngle("LAnkleRoll"));
+            naoSim.UpdateAngle("LAnkleRoll", 0f);
+            naoSim.UpdateAngle("RAnkleRoll", 0f);
             SmartBalance(ls, torsoForward);
         }
 
@@ -105,12 +105,11 @@ namespace KinectViewer
 
             pitch += forwardBias;
             roll += leftwardBias;
-            
            
             Console.WriteLine("pitch2: " + pitch);  
             Console.WriteLine("roll: " + roll);
-            naoSim.RAUpdate(pitch, -roll);
-            naoSim.LAUpdate(pitch, -roll);
+            naoSim.RAUpdate(pitch + .05f, 0f);
+            naoSim.LAUpdate(pitch + .05f, 0f);
           
         }
     }

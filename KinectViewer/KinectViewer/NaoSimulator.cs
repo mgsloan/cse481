@@ -12,7 +12,7 @@ namespace KinectViewer
     class NaoSimulator
     {
         public Dictionary<string, JointNode> jointToNode { get; set; }
-        private float speed = 0.2f;
+        private float speed = 0.1f;
         public NaoProxy proxy { get; set; }
         Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
 
@@ -236,7 +236,7 @@ namespace KinectViewer
             }
 
             proxy.SetAngles(new ArrayList(new string[] { "RAnklePitch", "LAnklePitch" }),
-                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .2f);
+                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .1f);
             proxy.SetAngles(joints, values, speed);
         }
 

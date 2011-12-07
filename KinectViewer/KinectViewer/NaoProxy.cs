@@ -89,7 +89,7 @@ namespace KinectViewer
         }
 
         private void Poll()
-        {
+        {   
             lock (objLock)
             {
                 PollFoot(rightFoot, "R");

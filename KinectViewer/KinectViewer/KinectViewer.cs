@@ -23,8 +23,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
 
-        const string IP =   "127.0.0.1"; //"128.208.4.14";
-
+        const string IP =  "128.208.4.14";  //"127.0.0.1"; 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
