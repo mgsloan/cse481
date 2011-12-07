@@ -29,8 +29,8 @@ namespace KinectViewer
             this.initHip = .103259; //naoSim.GetInitialAngle("RHipPitch"); //current best  
             this.initKnee =  -.076658;//naoSim.GetInitialAngle("RKneePitch"); //current best = 
             this.initAnkle = .085945;//naoSim.GetInitialAngle("RAnklePitch"); //current best =
-            this.initHipRoll = naoSim.GetInitialAngle("RHipRoll");
-            this.initHipRoll = naoSim.GetInitialAngle("RAnkleRoll");
+            this.initHipRoll = 0.0; //naoSim.GetInitialAngle("RHipRoll");
+            this.initHipRoll = 0.0; // naoSim.GetInitialAngle("RAnkleRoll");
 
             //this.initTorsoPosition = naoSim.GetPosition("Torso");
         }
@@ -49,43 +49,51 @@ namespace KinectViewer
         //expects stable initial position
         //if knee angle increases by T, ankle pitch increases by T
         //if hip angle increases by T, ankle pitch increases by T
-        public void balance(List<LabelledVector> ls, Vector3 torsoForward, SkeletonData cur_skeleton)
+        public void balance(List<LabelledVector> ls, Vector3 torsoForward, FootState fs)
         {
-            double delta_h = naoSim.GetCurrentAngle("RHipPitch") - initHip;
-            double delta_k = naoSim.GetCurrentAngle("RKneePitch") - initKnee;
+            naoSim.UpdateAngle("LHipYawPitch", 0f);
+            if (fs == FootState.LEFT)
+            {
 
-            naoSim.UpdateAngle("RAnklePitch", (float) (initAnkle - .8 * delta_h - 1 * delta_k), .05f);
-            naoSim.UpdateAngle("RHipYawPitch", 0f);
-            naoSim.UpdateAngle("LKneePitch", naoSim.GetCurrentAngle("RKneePitch"));
-            naoSim.UpdateAngle("LHipPitch", naoSim.GetCurrentAngle("RHipPitch"));
-            naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));
+                double delta_h = naoSim.GetCurrentAngle("LHipPitch") - initHip;
+                double delta_k = naoSim.GetCurrentAngle("LKneePitch") - initKnee;
 
-            DetermineRollAngles(cur_skeleton);
-            
+                naoSim.UpdateAngle("LAnklePitch", (float)(initAnkle - .8 * delta_h - 1 * delta_k), .05f);
+                double delta_hr = naoSim.GetCurrentAngle("LHipRoll") - initHipRoll;
+                naoSim.UpdateAngle("LAnkleRoll", (float)(initAnkle - delta_h), .05f);
+         
+                
+            }
+            else if (fs == FootState.RIGHT)
+            {
+                double delta_h = naoSim.GetCurrentAngle("RHipPitch") - initHip;
+                double delta_k = naoSim.GetCurrentAngle("RKneePitch") - initKnee;
+
+                naoSim.UpdateAngle("RAnklePitch", (float)(initAnkle - .8 * delta_h - 1 * delta_k), .05f);
+                double delta_hr = naoSim.GetCurrentAngle("RHipRoll") - initHipRoll;
+                naoSim.UpdateAngle("RAnkleRoll", naoSim.GetCurrentAngle("LAnkleRoll"));
+            }
+
+            else
+            {
+                double delta_h = naoSim.GetCurrentAngle("RHipPitch") - initHip;
+                double delta_k = naoSim.GetCurrentAngle("RKneePitch") - initKnee;
+
+                naoSim.UpdateAngle("LAnklePitch", (float)(initAnkle - .8 * delta_h - 1 * delta_k), .05f);
+                naoSim.UpdateAngle("LKneePitch", naoSim.GetCurrentAngle("RKneePitch"));
+                naoSim.UpdateAngle("LHipPitch", naoSim.GetCurrentAngle("RHipPitch"));
+                naoSim.UpdateAngle("LAnklePitch", naoSim.GetCurrentAngle("RAnklePitch"));
+                
+                double delta_hr = naoSim.GetCurrentAngle("RHipRoll") - initHipRoll;
+                naoSim.UpdateAngle("LAnkleRoll", (float)(initAnkle - delta_h), .05f);
+                naoSim.UpdateAngle("RAnkleRoll", naoSim.GetCurrentAngle("LAnkleRoll"));
+            }
+       
 
             SmartBalance(ls, torsoForward);
         }
 
-        public void DetermineRollAngles(SkeletonData cur_skeleton) {
-
-            //if (cur_skeleton != null)
-            //{
-            //    double[] lAngles = naoSim.AdjustFeet(MathUtils.FromKinectSpace(cur_skeleton.Joints[JointID.HipCenter].Position));
-            //    naoSim.UpdateAngle("LHipPitch", (float)lAngles[0]);
-            //    Console.WriteLine("LHipPitch: " + ((float) lAngles[0] - (float) Math.PI/2));
-            //    naoSim.UpdateAngle("LHipRoll", (float)lAngles[1]);
-            //    Console.WriteLine("LHipRoll: " + (float)lAngles[1]);
-            //    naoSim.UpdateAngle("LKneePitch", (float)lAngles[2] - (float)Math.PI);
-            //    //naoSim.UpdateAngle("RHipPitch", (float)-feetangles[1][0] + (float)Math.PI / 2);
-            //    //naoSim.UpdateAngle("RHipRoll", (float)-feetangles[1][1] + (float)Math.PI / 2);
-            //    //naoSim.UpdateAngle("RKneePitch", (float)feetangles[1][2] - (float)Math.PI);
-            //}
-            double delta_h = naoSim.GetCurrentAngle("RHipRoll") - initHipRoll;
-            naoSim.UpdateAngle("LAnkleRoll", (float)(initAnkle - delta_h), .05f);
-            naoSim.UpdateAngle("RAnkleRoll", naoSim.GetCurrentAngle("LAnkleRoll"));
-
-
-        }
+     
 
 
         public float Average(params float[] xs) {
@@ -113,10 +121,14 @@ namespace KinectViewer
 
             Vector3 displacement = Vector3.Subtract(com,supportcenter);
 
-            Tuple<float, float> angles = new Tuple<float, float>(0f,0f); //naoSim.GetAnglesRequired("RKneePitch", displacement);
-            float pitch = angles.Item1;
-            float roll = angles.Item2;
+            Matrix mat = Matrix.Invert(naoSim.GetTransform("RKneePitch"));
+            Vector3 local = Vector3.Transform(displacement, mat);
 
+            // Take the angle of the vector to be the angle we need to rotate
+            // the ground plane in order to achieve balance.
+            float roll = (float)Math.Atan2(local.X, local.Y);
+            float pitch = (float)Math.Atan2(local.Z, local.Y);
+                
             // Use Force sensors to tweak result.
             float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
             float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
@@ -133,8 +145,8 @@ namespace KinectViewer
                 
             Console.WriteLine("pitch2: " + pitch);
             Console.WriteLine("roll: " + roll);
-            naoSim.RAUpdate(pitch + .055f, roll - (float) Math.PI/2);
-            naoSim.LAUpdate(pitch + .055f, roll - (float) Math.PI/2);
+            naoSim.RAUpdate(pitch + .055f, roll);
+            naoSim.LAUpdate(pitch + .055f, roll);
             
 
 

@@ -139,6 +139,7 @@ namespace KinectViewer
         override protected void SetOneLegStance()
         {
             TwoLegStand = false;
+                        
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
