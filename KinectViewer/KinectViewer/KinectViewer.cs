@@ -24,8 +24,8 @@ namespace KinectViewer
 
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
-
-        const string IP =  "128.208.4.14";  //"127.0.0.1"; 
+       // "128.208.4.14";  //
+        const string IP =  "127.0.0.1"; 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
@@ -37,7 +37,7 @@ namespace KinectViewer
         protected Vector3 initHr, initHl, initFr, initFl; //hip right, hip left, foot right, foot left
         protected Vector3 curHr, curHl, curFr, curFl;
         protected bool TwoLegStand = false;
-        protected FootState footState = FootState.BOTH;
+        protected FootState footState = FootState.LEFT;
 
         //subclasses implement, this class decides when to call
         protected virtual void SetTwoLegStance() { }
