@@ -65,7 +65,7 @@ namespace KinectViewer
                 displacement = Vector3.Add(correction, displacement);
             }
 
-            Vector3 hipR = new Vector3(displacement.X + hipWidth / 2, maxHeight, 0);
+            Vector3 hipR = new Vector3(displacement.X + hipWidth / 2, maxHeight * 0.9f + displacement.Y, 0);
             Vector3 targetR = new Vector3(feetWidth /  2f, 0, 0);
             Vector3 deltaR = Vector3.Subtract(targetR, hipR);
             float rdist = deltaR.Length();
