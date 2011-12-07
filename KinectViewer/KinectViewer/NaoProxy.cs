@@ -89,47 +89,49 @@ namespace KinectViewer
         }
 
         private void Poll()
-        {
+        {   
             lock (objLock)
             {
-                gx = (float)_memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
-                gy = (float)_memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
-                gyrot = NaoPos.ConvertRotation(gx, gy, 0);
- 
+                PollFoot(rightFoot, "R");
+                PollFoot(leftFoot, "L");
+
+
+                //gx = (float)_memory.getData("Device/SubDeviceList/InertialSensor/AngleX/Sensor/Value");
+                //gy = (float)_memory.getData("Device/SubDeviceList/InertialSensor/AngleY/Sensor/Value");
+                //gyrot = NaoPos.ConvertRotation(gx, gy, 0);
+
                 /* grx = (float)_memory.getData("Device/SubDeviceList/InertialSensor/GyrX/Sensor/Value");
                 gry = (float)_memory.getData("Device/SubDeviceList/InertialSensor/GyrY/Sensor/Value");
                 Console.WriteLine("grx: " + grx.ToString() + " gry: " + gry.ToString());
                 */
 
-                COM = MathUtils.VectorFromList(_motion.getCOM("Body", 0, false));
-            
-                PollFoot(rightFoot, "R");
-                PollFoot(leftFoot, "L");
-                rightFoot.updateFoot(COM);
-                leftFoot.updateFoot(COM);
+                //COM = MathUtils.VectorFromList(_motion.getCOM("Body", 0, false));
 
-                foreach (String part in this.parts)
-                {
-                    if (part != "Torso") angles[part] = _motion.getAngles(part, false)[0];
-                }
+               
+                //rightFoot.updateFoot(COM);
+                //leftFoot.updateFoot(COM);
 
-                foreach (String part in this.parts) com[part] = NaoPos.Convert(MathUtils.VectorFromList(_motion.getCOM(part, 0, false)));
+                //foreach (String part in this.parts)
+                //{
+                //    if (part != "Torso") angles[part] = _motion.getAngles(part, false)[0];
+                //}
+                //foreach (String part in this.parts) com[part] = NaoPos.Convert(MathUtils.VectorFromList(_motion.getCOM(part, 0, false)));
             
-                foreach (String part in this.parts) positions[part] = PollPosition(part);
+                //foreach (String part in this.parts) positions[part] = PollPosition(part);
            
-                foreach (String part in this.parts) masses[part] = _motion.getMass(part);
+                //foreach (String part in this.parts) masses[part] = _motion.getMass(part);
             
-                vel = _motion.getRobotVelocity();
+                //vel = _motion.getRobotVelocity();
             }
         }
 
         // not thread safe - lock before calling this
         private void PollFoot(NaoFoot foot, string prefix)
         {
-            foot.pfr = PollPosition(prefix + "FsrFR");
-            foot.prr = PollPosition(prefix + "FsrRR");
-            foot.pfl = PollPosition(prefix + "FsrFL");
-            foot.prl = PollPosition(prefix + "FsrRL");
+            //foot.pfr = PollPosition(prefix + "FsrFR");
+            //foot.prr = PollPosition(prefix + "FsrRR");
+            //foot.pfl = PollPosition(prefix + "FsrFL");
+            //foot.prl = PollPosition(prefix + "FsrRL");
             foot.ffr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontRight/Sensor/Value");
             foot.frr = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/RearRight/Sensor/Value");
             foot.ffl = (float)_memory.getData("Device/SubDeviceList/" + prefix + "Foot/FSR/FrontLeft/Sensor/Value");

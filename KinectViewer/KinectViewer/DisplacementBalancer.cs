@@ -61,7 +61,7 @@ namespace KinectViewer
             float ldist = deltaL.Length();
 
             if (ldist > length) {
-                Vector3 correction = Vector3.Add(deltaL, Vector3.Multiply(deltaL, length / ldist));
+                Vector3 correction = Vector3.Subtract(deltaL, Vector3.Multiply(deltaL, length / ldist));
                 hipL = Vector3.Add(correction, hipL);
                 displacement = Vector3.Add(correction, displacement);
             }
@@ -72,7 +72,7 @@ namespace KinectViewer
             float rdist = deltaR.Length();
 
             if (rdist > length) {
-                Vector3 correction = Vector3.Add(deltaR, Vector3.Multiply(deltaR, length / rdist));
+                Vector3 correction = Vector3.Subtract(deltaR, Vector3.Multiply(deltaR, length / rdist));
                 hipR = Vector3.Add(correction, hipR);
                 hipL = Vector3.Add(correction, hipL);
                 displacement = Vector3.Add(correction, displacement);

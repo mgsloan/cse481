@@ -25,8 +25,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
 
-        const string IP = "127.0.0.1"; // "128.208.4.225";
-
+        const string IP =  "128.208.4.14";  //"127.0.0.1"; 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
@@ -63,6 +62,7 @@ namespace KinectViewer
             determineFootElevation(skeleton);
             gridOrigin = GetSpine();
             //sc.sendRotationSpeeds(nao.values);
+
             naoSim.UpdatePositions();
             lines.Clear();
             if (footState == FootState.BOTH)
@@ -72,7 +72,7 @@ namespace KinectViewer
         }
 
 
-        // This method is here so that it's easy to switch back and forth between using render requests to
+        // This method is here so that it's easy to switch back and forth between using render requests  to
         // update the robot and using kinect updates to trigger robot update.
         protected void UpdateRobot()
         {
@@ -94,9 +94,9 @@ namespace KinectViewer
 
             //balancer.Balance(1, lines, srRef.Up, frame);
 
+            //twoFootBalancer.balance(lines, srRef.Up);
+            //naoSim.UpdatePositions();
             //naoSim.RSSend();
-
-            //twoFootBalancer.balance(lines, srRef.Forward, footState);
 
         }
 
@@ -127,19 +127,8 @@ namespace KinectViewer
         private void DrawRobot()
         {
             var robot = naoSim.GetRobot();
-            var rightF = naoSim.GetRightFoot();
-            var leftF = naoSim.GetLeftFoot();
-
-            foreach (NaoFoot foot in new[] { rightF, leftF })
-            {
-                foreach (NaoPos pos in new[] { foot.pfl, foot.pfr, foot.prl, foot.prr })
-                {
-                    RobotSimSphere.Draw(Matrix.Multiply(Matrix.CreateScale(0.2f, 0.2f, 0.2f), Matrix.CreateTranslation(pos.position)),
-                                            viewMatrix, projection, Color.Black);
-                }
-            }
-
-            //drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
+            
+            drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
             Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);
             drawPrimitive(COMsphere, naoSim.proxy.GetCOM(), Color.Red);
