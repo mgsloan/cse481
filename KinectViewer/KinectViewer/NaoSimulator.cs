@@ -268,20 +268,17 @@ namespace KinectViewer
             
         }
 
+        public void AUpdate(string prefix, float pitch, float roll)
+        {
+            float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
+            UpdateAngle(prefix + "AnklePitch", pitch2);
+            UpdateAngle(prefix + "AnkleRoll", NearestFeasibleRoll(pitch2, roll));
+        }
+
         // Setting ankle angles, limited to the feasible ranges.
-        public void LAUpdate(float pitch, float roll)
-        {
-            float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
-            UpdateAngle("LAnklePitch", pitch2);
-            UpdateAngle("LAnkleRoll", NearestFeasibleRoll(pitch2, roll));
-        }
-        public void RAUpdate(float pitch, float roll)
-        {
-            float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
-            UpdateAngle("RAnklePitch", pitch2);
-            UpdateAngle("RAnkleRoll", -NearestFeasibleRoll(pitch2, -roll));
-        }
-        
+        public void LAUpdate(float pitch, float roll) { AUpdate("L", pitch, roll); }
+        public void RAUpdate(float pitch, float roll) { AUpdate("R", pitch, roll); }
+                
         // Clamps roll for the left foot diagram.
         private static float NearestFeasibleRoll(float pitch, float roll)
         {

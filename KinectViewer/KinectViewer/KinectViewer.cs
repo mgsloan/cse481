@@ -25,7 +25,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
        // "128.208.4.14";  //
-        const string IP = "128.208.4.14"; //"127.0.0.1"; 
+        const string IP = "127.0.0.1"; 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
@@ -77,6 +77,8 @@ namespace KinectViewer
             //naoSim.UpdateAngle("RAnkleRoll", 0f);
             //naoSim.UpdateAngle("LAnklePitch", 0f);
             //naoSim.UpdateAngle("LAnkleRoll", 0f);
+            naoSim.SenseJoint("RAnkleRoll");
+            naoSim.SenseJoint("LAnkleRoll");
 
             naoSim.UpdatePositions();
             naoSim.RSSend();
@@ -144,7 +146,7 @@ namespace KinectViewer
             drawPrimitive(COMsphere, COM, Color.Green);
             drawPrimitive(COMsphere, naoSim.proxy.GetCOM(), Color.Red);
             Vector3 Rdisplace = Vector3.Transform((naoSim.GetFootTarget(srRef) - COM), Matrix.Invert(srRef));
-            lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
+            lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Orange, "T"));
 
             double[] legRAngles = naoSim.ReadjustLegs(srRef);
             /*

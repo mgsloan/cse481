@@ -41,6 +41,49 @@ namespace KinectViewer
             this.initialAngles = LegIK(Matrix.Identity, new Vector3(0, length - 0.01f, 0), Vector3.Zero);
         }
 
+        public void AnkleBalance(FootState state)
+        {
+            Vector3 com = naoSim.GetCOM();
+            if (state == FootState.LEFT)
+            {
+                string prefix = "L";
+                Vector3 delta = Vector3.Subtract(com, naoSim.GetPosition(prefix + "AnkleRoll"));
+                SetFootNormal(prefix, delta, true);
+            }
+            else if (state == FootState.RIGHT)
+            {
+                string prefix = "R";
+                Vector3 delta = Vector3.Subtract(com, naoSim.GetPosition(prefix + "AnkleRoll"));
+                SetFootNormal(prefix, delta, true);
+            } else if (state == FootState.BOTH)
+            {
+                Vector3 delta = Vector3.Subtract(com, BetweenFeet());
+                SetFootNormal("L", delta, false);
+                SetFootNormal("R", delta, false);
+            }
+        }
+
+        public void SetFootNormal(String prefix, Vector3 target, bool setRoll) {
+            // Transform into lower leg local space.
+            Matrix mat = Matrix.Invert(naoSim.GetTransform(prefix + "KneePitch"));
+            Vector3 local = Vector3.Transform(target, mat);
+
+            // Take the angle of the vector to be the angle we need to rotate
+            // the ground plane in order to achieve balance.
+            float pitch = (float)Math.Atan2(local.Z, local.Y);
+            float roll = (float)Math.Atan2(local.X, local.Y);
+
+            naoSim.AUpdate(prefix, pitch, setRoll ? roll : 0);
+        }
+
+        public Vector3 BetweenFeet()
+        {
+            Vector3 result;
+            Vector3 lfoot = naoSim.GetPosition("LAnkleRoll"), rfoot = naoSim.GetPosition("RAnkleRoll");
+            Vector3.Lerp(ref lfoot, ref rfoot, 0.5f, out result);
+            return result;
+        }
+
         //for when both feet are on the ground
         public void AdjustFeet(Vector3 position)
         {
@@ -92,10 +135,7 @@ namespace KinectViewer
             float lcHipRoll  = (float)(anglesl[1] - initialAngles[1]);
             float lcKneePitch = (float)(anglesl[2] - initialAngles[2]);
 
-            Vector3 middle;
-            Vector3 lfoot = naoSim.GetPosition("LAnkleRoll"), rfoot = naoSim.GetPosition("RAnkleRoll");
-            Vector3.Lerp(ref lfoot, ref rfoot, 0.5f, out middle);
-            Viewer.debugOrigin = middle;
+            Viewer.debugOrigin = BetweenFeet();
             Viewer.DebugVector(uLength.ToString(), hipL, Color.Red);
             Viewer.DebugVector(lLength.ToString(), hipR, Color.Red);
 
@@ -111,6 +151,8 @@ namespace KinectViewer
 
             if (float.IsNaN(rcHipPitch)) rcHipPitch = 0;
             if (float.IsNaN(lcHipPitch)) lcHipPitch = 0;
+
+            AnkleBalance(FootState.BOTH);
 
             naoSim.UpdateAngle("RHipPitch", -rcHipPitch);
             naoSim.UpdateAngle("RHipRoll", rcHipRoll);
