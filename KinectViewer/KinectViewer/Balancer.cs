@@ -33,22 +33,16 @@ namespace KinectViewer
                 targetFoot = naoSim.GetLeftFoot();
                 prefix = "L";
             }
-            /*
-            Vector3 res = Vector3.Transform(torso, MathUtils.ExtractRotation(Matrix.Invert(targetFoot.pfl.transform)));
-            Tuple<float, float> angles2 = naoSim.GetAnglesRequired(prefix + "HipYawPitch", res);
-            naoSim.UpdateAngle(prefix + "HipRoll", angles2.Item1);
-            naoSim.UpdateAngle(prefix + "HipPitch", angles2.Item2);
-            Console.WriteLine("X = " + torso.X.ToString() + "; Y = " + torso.Y.ToString() + "; Z = " + torso.Z.ToString());
-            Console.WriteLine("roll = " + angles2.Item1.ToString() + "; pitch = " + angles2.Item2.ToString());
-             */
-            /*
-            Matrix groundRef = targetFoot.pfl.transform;
-            groundRef.Translation = Vector3.Zero;
             
-            NaoPos kneePos = naoSim.GetPosition(prefix ++ "KneePitch");
+            Vector3 res = Vector3.Transform(torso, MathUtils.ExtractRotation(Matrix.Invert(targetFoot.pfl.transform)));
+            Viewer.DebugVector("", res, Color.Red);
+            
+            //Tuple<float, float> angles2 = naoSim.GetAnglesRequired(prefix + "HipYawPitch", res);
+            float hroll = (float)Math.Atan2(res.X, res.Y);
+            float hpitch = (float)Math.Atan2(res.Z, res.Y);
 
-            naoSim.UpdateAngle(prefix ++ "HipRoll", );
-            */
+            naoSim.UpdateAngle(prefix + "HipRoll", -hroll);
+            naoSim.UpdateAngle(prefix + "HipPitch", hpitch);
             
             // Center of mass, and center of target, both in torso space.
             Vector3 com = naoSim.GetCOM();
@@ -56,12 +50,6 @@ namespace KinectViewer
 
             //Balance vector.  We need it to be vertical.
             Vector3 delta = Vector3.Subtract(com, target);
-
-            /*
-            float time1 = (float)frame / 30.0f;
-            float time2 = (float)frame / 10.0f;
-            Vector3 delta = new Vector3((float)Math.Sin(time1), 1f, (float)Math.Cos(time2));
-            */
 
             // Transform into lower leg local space.
             Matrix mat = Matrix.Invert(naoSim.GetTransform((feet == 2 ? "R" : "L") + "KneePitch"));
@@ -71,14 +59,7 @@ namespace KinectViewer
             // the ground plane in order to achieve balance.
             float roll = (float)Math.Atan2(local.X, local.Y);
             float pitch = (float)Math.Atan2(local.Z, local.Y);
-
-            /*
-            Viewer.debugOrigin = new Vector3(3.0f, 0f, 0f);
-            Tuple<float, float> angles = naoSim.GetAnglesRequired(prefix + "KneePitch", delta);
-            float pitch = angles.Item1;
-            float roll = angles.Item2;
-            */
-
+            
             // Use Force sensors to tweak result.
             float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
             float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;

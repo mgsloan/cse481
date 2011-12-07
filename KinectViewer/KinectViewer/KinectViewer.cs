@@ -80,15 +80,14 @@ namespace KinectViewer
             float ang = 0.2f;
             //naoSim.UpdateAngle("LKneePitch", ang);
             //naoSim.UpdateAngle("LHipPitch", -ang);
-            //naoSim.UpdateAngle("RHipRoll", -.73f);
-            //naoSim.UpdateAngle("RHipPitch", -.5f);
+            naoSim.UpdateAngle("RHipRoll", -.73f);
+            naoSim.UpdateAngle("RHipPitch", -.5f);
             //naoSim.UpdateAngle("RHipYawPitch", 0f);
             //naoSim.UpdateAngle("LHipYawPitch", 0f);
 
-            naoSim.SenseJoint("RHipYawPitch");
-            naoSim.SenseJoint("RAnkleRoll");
-            naoSim.SenseJoint("RAnklePitch");
-
+            //naoSim.SenseJoint("RHipYawPitch");
+            //naoSim.SenseJoint("RAnkleRoll");
+            //naoSim.SenseJoint("RAnklePitch");
             naoSim.SenseJoint("LHipYawPitch");
             naoSim.SenseJoint("LAnkleRoll");
             naoSim.SenseJoint("LAnklePitch");
@@ -135,9 +134,10 @@ namespace KinectViewer
                 }
             }
 
-            drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
+            //drawPrimitive(COMsphere, naoSim.GetTwoFootCenter(), Color.Green);
             Vector3 COM = naoSim.GetCOM();
             drawPrimitive(COMsphere, COM, Color.Green);
+            drawPrimitive(COMsphere, naoSim.proxy.GetCOM(), Color.Red);
             Vector3 Rdisplace = Vector3.Transform((naoSim.GetFootTarget(srRef) - COM), Matrix.Invert(srRef));
             lines.Add(new LabelledVector(COM, COM + Rdisplace, Color.Black, "T"));
 
