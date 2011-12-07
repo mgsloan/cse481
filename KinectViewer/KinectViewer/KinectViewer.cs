@@ -12,13 +12,15 @@ using System.IO;
 
 namespace KinectViewer
 {
+    public enum FootState { LEFT, RIGHT, BOTH };
+
     class KinectViewer : Viewer
     {
-      
 
         protected NaoSimulator naoSim;
-        protected Balancer balancer;
-        private TwoFootBalancer twoFootBalancer;
+        //protected Balancer balancer;
+        //private TwoFootBalancer twoFootBalancer;
+        protected DisplacementBalancer displacementBalancer;
 
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
@@ -47,6 +49,8 @@ namespace KinectViewer
         // Torso reference (manipulated in subclasses)
         protected Matrix srRef { get; set; }
 
+        protected Vector3 GetSpine() { return getLoc(cur_skeleton.Joints[JointID.Spine]); }
+
         protected virtual void UpdateSkeleton(SkeletonData skeleton)
         {
             if (cur_skeleton == null)
@@ -56,9 +60,15 @@ namespace KinectViewer
             }
             cur_skeleton = skeleton;
             determineFootElevation(skeleton);
-            gridOrigin = getLoc(cur_skeleton.Joints[JointID.Spine]);
+            gridOrigin = GetSpine();
             //sc.sendRotationSpeeds(nao.values);
-            
+
+            naoSim.UpdatePositions();
+            lines.Clear();
+            if (footState == FootState.BOTH)
+                displacementBalancer.AdjustFeet(gridOrigin);
+            naoSim.UpdatePositions();
+            naoSim.RSSend();
         }
 
 
@@ -81,13 +91,12 @@ namespace KinectViewer
             //naoSim.SenseJoint("LHipYawPitch");
             //naoSim.SenseJoint("LAnkleRoll");
             //naoSim.SenseJoint("LAnklePitch");
-            //balancer.Balance(1, lines, srRef.Up, frame);
-            twoFootBalancer.balance(lines, srRef.Up);
-            naoSim.UpdatePositions();
-            naoSim.RSSend();
-            //naoSim.RSSend();
 
-            
+            //balancer.Balance(1, lines, srRef.Up, frame);
+
+            //twoFootBalancer.balance(lines, srRef.Up);
+            //naoSim.UpdatePositions();
+            //naoSim.RSSend();
 
         }
 
@@ -95,6 +104,7 @@ namespace KinectViewer
         {
             if (naoSim.connected)
             {
+                //displacementBalancer.InitializeTwoLegStance(Vector3.Zero);
                 UpdateRobot();
                 naoSim.UpdatePositions();
                 frame++;
@@ -175,7 +185,7 @@ namespace KinectViewer
 
                 nui.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(nui_SkeletonFrameReady);
                 // Must set to true and set after call to Initialize
-                nui.NuiCamera.ElevationAngle = 1;
+                nui.NuiCamera.ElevationAngle = -15;
 
                 nui.SkeletonEngine.TransformSmooth = true;
                 // Use to transform and reduce jitter   
@@ -195,18 +205,27 @@ namespace KinectViewer
             }
 
             naoSim = new NaoSimulator(IP);
-            balancer = new Balancer(naoSim);
-            twoFootBalancer = new TwoFootBalancer(naoSim);
+            //balancer = new Balancer(naoSim);
+            //twoFootBalancer = new TwoFootBalancer(naoSim);
+            displacementBalancer = new DisplacementBalancer(naoSim);
         }
 
         void nui_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
             SkeletonFrame allSkeletons = e.SkeletonFrame;
 
-            // Get the first tracked skeleton
-            SkeletonData skeleton = (from s in allSkeletons.Skeletons
-                                     where s.TrackingState == SkeletonTrackingState.Tracked
-                                     select s).FirstOrDefault();
+            SkeletonData skeleton = null;
+            float dist = 10000f;
+            foreach (SkeletonData s in allSkeletons.Skeletons)
+            {
+
+                float sdist = getLoc(s.Position).Length();
+                if (s.TrackingState != SkeletonTrackingState.NotTracked && sdist < dist)
+                {
+                    dist = sdist;
+                    skeleton = s;
+                }
+            }
 
             if (skeleton != null)
             {
@@ -238,23 +257,27 @@ namespace KinectViewer
                 //Console.WriteLine("init_right: " + rightFootInitial.Y);
                 //Console.WriteLine("cur_left: " + cur_left.Y);
                 //Console.WriteLine("cur_right: " + cur_right.Y);
-                if (cur_left.Y - cur_right.Y > .35)
+                if (cur_left.Y - cur_right.Y > .85)
                 {
                     if (!footState.Equals(FootState.LEFT)) Console.WriteLine("your left foot is up");
                     footState = FootState.RIGHT;
-                    SetOneLegStance();
+                    //SetOneLegStance();
                 }
-                else if (cur_left.Y - cur_right.Y < -.35)
+                else if (cur_left.Y - cur_right.Y < -.85)
                 {
                     if (!footState.Equals(FootState.RIGHT)) Console.WriteLine("your right foot is up");
                     footState = FootState.LEFT;
-                    SetOneLegStance();
+                    //SetOneLegStance();
                 }
                 else
                 {
-                    if (!footState.Equals(FootState.BOTH)) Console.WriteLine("both of your feet are on the ground");
+                    if (!footState.Equals(FootState.BOTH))
+                    {
+                        Console.WriteLine("both of your feet are on the ground");
+                        displacementBalancer.InitializeTwoLegStance(GetSpine());
+                    }
                     footState = FootState.BOTH;
-                    SetTwoLegStance();
+                    //SetTwoLegStance();
                 }
             }
             else

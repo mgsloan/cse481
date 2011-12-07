@@ -18,7 +18,7 @@ namespace KinectViewer
         KeyboardState prior_keys;
 
         protected GraphicsDeviceManager graphics;
-        protected Color clearColor = Color.Bisque;
+        protected Color clearColor = Color.Black;
         protected SpriteBatch spriteBatch;
         protected SpriteFont spriteFont;
         protected SampleGrid grid;
@@ -60,11 +60,12 @@ namespace KinectViewer
             grid = new SampleGrid();
             grid.GridSize = 16;
             grid.GridScale = 1.0f;
+            grid.GridColor = Color.DarkGreen;
             grid.LoadGraphicsContent(GraphicsDevice);
             grid2 = new SampleGrid();
             grid2.GridSize = 16;
             grid2.GridScale = 1.0f;
-            grid2.GridColor = Color.Black;
+            grid2.GridColor = Color.Green;
             grid2.LoadGraphicsContent(GraphicsDevice);
 
             LabelledVector.Load(GraphicsDevice);
@@ -139,7 +140,6 @@ namespace KinectViewer
             {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
-            lines.Clear();
             spriteBatch.End();
 
             DrawStuff();
