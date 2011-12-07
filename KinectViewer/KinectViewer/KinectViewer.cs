@@ -25,7 +25,7 @@ namespace KinectViewer
         Runtime nui = new Runtime();
         protected SkeletonData cur_skeleton;
        // "128.208.4.14";  //
-        const string IP =  "127.0.0.1"; 
+        const string IP = "128.208.4.14"; //"127.0.0.1"; 
         SpherePrimitive sphere;
         SpherePrimitive COMsphere;
         SpherePrimitive BodySphere;
@@ -67,6 +67,17 @@ namespace KinectViewer
             lines.Clear();
             if (footState == FootState.BOTH)
                 displacementBalancer.AdjustFeet(gridOrigin);
+            naoSim.UpdateAngle("RHipYawPitch", 0f);
+            /*
+            naoSim.UpdateAngle("LShoulderPitch", 0f);
+            naoSim.UpdateAngle("RShoulderPitch", 0f);
+            naoSim.UpdateAngle("LShoulderYaw", 0f);
+            naoSim.UpdateAngle("RShoulderYaw", 0f);*/
+            //naoSim.UpdateAngle("RAnklePitch", 0f);
+            //naoSim.UpdateAngle("RAnkleRoll", 0f);
+            //naoSim.UpdateAngle("LAnklePitch", 0f);
+            //naoSim.UpdateAngle("LAnkleRoll", 0f);
+
             naoSim.UpdatePositions();
             naoSim.RSSend();
         }

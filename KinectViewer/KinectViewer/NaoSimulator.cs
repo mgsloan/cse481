@@ -48,7 +48,7 @@ namespace KinectViewer
             RShoulderRoll = new JointNode("RShoulderRoll", Vector3.Forward);
             LShoulderRoll = new JointNode("LShoulderRoll", Vector3.Forward);
             LElbowYaw = new JointNode("LElbowRoll", Vector3.Left);
-            RElbowYaw = new JointNode("RElbowRoll", Vector3.Right);
+            RElbowYaw = new JointNode("RElbowRoll", Vector3.Left);
             LElbowRoll = new JointNode("LElbowYaw", Vector3.Up);
             RElbowRoll = new JointNode("RElbowYaw", Vector3.Up);
             LWristYaw = new JointNode("LWristYaw", Vector3.Up);
@@ -59,14 +59,14 @@ namespace KinectViewer
             RHipPitch = new JointNode("RHipPitch", Vector3.Left);
             LHipPitch = new JointNode("LHipPitch", Vector3.Left);
             RHipPitch = new JointNode("RHipPitch", Vector3.Left);
-            LHipRoll = new JointNode("LHipRoll", Vector3.Backward);
+            LHipRoll = new JointNode("LHipRoll", Vector3.Forward);
             RHipRoll = new JointNode("RHipRoll", Vector3.Forward);
             LKneePitch = new JointNode("LKneePitch", Vector3.Left);
             RKneePitch = new JointNode("RKneePitch", Vector3.Left);
             LAnklePitch = new JointNode("LAnklePitch", Vector3.Left);
             RAnklePitch = new JointNode("RAnklePitch", Vector3.Left);
             LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Backward);
-            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Forward);
+            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Backward);
             Torso = new JointNode("Torso", Vector3.Up);
             HeadYaw = new JointNode("HeadYaw", Vector3.Up);
             HeadPitch = new JointNode("HeadPitch", Vector3.Left);

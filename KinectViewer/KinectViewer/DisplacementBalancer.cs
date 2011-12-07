@@ -31,7 +31,7 @@ namespace KinectViewer
             Vector3 lknee = naoSim.GetPosition("LKneePitch");
             Vector3 lfoot = naoSim.GetPosition("LAnkleRoll"), rfoot = naoSim.GetPosition("RAnkleRoll");
             this.hipWidth  = Vector3.Distance(lhip,  rhip);
-            this.feetWidth = 2.38f; //Vector3.Distance(lfoot, rfoot);
+            this.feetWidth = 3f; //Vector3.Distance(lfoot, rfoot);
             this.uLength   = Vector3.Distance(lhip,  lknee);
             this.lLength   = Vector3.Distance(lknee, lfoot);
             this.length = uLength + lLength;
@@ -60,18 +60,21 @@ namespace KinectViewer
             float ldist = deltaL.Length();
 
             if (ldist > length) {
-                Vector3 correction = Vector3.Subtract(deltaL, Vector3.Multiply(deltaL, length / ldist));
+                Vector3 correction = Vector3.Subtract(deltaL, Vector3.Multiply(deltaL, length / ldist - 0.02f));
+                Viewer.DebugVector("cl", correction, Color.Moccasin);
                 hipL = Vector3.Add(correction, hipL);
                 displacement = Vector3.Add(correction, displacement);
             }
 
-            Vector3 hipR = new Vector3(displacement.X + hipWidth / 2, maxHeight, 0);
+            Vector3 hipR = new Vector3(displacement.X + hipWidth / 2, maxHeight * 0.9f + displacement.Y, 0);
             Vector3 targetR = new Vector3(feetWidth /  2f, 0, 0);
             Vector3 deltaR = Vector3.Subtract(targetR, hipR);
             float rdist = deltaR.Length();
 
             if (rdist > length) {
-                Vector3 correction = Vector3.Subtract(deltaR, Vector3.Multiply(deltaR, length / rdist));
+                Vector3 correction = Vector3.Subtract(deltaR, Vector3.Multiply(deltaR, length / rdist - 0.02f));
+                Viewer.debugOrigin = new Vector3(-7.5f, -2f, 0f);
+                Viewer.DebugVector("cr", correction, Color.Snow);
                 hipR = Vector3.Add(correction, hipR);
                 hipL = Vector3.Add(correction, hipL);
                 displacement = Vector3.Add(correction, displacement);
@@ -89,8 +92,15 @@ namespace KinectViewer
             float lcHipRoll  = (float)(anglesl[1] - initialAngles[1]);
             float lcKneePitch = (float)(anglesl[2] - initialAngles[2]);
 
+            Vector3 middle;
+            Vector3 lfoot = naoSim.GetPosition("LAnkleRoll"), rfoot = naoSim.GetPosition("RAnkleRoll");
+            Vector3.Lerp(ref lfoot, ref rfoot, 0.5f, out middle);
+            Viewer.debugOrigin = middle;
+            Viewer.DebugVector(uLength.ToString(), hipL, Color.Red);
+            Viewer.DebugVector(lLength.ToString(), hipR, Color.Red);
+
             Viewer.debugOrigin = new Vector3(-6f, -2f, 0f);
-            Viewer.DebugVector(feetWidth.ToString(), displacement, Color.Pink);
+            Viewer.DebugVector("", displacement, Color.Pink);
 
             Viewer.debugOrigin = new Vector3(-3f, 0, 0);
             Viewer.DebugReferenceFrameAtOrigin(lcHipPitch.ToString(), Matrix.CreateRotationX(lcHipPitch));
@@ -103,11 +113,13 @@ namespace KinectViewer
             if (float.IsNaN(lcHipPitch)) lcHipPitch = 0;
 
             naoSim.UpdateAngle("RHipPitch", -rcHipPitch);
-            naoSim.UpdateAngle("RHipRoll",   rcHipRoll);
+            naoSim.UpdateAngle("RHipRoll", rcHipRoll);
+            naoSim.UpdateAngle("RAnkleRoll", -rcHipRoll);
             naoSim.UpdateAngle("RKneePitch", rcKneePitch);
 
             naoSim.UpdateAngle("LHipPitch", -lcHipPitch);
-            naoSim.UpdateAngle("LHipRoll",  -lcHipRoll);
+            naoSim.UpdateAngle("LHipRoll", lcHipRoll);
+            naoSim.UpdateAngle("LAnkleRoll", -lcHipRoll);
             naoSim.UpdateAngle("LKneePitch", lcKneePitch);
         }
 
