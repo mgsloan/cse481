@@ -65,8 +65,8 @@ namespace KinectViewer
             RKneePitch = new JointNode("RKneePitch", Vector3.Left);
             LAnklePitch = new JointNode("LAnklePitch", Vector3.Left);
             RAnklePitch = new JointNode("RAnklePitch", Vector3.Left);
-            LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Forward);
-            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Forward);
+            LAnkleRoll = new JointNode("LAnkleRoll", Vector3.Backward);
+            RAnkleRoll = new JointNode("RAnkleRoll", Vector3.Backward);
             Torso = new JointNode("Torso", Vector3.Up);
             HeadYaw = new JointNode("HeadYaw", Vector3.Up);
             HeadPitch = new JointNode("HeadPitch", Vector3.Left);
@@ -144,7 +144,7 @@ namespace KinectViewer
                     cur.mass = proxy.GetMass(cur.name);
                     if (cur.name != "Torso")
                     {
-                        cur.initialAngle = proxy.GetAngles(cur.name);
+                        cur.initialAngle = proxy.GetAngle(cur.name);
                         cur.updatedAngle = cur.initialAngle;
                     }
                     Vector3 torsoCom = proxy.GetCOM(cur.name);
@@ -215,9 +215,20 @@ namespace KinectViewer
         public void SenseJoint(string part)
         {
             JointNode node = jointToNode[part];
-            UpdateAngle(part, proxy.GetAngles(part));
+            UpdateAngle(part, proxy.GetAngle(part));
         }
 
+        // Given a set of joint names, sets the angle to the one reported by the robot.
+        public void SenseJoints(string[] parts)
+        {
+            List<float> angles = proxy.GetAngles(parts);
+            for (int i = 0; i < parts.Length; i++ )
+            {
+                string part = parts[i];
+                JointNode node = jointToNode[part];
+                UpdateAngle(part, angles[i]);
+            }
+        }
 
         // Communication with the Nao - propogate the current angles of the
         // simulator.
@@ -268,31 +279,28 @@ namespace KinectViewer
         public void UpdateAngle(string jointName, float val) { if (!float.IsNaN(val)) { SetJoint(jointName, val, 0); } }
 
         public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
-        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0.0f)); }
+        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0.05f)); }
 
         private JointNode SetJoint(string jointName, float val, float smooth)
         {
-            
             bool isPelvis = (jointName == "LHipYawPitch" || jointName == "RHipYawPitch");
             JointNode node = jointToNode[isPelvis ? "LHipYawPitch" : jointName];
+            if (float.IsNaN(val)) return node;
             float prior = node.updatedAngle;
 
-            if (float.IsNaN(prior)) prior = 0;
+            if (float.IsNaN(prior)) prior = val;
             ArrayList limit = (ArrayList)limits[jointName][0];
-            node.updatedAngle = MathUtils.Clamp(val, (float)limit[0], (float)limit[1]);
+            node.updatedAngle = MathUtils.Clamp(prior * smooth + val * (1 - smooth), (float)limit[0], (float)limit[1]);
 
-            node.updatedAngle = prior * smooth + node.updatedAngle * (1 - smooth);
             if (isPelvis) jointToNode["RHipYawPitch"].updatedAngle = node.updatedAngle;
-            //Console.WriteLine("smooth: " + prior.ToString() + " " + values[ix].ToString());
             return node;
-            
         }
 
         public void AUpdate(string prefix, float pitch, float roll)
         {
             float pitch2 = MathUtils.Clamp(pitch, -1.189516f, 0.922747f);
-            UpdateAngle(prefix + "AnklePitch", pitch2, 0.9f);
-            UpdateAngle(prefix + "AnkleRoll", NearestFeasibleRoll(pitch2, roll), 0.9f);
+            UpdateAngle(prefix + "AnklePitch", pitch2, 0.5f);
+            UpdateAngle(prefix + "AnkleRoll", NearestFeasibleRoll(pitch2, roll), 0.7f);
         }
 
         // Setting ankle angles, limited to the feasible ranges.

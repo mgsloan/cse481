@@ -79,12 +79,11 @@ namespace KinectViewer
                 if (part != "Torso")
                 {
                     limits.Add(part, (ArrayList)_motion.getLimits(part));
-                    angles.Add(part, _motion.getAngles(part, false)[0]);
+                    angles.Add(part, _motion.getAngles(part, true)[0]);
                 }
-                com.Add(part, NaoPos.Convert(MathUtils.VectorFromList(_motion.getCOM(part, 0, false))));
+                com.Add(part, NaoPos.Convert(MathUtils.VectorFromList(_motion.getCOM(part, 0, true))));
                 positions.Add(part, PollPosition(part));
                 masses.Add(part, _motion.getMass(part));
-                
             }
         }
 
@@ -123,6 +122,7 @@ namespace KinectViewer
             
                 //vel = _motion.getRobotVelocity();
             }
+            KinectViewer.instance.UpdateRobot();
         }
 
         // not thread safe - lock before calling this
@@ -146,12 +146,17 @@ namespace KinectViewer
         // not thread safe - lock before calling this
         private NaoPos PollPosition(string part)
         {
-            return new NaoPos(_motion.getPosition(part, 0, false));
+            return new NaoPos(_motion.getPosition(part, 0, true));
         }
 
-        public float GetAngles(string part) 
+        public float GetAngle(string part)
         {
-            return _motion.getAngles(part, false)[0];
+            return _motion.getAngles(part, true)[0];
+        }
+
+        public List<float> GetAngles(string[] parts) 
+        {
+            return _motion.getAngles(parts, true);
         }
 
         public Dictionary<string, ArrayList> GetLimits()
@@ -297,7 +302,7 @@ namespace KinectViewer
         {
             lock (objLock)
             {
-                return MathUtils.VectorFromList(_motion.getPosition(part, 0, false));
+                return MathUtils.VectorFromList(_motion.getPosition(part, 0, true));
             }
         }
 

@@ -108,16 +108,14 @@ namespace KinectViewer
             Vector3 RLA = Vector3.Subtract(wristRight, elbowRight);
             Vector3 RH = Vector3.Subtract(handRight, wristRight);
             RUA.Normalize(); RLA.Normalize(); RH.Normalize();
-            //calculateAngles(skeleton, "ra", srRef, srRefInv, RUA, RLA, RH);
+            calculateAngles(skeleton, "ra", srRef, srRefInv, RUA, RLA, RH);
             
             // left arm
             Vector3 LUA = flipXInRef(srRef, srRefInv, Vector3.Subtract(elbowLeft, shoulderLeft));
             Vector3 LLA = flipXInRef(srRef, srRefInv, Vector3.Subtract(wristLeft, elbowLeft));
             Vector3 LH  = flipXInRef(srRef, srRefInv, Vector3.Subtract(handLeft, wristLeft));
             LLA.Normalize(); LUA.Normalize(); LH.Normalize();
-            //calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
-
-            foreach (KeyValuePair<String, float> entry in kinectAngles) naoSim.UpdateAngle(entry.Key, entry.Value, .3f);
+            calculateAngles(skeleton, "la", srRef, srRefInv, LUA, LLA, LH);
 
             //important to call this last (it actually sends the angles to the NAO)
             base.UpdateSkeleton(skeleton);

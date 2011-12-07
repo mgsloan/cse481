@@ -33,9 +33,9 @@ namespace KinectViewer
         protected Matrix projection;
         protected Matrix viewMatrix;
 
-        Vector3 cameraPosition = new Vector3(-5f, 1f, -8f);
+        Vector3 cameraPosition = new Vector3(-5f, -2f, -6f);
         float leftrightRot = 0;
-        float updownRot = -MathHelper.Pi / 10.0f;
+        float updownRot = 0;
         const float rotationSpeed = 0.3f;
         const float moveSpeed = 10.0f;
 
@@ -136,10 +136,13 @@ namespace KinectViewer
             grid2.Draw();
             
             spriteBatch.Begin();
-            foreach (LabelledVector l in lines)
+            LabelledVector[] lines2 = new LabelledVector[lines.Count];
+            lines.CopyTo(lines2);
+            foreach (LabelledVector l in lines2)
             {
                 l.Draw(GraphicsDevice, viewMatrix, projection, spriteBatch, spriteFont);
             }
+
             spriteBatch.End();
 
             DrawStuff();
@@ -202,7 +205,7 @@ namespace KinectViewer
 
             if (KeyFreshPress(keyState, Keys.K)) trap_mouse = !trap_mouse;
 
-            /*
+            
             if (KeyFreshPress(keyState, Keys.F))
             {
                 if (graphics.IsFullScreen)
@@ -219,7 +222,6 @@ namespace KinectViewer
                 }
                 graphics.ApplyChanges();
             }
-             */
 
             // if (keyState.IsKeyDown(Keys.Escape))
 
@@ -254,7 +256,5 @@ namespace KinectViewer
             viewMatrix = Matrix.CreateLookAt(cameraPosition, cameraFinalTarget, cameraOriginalUpVector);
         }
 
-        public static Vector3 getLoc(Joint j) { return getLoc(j.Position); }
-        public static Vector3 getLoc(Vector v) { return Vector3.Multiply(new Vector3(v.X, v.Y, v.Z), 10); }
     }
 }

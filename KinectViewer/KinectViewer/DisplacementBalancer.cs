@@ -10,8 +10,6 @@ namespace KinectViewer
     {
         
         NaoSimulator naoSim;
-        Vector3 initCenter;
-        float maxHeight;
         float feetWidth;
         float hipWidth;
         float skew;
@@ -19,10 +17,18 @@ namespace KinectViewer
         float lLength;
         float length;
         double[] initialAngles;
+        public float lforward, rforward, lleftward, rleftward;
+        string[] legJoints;
+
+        // How much of a squat we're in - from 0 to 1.
+        public float curVT;
+        // side-to-side. 0.5 == center
+        public float curHT;
 
         public DisplacementBalancer(NaoSimulator naoSim)
         {
             this.naoSim = naoSim;
+            legJoints = new string[] { "LHipRoll", "RHipRoll", "LHipPitch", "RHipPitch", "LKneePitch", "RKneePitch" };
         }
 
         public void InitializeTwoLegStance(Vector3 initCenter)
@@ -36,8 +42,6 @@ namespace KinectViewer
             this.lLength   = Vector3.Distance(lknee, lfoot);
             this.length = uLength + lLength;
             this.skew = (feetWidth - hipWidth) / 2;
-            this.maxHeight = (float)Math.Sqrt(Math.Pow(length, 2) - Math.Pow(skew, 2));
-            this.initCenter = initCenter;
             this.initialAngles = LegIK(Matrix.Identity, new Vector3(0, length - 0.01f, 0), Vector3.Zero);
         }
 
@@ -48,37 +52,61 @@ namespace KinectViewer
             {
                 string prefix = "L";
                 Vector3 delta = Vector3.Subtract(com, naoSim.GetPosition(prefix + "AnkleRoll"));
-                TweakedBalance(prefix, delta, true);
+                TweakedBalance(prefix, delta);
             }
             else if (state == FootState.RIGHT)
             {
                 string prefix = "R";
                 Vector3 delta = Vector3.Subtract(com, naoSim.GetPosition(prefix + "AnkleRoll"));
-                TweakedBalance(prefix, delta, true);
+                TweakedBalance(prefix, delta);
             } else if (state == FootState.BOTH)
             {
                 Vector3 delta = Vector3.Subtract(com, BetweenFeet());
-                TweakedBalance("L", delta, false);
-                TweakedBalance("R", delta, false);
+                delta.X = 0;
+                TweakedBalance("L", delta);
+                TweakedBalance("R", delta);
             }
         }
 
-        public void TweakedBalance(String prefix, Vector3 target, bool setRoll)
+        public void TweakedBalance(String prefix, Vector3 target)
         {
             var targetFoot = prefix == "R" ? naoSim.GetRightFoot() : naoSim.GetLeftFoot();
             float forwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.frl, targetFoot.ffr - targetFoot.frr) * 0.01f;
             float leftwardBias = MathUtils.Average(targetFoot.ffl - targetFoot.ffr, targetFoot.frl - targetFoot.frr) * 0.01f;
-            SetFootNormal(prefix, target, setRoll, forwardBias, leftwardBias);
+            if (prefix == "R")
+            {
+                // TODO: PID!
+                rforward += forwardBias;
+                rforward *= 0.5f;
+                rleftward += leftwardBias;
+                rleftward *= 0.5f;
+                Viewer.debugOrigin = new Vector3(-7f, 2f, 0f);
+                Viewer.DebugVector("", new Vector3(leftwardBias * 100, forwardBias * 100, 0), Color.OrangeRed);
+                Viewer.DebugVector("rb", new Vector3(rleftward * 100, rforward * 100, 00), Color.MediumVioletRed);
+                SetFootNormal(prefix, target, rforward - 0.08f, rleftward);
+            }
+            else
+            {
+                // TODO: PID!
+                lforward += forwardBias;
+                lforward *= 0.5f;
+                lleftward += leftwardBias;
+                lleftward *= 0.5f;
+                Viewer.debugOrigin = new Vector3(-5f, 2f, 0f);
+                Viewer.DebugVector("", new Vector3(leftwardBias * 100, forwardBias * 100, 0), Color.OrangeRed);
+                Viewer.DebugVector("lb", new Vector3(lleftward * 100, lforward * 100, 0), Color.MediumVioletRed);
+                SetFootNormal(prefix, target, lforward - 0.08f, lleftward);
+            }
         }
 
-        public void SetFootNormal(String prefix, Vector3 target, bool setRoll)
+        public void SetFootNormal(String prefix, Vector3 target)
         {
-            SetFootNormal(prefix, target, setRoll, 0.0f, 0.0f);
+            SetFootNormal(prefix, target, 0.0f, 0.0f);
         }
 
-        public void SetFootNormal(String prefix, Vector3 target, bool setRoll, float pitchTweak, float rollTweak) {
+        public void SetFootNormal(String prefix, Vector3 target,  float pitchTweak, float rollTweak) {
             // Transform into lower leg local space.
-            Matrix mat = Matrix.Invert(naoSim.GetTransform(prefix + "KneePitch"));
+            Matrix mat = MathUtils.ExtractRotation(Matrix.Invert(naoSim.GetTransform(prefix + "KneePitch")));
             Vector3 local = Vector3.Transform(target, mat);
 
             // Take the angle of the vector to be the angle we need to rotate
@@ -86,7 +114,7 @@ namespace KinectViewer
             float pitch = (float)Math.Atan2(local.Z, local.Y);
             float roll = (float)Math.Atan2(local.X, local.Y);
 
-            naoSim.AUpdate(prefix, pitch, setRoll ? roll : 0);
+            naoSim.AUpdate(prefix, pitch + pitchTweak, -roll + rollTweak); //(prefix == "R" ? -0.05f : 0.05f));
         }
 
         public Vector3 BetweenFeet()
@@ -97,44 +125,70 @@ namespace KinectViewer
             return result;
         }
 
-        //for when both feet are on the ground
-        public void AdjustFeet(Vector3 position)
+        public void Balance(FootState state, Vector3 position, float width)
         {
-            Vector3 displacement = Vector3.Multiply(Vector3.Subtract(position, initCenter), 0.6f);
+            if (state == FootState.BOTH)
+            {
+                TwoLegs(position, width);
+            }
+            else if (state == FootState.LEFT)
+            {
+                curHT = 0.5f;
+            }
+            naoSim.UpdatePositions();
+            AnkleBalance(state);
+        }
+        
+        //for when both feet are on the ground
+        public void TwoLegs(Vector3 displacement, float width)
+        {
 
-            Viewer.debugOrigin = new Vector3(-8f, -2f, 0f);
+            if (width < 2.3f) width = 2.3f;
 
             displacement.Z = 0.0f;
-            Viewer.DebugVector("d1", displacement, Color.Plum);
+            Viewer.DebugVector("d1", new Vector3(-8f, -2f, 0f), displacement, Color.Plum);
 
+            float currentFeetWidth = MathUtils.Lerp(curVT, width, 1.5f);
+            Console.WriteLine(displacement.Y.ToString());
+            displacement.X *= (1.2f - curVT);
             // Compute hip / knee
 
-            Vector3 hipL = new Vector3(displacement.X - hipWidth / 2, maxHeight * 0.9f + displacement.Y, 0);
-            Vector3 targetL = new Vector3(feetWidth / -2f, 0, 0);
+            if (displacement.Y < length * -0.85f)
+            {
+                displacement.Y = length * -0.85f;
+                displacement.X = 0f;
+                //currentFeetWidth = hipWidth;
+            }
+
+            Vector3 hipL = new Vector3(displacement.X - hipWidth / 2, length * 0.9f + displacement.Y, 0);
+            Vector3 targetL = new Vector3(currentFeetWidth / -2f, 0, 0);
             Vector3 deltaL = Vector3.Subtract(targetL, hipL);
 
             float ldist = deltaL.Length();
 
             if (ldist > length) {
                 Vector3 correction = Vector3.Subtract(deltaL, Vector3.Multiply(deltaL, length / ldist - 0.02f));
-                Viewer.DebugVector("cl", correction, Color.Moccasin);
+                Viewer.DebugVector("cl", Vector3.Add(new Vector3(-8f, -2f, 0f), displacement), correction, Color.Snow);
                 hipL = Vector3.Add(correction, hipL);
                 displacement = Vector3.Add(correction, displacement);
             }
 
-            Vector3 hipR = new Vector3(displacement.X + hipWidth / 2, maxHeight * 0.9f + displacement.Y, 0);
-            Vector3 targetR = new Vector3(feetWidth /  2f, 0, 0);
+            Vector3 hipR = new Vector3(displacement.X + hipWidth / 2, length * 0.9f + displacement.Y, 0);
+            Vector3 targetR = new Vector3(currentFeetWidth / 2f, 0, 0);
             Vector3 deltaR = Vector3.Subtract(targetR, hipR);
             float rdist = deltaR.Length();
 
             if (rdist > length) {
                 Vector3 correction = Vector3.Subtract(deltaR, Vector3.Multiply(deltaR, length / rdist - 0.02f));
-                Viewer.debugOrigin = new Vector3(-7.5f, -2f, 0f);
-                Viewer.DebugVector("cr", correction, Color.Snow);
+                Viewer.DebugVector("cr", Vector3.Add(new Vector3(-8f, -2f, 0f), displacement), correction, Color.Snow);
                 hipR = Vector3.Add(correction, hipR);
                 hipL = Vector3.Add(correction, hipL);
                 displacement = Vector3.Add(correction, displacement);
             }
+
+            curVT = MathUtils.Clamp((float)Math.Pow(-displacement.Y / (length * 0.9f), 1f), 0, 1);
+            curHT = (float)(0.5f + displacement.X / feetWidth);
+            Viewer.DebugVector(curHT.ToString(), new Vector3(-8f, -3f, 0f), new Vector3(0, curHT * -5f, 0), Color.MediumSpringGreen);
 
             double[] anglesr, anglesl;
             anglesr = LegIK(Matrix.Identity, hipR, targetR);
@@ -149,13 +203,9 @@ namespace KinectViewer
             float lcKneePitch = (float)(anglesl[2] - initialAngles[2]);
 
             Viewer.debugOrigin = BetweenFeet();
-            hipL.X = -hipL.X;
-            hipR.X = -hipR.X;
-            Viewer.DebugVector("", hipL, Color.Red);
-            Viewer.DebugVector("", hipR, Color.Red);
-
-            Viewer.debugOrigin = new Vector3(-6f, -2f, 0f);
-            Viewer.DebugVector("", displacement, Color.Pink);
+            //Viewer.DebugVector("", hipL, Color.Red);
+            //Viewer.DebugVector("", hipR, Color.Red);
+            Viewer.DebugVector(lcKneePitch.ToString(), new Vector3(width, 0, 0), Color.MintCream);
             /*
             Viewer.debugOrigin = new Vector3(-3f, 0, 0);
             Viewer.DebugReferenceFrameAtOrigin(lcHipPitch.ToString(), Matrix.CreateRotationX(lcHipPitch));
@@ -164,27 +214,29 @@ namespace KinectViewer
             Viewer.debugOrigin = new Vector3(-9f, 2f, 0);
             Viewer.DebugReferenceFrameAtOrigin(lcKneePitch.ToString(), Matrix.CreateRotationX(lcKneePitch));
             */
-            if (float.IsNaN(rcHipPitch)) rcHipPitch = 0;
-            if (float.IsNaN(lcHipPitch)) lcHipPitch = 0;
 
-            naoSim.UpdateAngle("RHipPitch", -rcHipPitch);
-            naoSim.UpdateAngle("RHipRoll", rcHipRoll);
-            naoSim.UpdateAngle("RAnkleRoll", -rcHipRoll);
-            naoSim.UpdateAngle("RKneePitch", rcKneePitch);
+            //naoSim.SenseJoints(legJoints);
+            //naoSim.UpdatePositions();
+            //AnkleBalance(FootState.BOTH);
 
-            naoSim.UpdateAngle("LHipPitch", -lcHipPitch);
-            naoSim.UpdateAngle("LHipRoll", lcHipRoll);
-            naoSim.UpdateAngle("LAnkleRoll", -lcHipRoll);
-            naoSim.UpdateAngle("LKneePitch", lcKneePitch);
-            float yawPitch = 0;
-            if (displacement.Y < -uLength) {
-                yawPitch = -1.145303f; //MathUtils.Lerp((float)Math.Pow(-displacement.Y / (maxHeight * 0.9f), 2f), 0f, -1.145303f);
-            }
-            naoSim.UpdateAngle("RHipYawPitch", yawPitch);
+            // Apply some leg safety.
+            /*
+            float hipDelta = rcHipRoll - lcHipRoll;
+            if (hipDelta > 5) {
+                rcHipRoll -= hipDelta / 2;
+                lcHipRoll += hipDelta / 2;
+            }*/
 
-            naoSim.UpdatePositions();
+            float smooth = 0.2f;
+            naoSim.UpdateAngle("RHipPitch",  -rcHipPitch, smooth);
+            naoSim.UpdateAngle("RHipRoll", rcHipRoll, smooth);
+            //naoSim.UpdateAngle("RAnkleRoll", rcHipRoll, smooth);
+            naoSim.UpdateAngle("RKneePitch", rcKneePitch, smooth);
 
-            AnkleBalance(FootState.BOTH);
+            naoSim.UpdateAngle("LHipPitch", -lcHipPitch, smooth);
+            naoSim.UpdateAngle("LHipRoll", lcHipRoll, smooth);
+            //naoSim.UpdateAngle("LAnkleRoll", lcHipRoll, smooth);
+            naoSim.UpdateAngle("LKneePitch", lcKneePitch, smooth);
         }
 
         private double[] LegIK(Matrix BodyTxform, Vector3 hip, Vector3 foot)
