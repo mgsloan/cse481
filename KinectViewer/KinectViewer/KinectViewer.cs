@@ -14,7 +14,7 @@ namespace KinectViewer
 {
     class KinectViewer : Viewer
     {
-      
+        private enum FootState { LEFT, RIGHT, BOTH };
 
         protected NaoSimulator naoSim;
         protected Balancer balancer;
