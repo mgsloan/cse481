@@ -12,7 +12,7 @@ namespace KinectViewer
     class NaoSimulator
     {
         public Dictionary<string, JointNode> jointToNode { get; set; }
-        private float speed = 0.2f;
+        private float speed = 0.1f;
         public NaoProxy proxy { get; set; }
         Dictionary<string, ArrayList> limits = new Dictionary<string, ArrayList>();
 
@@ -152,27 +152,8 @@ namespace KinectViewer
 
                     //Console.WriteLine(torsoCom.ToString() + ", transformed: " + cur.com.ToString()); 
 
-                    //set the foot sensors in ankleroll reference frame
-                    if (cur.name == "RAnkleRoll")
-                    {
-                        //set the rankleroll angles 
-                        var rightFoot = proxy.GetRightFoot();
-                        rightFLocal = new Vector3[4];
-                        rightFLocal[0] = Vector3.Transform(rightFoot.pfl.position, toLocal);
-                        rightFLocal[1] = Vector3.Transform(rightFoot.pfr.position, toLocal);
-                        rightFLocal[2] = Vector3.Transform(rightFoot.prl.position, toLocal);
-                        rightFLocal[3] = Vector3.Transform(rightFoot.prr.position, toLocal);
-                    }
-                    else if (cur.name == "LAnkleRoll")
-                    {
-                        var leftFoot = proxy.GetLeftFoot();
-                        leftFLocal = new Vector3[4];
-                        leftFLocal[0] = Vector3.Transform(leftFoot.pfl.position, toLocal);
-                        leftFLocal[1] = Vector3.Transform(leftFoot.pfr.position, toLocal);
-                        leftFLocal[2] = Vector3.Transform(leftFoot.prl.position, toLocal);
-                        leftFLocal[3] = Vector3.Transform(leftFoot.prr.position, toLocal);
-                    }
-
+                 
+                    
                     cur = cur.next;
                     prev = temp;
                 }
@@ -255,7 +236,7 @@ namespace KinectViewer
             }
 
             proxy.SetAngles(new ArrayList(new string[] { "RAnklePitch", "LAnklePitch" }),
-                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .2f);
+                        new ArrayList(new float[] { jointToNode["RAnklePitch"].updatedAngle, jointToNode["LAnklePitch"].updatedAngle }), .1f);
             proxy.SetAngles(joints, values, speed);
         }
 
@@ -267,7 +248,7 @@ namespace KinectViewer
         public void UpdateAngle(string jointName, float val) { if (!float.IsNaN(val)) { SetJoint(jointName, val, 0); } }
 
         public void UpdateAngleAndPos(string jointName, float val, float smooth) { UpdateChain(SetJoint(jointName, val, smooth)); }
-        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0)); }
+        public void UpdateAngleAndPos(string jointName, float val)               { UpdateChain(SetJoint(jointName, val, 0.7f)); }
 
         private JointNode SetJoint(string jointName, float val, float smooth)
         {
@@ -384,7 +365,7 @@ namespace KinectViewer
             return new Tuple<float, float>(angle, GetAxisAngle(local2, jb.orientation));
         }
          */
-
+        /*
         private Tuple<float, float> GetAnglesInternal(JointNode ja, JointNode jb, JointNode jc, Vector3 vec)
         {
             // TODO: this reduplicates the logic expressed in the UpdatePositions method, but without actually mutating
@@ -400,21 +381,21 @@ namespace KinectViewer
             float angle1 = GetAxisAngle(local1, jb.orientation);
 
             // Transformation appropriately rotated by the determined angle.
-            trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jb.orientation, -angle1));
+            trans = MathUtils.RotateByRev(Matrix.CreateFromAxisAngle(jb.orientation, -angle1), trans);
 
             Viewer.debugOrigin = new Vector3(3f, 0, 0f);
-            Viewer.DebugReferenceFrameAtOrigin("t1", trans);
+            Viewer.DebugReferenceFrame("t1", trans);
 
             // Local space of the second joint, with zero rotation.
-            trans = MathUtils.RotateBy(
-                Matrix.Multiply(jc.localPosition, trans),
-                jc.MakeRotation(0.0f));
+            trans = MathUtils.RotateBy(Matrix.Multiply(jc.localPosition, trans), jc.MakeRotation(0.0f));
             Vector3 local2 = Vector3.Transform(vec, MathUtils.ExtractRotation(Matrix.Invert(trans)));
             float angle2 = GetAxisAngle(local2, jc.orientation);
             Console.WriteLine(angle2.ToString());
 
-            trans = MathUtils.RotateBy(trans, Matrix.CreateFromAxisAngle(jc.orientation, -angle2));
-            Viewer.DebugReferenceFrameAtOrigin("t2", trans);
+
+            trans = MathUtils.RotateByRev(Matrix.CreateFromAxisAngle(jc.orientation, -angle2), trans);
+            Viewer.DebugReferenceFrame("t2", trans);
+            Viewer.debugOrigin = new Vector3(4.0f, 0, 0);
 
 
             return new Tuple<float, float>(angle1, angle2);
@@ -435,43 +416,41 @@ namespace KinectViewer
 
             Tuple<float, float> angles = GetAnglesInternal(ja, jb, jc, vec);
             SetJoint(jb.name, angles.Item1, smooth);
-
             SetJoint(jc.name, angles.Item2, smooth);
         }
+         */
+
+
 
         public NaoFoot GetRightFoot()
         {
-            var ankleRef = RAnkleRoll.torsoSpacePosition;
-            rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
-            rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
-            rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
-            rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
+            //var ankleRef = RAnkleRoll.torsoSpacePosition;
+            //rightF.pfl.position = Vector3.Transform(rightFLocal[0], ankleRef);
+            //rightF.pfr.position = Vector3.Transform(rightFLocal[1], ankleRef);
+            //rightF.prl.position = Vector3.Transform(rightFLocal[2], ankleRef);
+            //rightF.prr.position = Vector3.Transform(rightFLocal[3], ankleRef);
 
             return rightF;
         }
         public NaoFoot GetLeftFoot()
         {
-            var ankleRef = LAnkleRoll.torsoSpacePosition;
-            leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
-            leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
-            leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
-            leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
-
+            
+            //var ankleRef = LAnkleRoll.torsoSpacePosition;
+            //leftF.pfl.position = Vector3.Transform(leftFLocal[0], ankleRef);
+            //leftF.pfr.position = Vector3.Transform(leftFLocal[1], ankleRef);
+            //leftF.prl.position = Vector3.Transform(leftFLocal[2], ankleRef);
+            //leftF.prr.position = Vector3.Transform(leftFLocal[3], ankleRef);
             return leftF;
+            
         }
 
         //assumes both feet are flat on the ground
         public Vector3 GetTwoFootCenter()
         {
             var LAnkleRef = LAnkleRoll.torsoSpacePosition;
-            var frontleftleft = Vector3.Transform(leftFLocal[0], LAnkleRef);
-            var backleftleft = Vector3.Transform(leftFLocal[2], LAnkleRef);
-
             var RAnkleRef = RAnkleRoll.torsoSpacePosition;
-            var backrightright = Vector3.Transform(rightFLocal[0], RAnkleRef);
-            var frontrightright = Vector3.Transform(rightFLocal[1], RAnkleRef);
 
-            return NaoFoot.VectorAverage(frontleftleft, backleftleft, backrightright, frontrightright);
+            return NaoFoot.VectorAverage(new Vector3[] {LAnkleRef.Translation, RAnkleRef.Translation} );
         }
 
         //returns the current COM based off the current positions of the parts and their masses

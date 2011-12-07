@@ -42,7 +42,7 @@ namespace KinectViewer
             Vector3 dY2legs = Vector3.Cross(dZlegs, Xlegs);
             Matrix srReflegs = Matrix.CreateWorld(Vector3.Zero, dZlegs, dY2legs);
             Matrix srRefInvlegs = Matrix.Invert(srReflegs);
-
+            
             curHl = hipLeft;
             curHr = hipRight;
             curFl = footLeft;
@@ -139,6 +139,7 @@ namespace KinectViewer
         override protected void SetOneLegStance()
         {
             TwoLegStand = false;
+                        
         }
 
         private Vector3 flipXInRef(Matrix forward, Matrix back, Vector3 vec)
